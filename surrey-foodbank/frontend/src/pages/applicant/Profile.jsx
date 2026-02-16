@@ -1,8 +1,12 @@
+import Typography from "@mui/material/Typography";
+
 function Profile() {
   return (
     <>
-    <h2>Applicant Profile Page</h2>
-    <h3>Shows the user's registration form responses and existing appointments</h3>
+      <Typography variant="h2">Applicant Profile Page</Typography>
+      <Typography variant="h3">
+        Shows the user's registration form responses and existing appointments
+      </Typography>
     </>
   );
 }
