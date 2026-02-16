@@ -1,6 +1,10 @@
+import Typography from "@mui/material/Typography";
+
 function Login() {
   return (
-    <h2>Staff Login Page</h2>
+    <>
+      <Typography variant="h2">Staff login page</Typography>
+    </>
   );
 }
 

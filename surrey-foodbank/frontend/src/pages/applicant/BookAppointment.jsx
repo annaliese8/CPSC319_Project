@@ -1,6 +1,10 @@
+import Typography from "@mui/material/Typography";
+
 function BookAppointment() {
   return (
-    <h2>Booking an Appointment Page</h2>
+    <>
+      <Typography variant="h2">Booking an Appointment Page</Typography>;
+    </>
   );
 }
 

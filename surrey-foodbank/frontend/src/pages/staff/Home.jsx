@@ -1,7 +1,9 @@
+import Typography from "@mui/material/Typography";
+
 function Home() {
   return (
     <>
-    <h2>Staff Home Page</h2>
+      <Typography variant="h2">Staff home page</Typography>
     </>
   );
 }
