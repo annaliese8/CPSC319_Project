@@ -1,0 +1,96 @@
+.booking-container {
+  display: flex;
+  height: 100vh;
+  font-family: Arial, sans-serif;
+}
+
+.calendar {
+  flex: 3;
+  overflow-y: scroll;
+  border-right: 1px solid #ddd;
+}
+
+.calendar-header {
+  display: flex;
+  background: #f7f7f7;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.day-header {
+  flex: 1;
+  padding: 10px;
+  text-align: center;
+  font-weight: bold;
+  border-left: 1px solid #eee;
+}
+
+.time-column {
+  width: 70px;
+}
+
+.calendar-row {
+  display: flex;
+}
+
+.time-label {
+  width: 70px;
+  padding: 10px;
+  font-size: 12px;
+  color: #666;
+  border-top: 1px solid #eee;
+}
+
+.slot {
+  flex: 1;
+  height: 40px;
+  border-left: 1px solid #eee;
+  border-top: 1px solid #eee;
+  cursor: pointer;
+}
+
+.available {
+  background-color: #4cc5dc;
+}
+
+.available:hover {
+  background-color: #005070;
+}
+
+.unavailable {
+  background-color: #f2f2f2;
+  cursor: not-allowed;
+}
+
+.selected {
+  background-color: #005070 !important;
+}
+
+.side-panel {
+  flex: 1;
+  padding: 30px;
+}
+
+.side-panel button {
+  padding: 10px 20px;
+  background-color: #005070;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.side-panel button:hover {
+  background-color: #f24c62;
+}
+
+.confirmation-page {
+  text-align: center;
+  padding: 100px;
+}
+
+.confirmation-page button {
+  margin-top: 20px;
+  padding: 10px 20px;
+}
