@@ -1,15 +1,17 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import Typography from "@mui/material/Typography";
-import Window from "../../components/Window";
 import Button from "@mui/material/Button";
 import UserNameField from "../../components/UserNameField";
 import Link from "@mui/material/Link";
 import PasswordField from "../../components/PasswordField";
 import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
+import Window from "../../components/Window";
+
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const ADMIN_PASSWORD = import.meta.env.VITE_STAFF_PASS;
 const ADMIN_USERNAME = import.meta.env.VITE_STAFF_USER;
+
 
 function Login() {
   const [password, setPassword] = useState("");
@@ -31,6 +33,7 @@ function Login() {
       <Window title="Surrey Food Bank Administrator Login">
         <UserNameField onChange={(e) => setUsername(e.target.value)} error={error} helperText={error ? "Incorrect username or password. Please try again." : ""} />
         <PasswordField onChange={(e) => setPassword(e.target.value)} error={error} helperText={error ? "Incorrect username or password. Please try again." : ""} />
+
         <Stack
           direction="row"
           spacing={2}
