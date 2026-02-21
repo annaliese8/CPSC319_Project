@@ -1,13 +1,14 @@
 import { Box } from "@mui/material";
 import StaffTopBar from "../../components/StaffTopBar";
 import WelcomePanel from "../../components/WelcomePanel";
-import AdminCalendarPanel from "../../components/AdminCalendarPanel";
+//import AdminCalendarPanel from "../../components/AdminCalendarPanel";
 import { useNavigate } from 'react-router-dom';
 
 function Home() {
   const navigate = useNavigate();
-  const handleLogout = () => navigate('/staff/login');
-  const handleEditSlots = () => console.log("Edit Available Slots clicked");
+  const staffBase = import.meta.env.VITE_STAFF_BASE;
+  const handleLogout = () => navigate(`/${staffBase}/login`);
+  //const handleEditSlots = () => console.log("Edit Available Slots clicked");
 
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
