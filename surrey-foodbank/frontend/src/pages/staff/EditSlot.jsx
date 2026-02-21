@@ -50,11 +50,18 @@ function EditSlot() {
   const handleSave = () => {
       setsavedBlockedSlots(blockedSlots);
       setEditing(false);
+      clearMouseTrackers();
   };
   const handleCancel = () => {
       setBlockedSlots(savedBlockedSlots);
       setEditing(false);
+      clearMouseTrackers();
   };
+
+  const clearMouseTrackers = () => {
+      setIsBlocking(false);
+      setIsUnblocking(false);
+  }
 
   const handleEditMode = () => {
       setEditing(true);
@@ -78,7 +85,7 @@ function EditSlot() {
         <div className="calendar-header">
           <div className="time-column"></div>
           {days.map((day) => (
-            <div key={day} className="day-header prevent-select">
+            <div key={day} className="day-header">
               {day}
             </div>
           ))}
@@ -86,7 +93,7 @@ function EditSlot() {
 
           {timeSlots.map((time) => (
               <div key={time} className="calendar-row">
-                  <div className="time-label prevent-select">{time}</div>
+                  <div className="time-label">{time}</div>
                   {days.map((day) => {
                       const isAvailable = Math.random() > 0.4; // random availability
                       if(editing) {
@@ -94,14 +101,13 @@ function EditSlot() {
                               <div
                                   key={day + time}
                                   className={`slot ${isBlocked(day,time)? "unavailable-vis" : isAvailable? "available": "booked"}`}
-                                  onMouseDownCapture={() => {
+                                  onMouseDown={() => {
                                       if (!isBlocked(day,time)) setIsBlocking(true)
                                       else setIsUnblocking(true)
                                     }
                                   }
-                                  onMouseUpCapture={() => {
-                                      setIsBlocking(false)
-                                      setIsUnblocking(false)
+                                  onMouseUp={() => {
+                                      clearMouseTrackers()
                                     }
                                   }
                                   onMouseOver={() => {
@@ -131,7 +137,7 @@ function EditSlot() {
 
       {/* Booking Panel */}
       <div className="side-panel">
-        <h3 className="prevent-select">Appointment Listing</h3>
+        <h3>Appointment Listing</h3>
         {editing ? (
           <>
             <button onClick={handleSave}>Confirm Changes</button>
