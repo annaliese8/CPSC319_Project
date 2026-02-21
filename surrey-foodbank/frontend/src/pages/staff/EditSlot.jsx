@@ -43,6 +43,8 @@ function EditSlot() {
 
 
   const [editing, setEditing] = useState(false);
+    const [isBlocking, setIsBlocking] = useState(false);
+    const [isUnblocking, setIsUnblocking] = useState(false);
 
   const handleSave = () => {
       setEditing(false);
@@ -81,6 +83,21 @@ function EditSlot() {
                               <div
                                   key={day + time}
                                   className={`slot ${isBlocked(day,time)? "unavailable-vis" : isAvailable? "available": "booked"}`}
+                                  onMouseDownCapture={() => {
+                                      if (!isBlocked(day,time)) setIsBlocking(true)
+                                      else setIsUnblocking(true)
+                                    }
+                                  }
+                                  onMouseUpCapture={() => {
+                                      setIsBlocking(false)
+                                      setIsUnblocking(false)
+                                    }
+                                  }
+                                  onMouseOver={() => {
+                                      if (isBlocking && !isBlocked(day,time)) addBlockedSlot([day,time])
+                                      if (isUnblocking && isBlocked(day,time)) removeBlockedSlot([day,time])
+                                    }
+                                  }
                                   onClick={() =>
                                       !isBlocked(day,time)? addBlockedSlot([day,time]) : removeBlockedSlot([day,time])
                                   }
