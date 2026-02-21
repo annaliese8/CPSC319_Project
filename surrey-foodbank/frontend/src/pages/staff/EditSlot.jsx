@@ -32,7 +32,8 @@ const generateInitBlockedSlots = () => {
 const timeSlots = generateTimeSlots();
 
 function EditSlot() {
-    const [blockedSlots, setBlockedSlots] = useState(generateInitBlockedSlots);
+    const [savedBlockedSlots, setsavedBlockedSlots] = useState(generateInitBlockedSlots);
+    const [blockedSlots, setBlockedSlots] = useState(savedBlockedSlots);
     const addBlockedSlot = (slot) => {
         setBlockedSlots((prevSlots) => [...prevSlots, slot]);
     }
@@ -47,7 +48,11 @@ function EditSlot() {
     const [isUnblocking, setIsUnblocking] = useState(false);
 
   const handleSave = () => {
+      setsavedBlockedSlots(blockedSlots);
       setEditing(false);
+  };
+  const handleCancel = () => {
+        setEditing(false);
   };
 
   const handleEditMode = () => {
@@ -55,7 +60,12 @@ function EditSlot() {
   };
 
     const isBlocked = (day,time) => {
-        return blockedSlots.some(arr =>
+        if(editing) {
+            return blockedSlots.some(arr =>
+                arr.every((val, index) => val === [day,time][index])
+            );
+        }
+        return savedBlockedSlots.some(arr =>
            arr.every((val, index) => val === [day,time][index])
         );
     }
@@ -67,7 +77,7 @@ function EditSlot() {
         <div className="calendar-header">
           <div className="time-column"></div>
           {days.map((day) => (
-            <div key={day} className="day-header">
+            <div key={day} className="day-header prevent-select">
               {day}
             </div>
           ))}
@@ -75,7 +85,7 @@ function EditSlot() {
 
           {timeSlots.map((time) => (
               <div key={time} className="calendar-row">
-                  <div className="time-label">{time}</div>
+                  <div className="time-label prevent-select">{time}</div>
                   {days.map((day) => {
                       const isAvailable = Math.random() > 0.4; // random availability
                       if(editing) {
@@ -120,11 +130,14 @@ function EditSlot() {
 
       {/* Booking Panel */}
       <div className="side-panel">
-        <h3>Appointment Listing</h3>
+        <h3 className="prevent-select">Appointment Listing</h3>
         {editing ? (
           <>
             <button onClick={handleSave}>Confirm Changes</button>
+            <button className="cancel-button" onClick={handleCancel}>Cancel Changes</button>
           </>
+
+
         ) : (
             <button onClick={handleEditMode}>Edit Slots</button>
         )}
