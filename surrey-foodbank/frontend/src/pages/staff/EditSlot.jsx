@@ -52,7 +52,8 @@ function EditSlot() {
       setEditing(false);
   };
   const handleCancel = () => {
-        setEditing(false);
+      setBlockedSlots(savedBlockedSlots);
+      setEditing(false);
   };
 
   const handleEditMode = () => {
