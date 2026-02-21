@@ -2,13 +2,18 @@ import InputAdornment from "@mui/material/InputAdornment";
 import LockOutlineIcon from "@mui/icons-material/LockOutline";
 import TextField from "@mui/material/TextField";
 
-function PasswordField({ id = "password", label = "Password", ...props }) {
+function PasswordField({
+  id = "password",
+  label = "Password",
+  onChange,
+  helperText = "",
+  error = false,
+  ...props
+}) {
   return (
     <>
       <TextField
         required
-        id={id}
-        label={label}
         variant="outlined"
         type="password"
         placeholder="*****************"
@@ -22,6 +27,11 @@ function PasswordField({ id = "password", label = "Password", ...props }) {
             ),
           },
         }}
+        id={id}
+        label={label}
+        onChange={onChange}
+        helperText={helperText}
+        error={error}
         {...props}
       />
     </>
