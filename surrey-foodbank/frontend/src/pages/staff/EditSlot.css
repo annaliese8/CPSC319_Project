@@ -1,0 +1,130 @@
+.booking-container {
+  display: flex;
+  height: 100vh;
+  font-family: Arial, sans-serif;
+  -webkit-user-select: none; /* Safari */
+  -ms-user-select: none; /* IE 10 and IE 11 */
+  user-select: none; /* Standard syntax */
+}
+
+.calendar {
+  flex: 3;
+  overflow-y: scroll;
+  border-right: 1px solid #ddd;
+}
+
+.calendar-header {
+  display: flex;
+  background: #f7f7f7;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.day-header {
+  flex: 1;
+  padding: 10px;
+  text-align: center;
+  font-weight: bold;
+  border-left: 1px solid #eee;
+}
+
+.time-column {
+  width: 70px;
+}
+
+.calendar-row {
+  display: flex;
+}
+
+.time-label {
+  width: 70px;
+  padding: 0;
+  font-size: 10px;
+  color: #666;
+  border-top: 1px solid #eee;
+}
+
+.slot {
+  flex: 1;
+  height: 15px;
+  border-left: 1px solid #eee;
+  border-top: 1px solid #eee;
+  cursor: pointer;
+}
+
+.booked {
+  background-color: #4cc5dc;
+}
+
+.booked:hover {
+  background-color: #005070;
+}
+
+.available {
+  background-color: #b6b6b6;
+}
+
+.available:hover {
+  background-color: #8a8a8a;
+}
+
+.unavailable-invis {
+  background-color: #e7e7e7;
+  cursor: not-allowed;
+}
+
+.unavailable-vis {
+  background-color: #e07171;
+}
+
+.unavailable-vis:hover {
+  background-color: #af5353;
+}
+
+.selected {
+  background-color: #005070 !important;
+}
+
+.side-panel {
+  flex: 1;
+  padding: 30px;
+}
+
+.side-panel button {
+  padding: 10px 20px;
+  margin: 5px;
+  background-color: #005070;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.side-panel button:hover {
+  background-color: #f24c62;
+}
+
+button.cancel-button {
+  background-color: #8f8f8f;
+}
+
+button.cancel-button:hover {
+  background-color: #6e6e6e;
+}
+
+.confirmation-page {
+  text-align: center;
+  padding: 100px;
+}
+
+.confirmation-page button {
+  margin-top: 20px;
+  padding: 10px 20px;
+}
+
+.prevent-select {
+  -webkit-user-select: none; /* Safari */
+  -ms-user-select: none; /* IE 10 and IE 11 */
+  user-select: none; /* Standard syntax */
+}
