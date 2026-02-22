@@ -64,8 +64,14 @@ function BookAppointment() {
         <h2>Appointment Confirmed!</h2>
         <p>
           Your appointment for{" "}
-          <strong>{formatAppointmentDate(selectedSlot.date)}</strong>
-           has been successfully booked. See you then!
+          <strong>{formatAppointmentDate(selectedSlot.date)}</strong>{" "}
+          has been successfully booked. See you then!
+          <br />
+          <br />
+            Please remember to bring valid government-issued ID for each adult in your household containing proof of address (e.g. driver’s license, BCID, etc.) for your appointment.
+          <br />
+          <br />
+            If you need to reschedule or cancel, you can do so through your online account or by calling us at (604) 581-5443.
         </p>
       </div>
     );
@@ -74,18 +80,7 @@ function BookAppointment() {
   return (
     <div className="booking-container">
       <div className="calendar-area">
-
-      {/* Week Navigation */}
-      {/* <div className="week-controls"
-           style={{ display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center" }}>
-        <button onClick={goToPrevWeek}>Previous Week</button>
-        {!isCurrentWeek && <button onClick={goToToday}>Today</button>}
-        <button onClick={goToNextWeek}>Next Week</button>
-      </div> */}
-
-      <div className="calendar-header-wrapper">
+        <div className="calendar-header-wrapper">
           <button className="week-nav-button week-prev" onClick={goToPrevWeek}>
                 ← Previous
             </button>
