@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import "./BookAppointment.css";
 
 const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -55,6 +55,15 @@ function BookAppointment() {
   const interval = sizeEntered && Number(householdSize) >= 5 ? 30 : 15;
   const timeSlots = sizeEntered ? generateTimeSlots(Number(householdSize)) : [];
   const rowLabels = generateRowLabels();
+  const availability = useMemo(() => {
+    const map = {};
+    days.forEach((day) => {
+      timeSlots.forEach((time) => {
+        map[`${day}-${time}`] = Math.random() > 0.4;
+      });
+    });
+    return map;
+  }, [weekStart, householdSize]);
 
   const handleBook = () => {
     if (!householdSize || householdSize < 1) {
@@ -153,11 +162,11 @@ function BookAppointment() {
               <div key={rowTime} className="calendar-row">
                 <div className="time-label">{rowTime}</div>
 
-                {days.map((day) => {
+                {days.map((day) => (
                   <div key={day} className="slot-cell">
                     {sizeEntered ? (
                       activeSlots.map((time) => {
-                        const isAvailable = Math.random() > 0.4; // random availability
+                        const isAvailable = availability[`${day}-${time}`] ?? false;
                         
                         return (
                           <div
@@ -188,7 +197,7 @@ function BookAppointment() {
                       <div className="slot slot-30min unactivated" />
                     )}
                   </div>
-                })}
+                ))}
               </div>
             );
           })}
