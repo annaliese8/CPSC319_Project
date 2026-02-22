@@ -16,14 +16,20 @@ import { useNavigate } from "react-router-dom";
 // Account creation page for new applicants to set an email and password
 
 function CreateAccount() {
-  // Email must follow a basic email format
-  const emailField = useTextField("", (value) =>
-    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
-      ? ""
-      : "Please enter a valid email address",
-  );
+  // Email must follow a basic email format and
+  // not already be associated with an existing account
+  const emailField = useTextField("", (value) => {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+      return "Please enter a valid email address";
+    }
+    const users = JSON.parse(localStorage.getItem("users") || "[]");
+    if (users.some((user) => user.email === value)) {
+      return "An account with this email address already exists";
+    }
+    return "";
+  });
 
-  // Password must meet minimum length requirement
+  // Password must be at least 10 characters long
   const passwordField = useTextField("", (value) =>
     value.length < 10 ? "Password must be at least 10 characters" : "",
   );
@@ -35,32 +41,34 @@ function CreateAccount() {
 
   // Re-run confirm password validation whenever the main password changes
   useEffect(() => {
-    confirmPasswordField.onChange({
-      target: { value: confirmPasswordField.value },
-    });
+    confirmPasswordField.validate();
   }, [passwordField.value]);
 
-  // Re-validate fields when the form is submitted
-  // and prevent navigation to next page if any errors exist
+  // When the form is submitted, revalidate the fields.
+  // If no errors exist, save account details, set as active user,
+  // and navigate to booking page
   const navigate = useNavigate();
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    emailField.validate();
-    passwordField.validate();
-    confirmPasswordField.validate();
-
     const hasErrors =
-      emailField.isInvalid ||
-      passwordField.isInvalid ||
-      confirmPasswordField.isInvalid;
+      Boolean(emailField.validate()) ||
+      Boolean(passwordField.validate()) ||
+      Boolean(confirmPasswordField.validate());
 
-    const hasEmptyFields =
+    const hasEmptyField =
       !emailField.value || !passwordField.value || !confirmPasswordField.value;
 
-    if (hasErrors || hasEmptyFields) {
+    if (hasErrors || hasEmptyField) {
       return;
     } else {
+      const users = JSON.parse(localStorage.getItem("users") || "[]");
+      users.push({ email: emailField.value, password: passwordField.value });
+      localStorage.setItem("users", JSON.stringify(users));
+      localStorage.setItem(
+        "activeUser",
+        JSON.stringify({ email: emailField.value }),
+      );
       navigate("/applicant/book-appointment");
     }
   };
