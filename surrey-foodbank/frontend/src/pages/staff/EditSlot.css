@@ -75,11 +75,11 @@
 }
 
 .unavailable-vis {
-  background-color: #f24c62;
+  background-color: #e07171;
 }
 
 .unavailable-vis:hover {
-  background-color: #c42b42;
+  background-color: #af5353;
 }
 
 .selected {
