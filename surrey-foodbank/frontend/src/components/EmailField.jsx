@@ -2,7 +2,7 @@ import InputAdornment from "@mui/material/InputAdornment";
 import MailOutlineIcon from "@mui/icons-material/MailOutline";
 import TextField from "@mui/material/TextField";
 
-function EmailField(props) {
+function EmailField({ onChange, error = false, helperText = "", ...props }) {
   return (
     <>
       <TextField
@@ -22,6 +22,9 @@ function EmailField(props) {
             ),
           },
         }}
+        onChange={onChange}
+        helperText={helperText}
+        error={error}
         {...props}
       />
     </>
