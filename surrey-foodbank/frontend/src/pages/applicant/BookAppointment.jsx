@@ -15,6 +15,20 @@ const generateTimeSlots = () => {
 
 const timeSlots = generateTimeSlots();
 
+const formatAppointmentDate = (date) => {
+  return date.toLocaleString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+    timeZone: "America/Los_Angeles",
+    timeZoneName: "short",
+  });
+};
+
 function BookAppointment() {
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [confirmed, setConfirmed] = useState(false);
@@ -49,8 +63,9 @@ function BookAppointment() {
       <div className="confirmation-page">
         <h2>Appointment Confirmed!</h2>
         <p>
-          Your appointment for <strong>{selectedSlot.day}</strong> at{" "}
-          <strong>{selectedSlot.time}</strong> has been successfully booked. See you then!
+          Your appointment for{" "}
+          <strong>{formatAppointmentDate(selectedSlot.date)}</strong>
+           has been successfully booked. See you then!
         </p>
       </div>
     );
@@ -122,9 +137,22 @@ function BookAppointment() {
                       ? "selected"
                       : ""
                   }`}
-                  onClick={() =>
-                    isAvailable && setSelectedSlot({ day, time })
-                  }
+                  onClick={() => {
+                    if (!isAvailable) return;
+                    
+                    const dayIndex = days.indexOf(day);
+                    const slotDate = new Date(weekStart);
+                    slotDate.setDate(weekStart.getDate() + dayIndex);
+
+                    const [hour, minute] = time.split(":");
+                    slotDate.setHours(parseInt(hour), parseInt(minute), 0, 0);
+
+                    setSelectedSlot({
+                      day,
+                      time,
+                      date: slotDate,
+                    });
+                  }}
                 ></div>
               );
             })}
@@ -138,10 +166,7 @@ function BookAppointment() {
         <h3>Appointment Details</h3>
         {selectedSlot ? (
           <>
-            <p>
-              <strong>{selectedSlot.day}</strong>
-            </p>
-            <p>{selectedSlot.time}</p>
+            <p>{formatAppointmentDate(selectedSlot.date)}</p>
             <button onClick={handleBook}>Book Appointment</button>
           </>
         ) : (
