@@ -11,7 +11,8 @@ import { useState } from "react";
  * validator: A function that takes the field value and returns:
  *     - An empty string if the value is valid
  *     - An error message string if the value is invalid
- *
+ * validateOnChange: Boolean that sets whether the textbox validates on every
+ *                   input change. True by default.
  * Returns:
  * - value: current field value
  * - onChange: function that updates the field when its value changes
@@ -20,14 +21,20 @@ import { useState } from "react";
  * - validate: function to manually trigger validation (e.g., on form submit)
  */
 
-export default function useTextField(initialValue, validator) {
+export default function useTextField(
+  initialValue,
+  validator,
+  validateOnChange = true,
+) {
   const [value, setValue] = useState(initialValue);
   const [errorMessage, setErrorMessage] = useState("");
 
   const onChange = (e) => {
     const newValue = e.target.value;
     setValue(newValue);
-    validate(newValue);
+    if (validateOnChange) {
+      validate(newValue);
+    }
   };
 
   const validate = (val = value) => {
