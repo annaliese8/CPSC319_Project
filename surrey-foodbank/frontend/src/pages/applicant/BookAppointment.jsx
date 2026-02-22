@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import "./BookAppointment.css";
 
 const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -46,6 +46,7 @@ function BookAppointment() {
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [confirmed, setConfirmed] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
+  const [availability, setAvailability] = useState({});
 
   const today = new Date();
   const startOfWeek = new Date(today);
@@ -57,15 +58,18 @@ function BookAppointment() {
   const timeSlots = sizeEntered ? generateTimeSlots(Number(householdSize)) : [];
   const rowLabels = generateRowLabels();
 
-  const availability = useMemo(() => {
+  useEffect(() => {
+    if (!sizeEntered) return;
     const map = {};
-    days.forEach((day) => {
-      timeSlots.forEach((time) => {
-        map[`${day}-${time}`] = Math.random() > 0.4;
+    // always generate at 15-min granularity so 30-min availability checks work
+    generateTimeSlots(1).forEach((time) => {
+      days.forEach((day) => {
+        const key = `${day}-${time}`;
+        map[key] = availability[key] ?? (Math.random() > 0.4);
       });
     });
-    return map;
-  }, [weekStart, householdSize]);
+    setAvailability(map);
+  }, [householdSize]);
 
   const handleBook = () => {
     if (!householdSize || householdSize < 1) {
@@ -196,7 +200,17 @@ function BookAppointment() {
                   <div key={day} className="slot-cell">
                     {sizeEntered ? (
                       activeSlots.map((time) => {
-                        const isAvailable = availability[`${day}-${time}`] ?? false;
+                        const isAvailable = (() => {
+                          if (!availability[`${day}-${time}`]) return false;
+                          // for 30-min appointments, check that the :15 sub-slot is also free
+                          if (interval === 30) {
+                            const [h, m] = time.split(":").map(Number);
+                            const nextMinute = (m + 15).toString().padStart(2, "0");
+                            const nextKey = `${day}-${h}:${nextMinute}`;
+                            if (availability[nextKey] === false) return false;
+                          }
+                          return true;
+                        })();
                         
                         return (
                           <div
