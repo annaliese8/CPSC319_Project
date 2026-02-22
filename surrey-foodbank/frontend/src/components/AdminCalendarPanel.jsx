@@ -1,4 +1,5 @@
 import React from "react";
+import AdminCalendar from "./AdminCalendar";
 import {
   Typography,
   Box,
@@ -72,7 +73,7 @@ function AdminCalendarPanel({ onEditSlots }) {
             color: "text.secondary",
           }}
         >
-          Calendar should go here
+            <AdminCalendar></AdminCalendar>
         </Box>
 
         {/* Legend */}

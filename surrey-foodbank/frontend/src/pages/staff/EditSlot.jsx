@@ -25,7 +25,6 @@ const generateInitBlockedSlots = () => {
             blockedSlots.push([day,`${hour}:15`]);
         }
     })
-    console.log(blockedSlots);
     return blockedSlots;
 };
 

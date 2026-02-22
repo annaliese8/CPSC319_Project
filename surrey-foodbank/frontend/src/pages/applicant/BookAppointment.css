@@ -1,0 +1,153 @@
+.booking-container {
+  display: flex;
+  height: 100vh;
+  font-family: Arial, sans-serif;
+}
+
+.calendar-area {
+    flex: 3;
+    display: flex;
+    flex-direction: column;
+}
+
+.calendar {
+  flex: 3;
+  overflow-y: scroll;
+  border-right: 1px solid #ddd;
+}
+
+.calendar-header-wrapper {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    background: #f7f7f7;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 0;
+}
+
+.calendar-header {
+  display: grid;
+  grid-template-columns: 120px repeat(7, 1fr);
+  align-items: center;
+  width: 100%;
+}
+
+.day-header {
+  padding: 5px 0;
+  text-align: center;
+  font-weight: bold;
+  border-left: 1px solid #eee;
+}
+
+.time-column {
+  width: 120px;
+}
+
+.week-nav-button {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: #005070;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.week-nav-button:hover {
+    background: #003f55;
+}
+
+.week-prev {
+    left: 0;
+    transform: translate(-110%, -50%);
+}
+
+.week-next {
+    right: 0;
+    transform: translate(110%, -50%);
+}
+
+.today-button {
+    position: absolute;
+    left: 50%;
+    top: -2.2rem;
+    transform: translateX(-50%);
+    background: #005070;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.today-button:hover {
+    background: #003f55;
+}
+
+.calendar-row {
+  display: grid;
+    grid-template-columns: 120px repeat(7, 1fr);
+}
+
+.time-label {
+  padding: 10px;
+  font-size: 12px;
+  color: #666;
+  border-top: 1px solid #eee;
+}
+
+.slot {
+  height: 40px;
+  border-left: 1px solid #eee;
+  border-top: 1px solid #eee;
+  cursor: pointer;
+}
+
+.available {
+  background-color: #4cc5dc;
+}
+
+.available:hover {
+  background-color: #005070;
+}
+
+.unavailable {
+  background-color: #f2f2f2;
+  cursor: not-allowed;
+}
+
+.selected {
+  background-color: #005070 !important;
+}
+
+.side-panel {
+  flex: 1;
+  padding: 30px;
+}
+
+.side-panel button {
+  padding: 10px 20px;
+  background-color: #005070;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.side-panel button:hover {
+  background-color: #f24c62;
+}
+
+.confirmation-page {
+  text-align: center;
+  padding: 100px;
+}
+
+.confirmation-page button {
+  margin-top: 20px;
+  padding: 10px 20px;
+}
