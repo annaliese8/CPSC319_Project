@@ -1,0 +1,274 @@
+.booking-container {
+  display: flex;
+  height: 100vh;
+  font-family: Arial, sans-serif;
+}
+
+.household-bar {
+  padding: 16px 30px;
+  background: #f0f8fb;
+  border-bottom: 2px solid #ddd;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-shrink: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.household-label {
+  font-size: 18px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.household-label input {
+  font-size: 16px;
+  padding: 6px 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  width: 80px;
+}
+
+.hint-text {
+  font-size: 18px;
+  color: #000;
+  margin: 0;
+}
+
+.error-text {
+  font-size: 14px;
+  color: #f24c62;
+  margin: 0;
+}
+
+.calendar-area {
+    flex: 3;
+    display: flex;
+    flex-direction: column;
+}
+
+.calendar {
+  flex: 3;
+  overflow-y: scroll;
+  border-right: 1px solid #ddd;
+}
+
+.calendar-header-wrapper {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    background: #f7f7f7;
+    display: flex;
+    align-items: center; 
+    justify-content: center;
+    padding: 10px 0;
+}
+
+.calendar-header {
+  display: grid;
+  grid-template-columns: 120px repeat(7, 1fr);
+  align-items: center;
+  width: 100%;
+}
+
+.day-header {
+  padding: 5px 0;
+  text-align: center;
+  font-weight: bold;
+  border-left: 1px solid #eee;
+}
+
+.calendar-row {
+  display: grid;
+  grid-template-columns: 120px repeat(7, 1fr);
+  height: 60px;
+  align-items: stretch;
+}
+
+.slot-cell {
+  display: flex;
+  flex-direction: column;
+}
+
+.slot {
+  border-left: 1px solid #eee;
+  border-top: 1px solid #eee;
+  cursor: pointer;
+}
+
+.slot-30min {
+  height: 100%;
+}
+
+.slot-15min {
+  height: 50%;
+}
+
+.time-column {
+  width: 120px;
+}
+
+.time-label {
+  padding: 10px;
+  font-size: 12px;
+  color: #666;
+  border-top: 1px solid #eee;
+}
+
+.week-nav-button {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: #005070;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.week-nav-button:hover {
+    background: #f24c62;
+}
+
+.week-prev {
+    left: 0;
+    transform: translate(-110%, -50%);
+}
+
+.week-next {
+    right: 0;
+    transform: translate(110%, -50%);
+}
+
+.today-button {
+    position: absolute;
+    left: 50%;
+    top: -2.2rem;
+    transform: translateX(-50%);
+    background: #005070;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.today-button:hover {
+    background: #f24c62;
+}
+
+.calendar-row {
+  display: grid;
+    grid-template-columns: 120px repeat(7, 1fr);
+}
+
+.available {
+  background-color: #4cc5dc;
+}
+
+.available:hover {
+  background-color: #005070;
+}
+
+.unavailable {
+  background-color: #f2f2f2;
+  cursor: not-allowed;
+}
+
+.unactivated {
+  background-color: #e0e0e0;
+  cursor: default;
+  pointer-events: none;
+}
+
+.selected {
+  background-color: #005070 !important;
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 10;
+}
+
+.modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  border-radius: 8px;
+  padding: 40px;
+  z-index: 11;
+  min-width: 320px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+  text-align: center;
+}
+
+.modal h3 {
+  margin-top: 0;
+  font-size: 20px;
+  color: #005070;
+}
+
+.modal p {
+  font-size: 15px;
+  margin-bottom: 24px;
+}
+
+.modal button {
+  padding: 6px 12px;
+  background-color: #005070;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.modal button:hover {
+  background: #f24c62;
+}
+
+.modal-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: none !important;
+  color: #888 !important;
+  font-size: 18px !important;
+  padding: 0 !important;
+  cursor: pointer;
+}
+
+.modal-close:hover {
+  color: #f24c62 !important;
+  background: none !important;
+}
+
+.confirmation-page {
+  text-align: center;
+  padding: 100px;
+}
+
+.confirmation-page button {
+  margin-top: 20px;
+  padding: 6px 12px;
+  background-color: #005070;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.confirmation-page button:hover {
+  background-color: #f24c62;
+}
