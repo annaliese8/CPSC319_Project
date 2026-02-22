@@ -4,6 +4,46 @@
   font-family: Arial, sans-serif;
 }
 
+.household-bar {
+  padding: 16px 30px;
+  background: #f0f8fb;
+  border-bottom: 2px solid #ddd;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-shrink: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.household-label {
+  font-size: 18px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.household-label input {
+  font-size: 16px;
+  padding: 6px 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  width: 80px;
+}
+
+.hint-text {
+  font-size: 18px;
+  color: #000;
+  margin: 0;
+}
+
+.error-text {
+  font-size: 14px;
+  color: #f24c62;
+  margin: 0;
+}
+
 .calendar-area {
     flex: 3;
     display: flex;
@@ -48,6 +88,11 @@
   align-items: stretch;
 }
 
+.slot-cell {
+  display: flex;
+  flex-direction: column;
+}
+
 .slot {
   border-left: 1px solid #eee;
   border-top: 1px solid #eee;
@@ -83,6 +128,7 @@
     padding: 6px 12px;
     border-radius: 4px;
     cursor: pointer;
+    font-size: 14px;
 }
 
 .week-nav-button:hover {
@@ -110,6 +156,7 @@
     padding: 6px 12px;
     border-radius: 4px;
     cursor: pointer;
+    font-size: 14px;
 }
 
 .today-button:hover {
@@ -144,13 +191,40 @@
   background-color: #005070 !important;
 }
 
-.side-panel {
-  flex: 1;
-  padding: 30px;
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 10;
 }
 
-.side-panel button {
-  padding: 10px 20px;
+.modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  border-radius: 8px;
+  padding: 40px;
+  z-index: 11;
+  min-width: 320px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+  text-align: center;
+}
+
+.modal h3 {
+  margin-top: 0;
+  font-size: 20px;
+  color: #005070;
+}
+
+.modal p {
+  font-size: 15px;
+  margin-bottom: 24px;
+}
+
+.modal button {
+  padding: 6px 12px;
   background-color: #005070;
   color: white;
   border: none;
@@ -159,8 +233,24 @@
   font-size: 14px;
 }
 
-.side-panel button:hover {
-  background-color: #f24c62;
+.modal button:hover {
+  background: #f24c62;
+}
+
+.modal-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: none !important;
+  color: #888 !important;
+  font-size: 18px !important;
+  padding: 0 !important;
+  cursor: pointer;
+}
+
+.modal-close:hover {
+  color: #f24c62 !important;
+  background: none !important;
 }
 
 .confirmation-page {

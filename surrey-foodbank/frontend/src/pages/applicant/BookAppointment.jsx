@@ -45,6 +45,7 @@ function BookAppointment() {
   const [sizeError, setSizeError] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [confirmed, setConfirmed] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
 
   const today = new Date();
   const startOfWeek = new Date(today);
@@ -55,6 +56,7 @@ function BookAppointment() {
   const interval = sizeEntered && Number(householdSize) >= 5 ? 30 : 15;
   const timeSlots = sizeEntered ? generateTimeSlots(Number(householdSize)) : [];
   const rowLabels = generateRowLabels();
+
   const availability = useMemo(() => {
     const map = {};
     days.forEach((day) => {
@@ -71,9 +73,11 @@ function BookAppointment() {
       return;
     }
     setConfirmed(true);
+    setModalOpen(false);
   };
 
-  const goToNextWeek = () => { const next = new Date(weekStart);
+  const goToNextWeek = () => {
+    const next = new Date(weekStart);
     next.setDate(next.getDate() + 7);
     setWeekStart(next);
   };
@@ -110,9 +114,35 @@ function BookAppointment() {
   return (
     <div className="booking-container">
       <div className="calendar-area">
+
+        {/* Household size bar above calendar */}
+      <div className="household-bar">
+        <label className="household-label">
+          Household Size (required):
+          <input
+            type="number"
+            min="1"
+            value={householdSize}
+            onChange={(e) => {
+              setHouseholdSize(e.target.value);
+              setSizeError(false);
+              setSelectedSlot(null);
+              setModalOpen(false);
+            }}
+            required
+          />
+        </label>
+        {sizeError && (
+          <p className="error-text">Please enter a valid household size (1 or more).</p>
+        )}
+        {!sizeEntered && (
+          <p className="hint-text">Enter your household size to see available time slots.</p>
+        )}
+      </div>
+
         <div className="calendar-header-wrapper">
           <button className="week-nav-button week-prev" onClick={goToPrevWeek}>
-                ← Previous
+                ← Previous Week
             </button>
             
             {!isCurrentWeek && (
@@ -141,7 +171,7 @@ function BookAppointment() {
         </div>
 
         <button className="week-nav-button week-next" onClick={goToNextWeek}>
-          Next →
+          Next Week →
         </button>
       </div>
 
@@ -189,6 +219,7 @@ function BookAppointment() {
                                 time,
                                 date: slotDate,
                               });
+                              setModalOpen(true);
                             }}
                           />
                         );
@@ -204,45 +235,18 @@ function BookAppointment() {
         </div>
       </div>
 
-      {/* Booking Panel */}
-      <div className="side-panel">
-        <div className="household-input">
-          <label>
-            Household Size (required):
-            <input
-              type="number"
-              min="1"
-              value={householdSize}
-              onChange={(e) => {
-                setHouseholdSize(e.target.value);
-                setSizeError(false);
-                setSelectedSlot(null); // reset selection if size changes
-              }}
-              required
-            />
-          </label>
-          {sizeError && (
-            <p className="error-text">
-              Please enter a valid household size (1 or more).
-            </p>
-          )}
-          {!sizeEntered && (
-            <p className="hint-text">
-              Enter your household size to see available slots.
-            </p>
-          )}
-        </div>
-
-        <h3>Appointment Details</h3>
-        {selectedSlot ? (
-          <>
+      {/* Modal popup */}
+      {modalOpen && selectedSlot && (
+        <>
+          <div className="modal-overlay" onClick={() => setModalOpen(false)} />
+          <div className="modal">
+            <button className="modal-close" onClick={() => setModalOpen(false)}>✕</button>
+            <h3>Appointment Details</h3>
             <p>{formatDate(selectedSlot.date)}</p>
             <button onClick={handleBook}>Book Appointment</button>
-          </>
-        ) : (
-          <p>Select an available time slot.</p>
-        )}
-      </div>
+          </div>
+        </>
+      )}
 
     </div>
   );
