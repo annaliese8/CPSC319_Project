@@ -1,7 +1,11 @@
+import Typography from "@mui/material/Typography";
+
 function ApplicantInfo() {
   return (
     <>
-    <h2>Applicant Information Page</h2>
+      <Typography variant="h2">
+        Staff view of an applicant's information
+      </Typography>
     </>
   );
 }

@@ -1,6 +1,65 @@
+import Button from "@mui/material/Button";
+import UserNameField from "../../components/UserNameField";
+import Link from "@mui/material/Link";
+import PasswordField from "../../components/PasswordField";
+import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
+import Window from "../../components/Window";
+
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+
+const ADMIN_PASSWORD = import.meta.env.VITE_STAFF_PASS;
+const ADMIN_USERNAME = import.meta.env.VITE_STAFF_USER;
+
+
 function Login() {
+  const [password, setPassword] = useState("");
+  const [username, setUsername] = useState("");
+  const [error, setError] = useState(false);
+  const navigate = useNavigate();
+
+  const handleLogin = () => {
+    console.log(ADMIN_PASSWORD);
+    if (password === ADMIN_PASSWORD && username === ADMIN_USERNAME) {
+      setError(false);
+      navigate("/staff/home");
+    } else {
+      setError(true);
+    }
+  };
   return (
-    <h2>Staff Login Page</h2>
+    <>
+      <Window title="Surrey Food Bank Administrator Login">
+        <UserNameField onChange={(e) => setUsername(e.target.value)} error={error} helperText={error ? "Incorrect username or password. Please try again." : ""} />
+        <PasswordField onChange={(e) => setPassword(e.target.value)} error={error} helperText={error ? "Incorrect username or password. Please try again." : ""} />
+
+        <Stack
+          direction="row"
+          spacing={2}
+          sx={{
+            display: "flex",
+            alignItems: "flex-end",
+            justifyContent: "space-between",
+            padding: 2,
+          }}
+        >
+          <Link href="/applicant/login" underline="hover">
+            <Typography>Not an administrator?</Typography>
+          </Link>
+          <Button
+            variant="contained"
+            onClick={handleLogin}
+            size="large"
+            sx={{
+              fontWeight: "bold",
+            }}
+          >
+            Log In
+          </Button>
+        </Stack>
+      </Window>
+    </>
   );
 }
 

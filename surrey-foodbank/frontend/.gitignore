@@ -23,6 +23,11 @@ dist-ssr
 *.sln
 *.sw?
 
+<<<<<<< annaliese-appt-booking
 # Environment variables
 .env
 .env.local
+=======
+# env files (secrets)
+.env
+>>>>>>> main

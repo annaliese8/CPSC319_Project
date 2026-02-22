@@ -1,3 +1,4 @@
+<<<<<<< annaliese-appt-booking
 import React, { useState, useEffect } from "react";
 import "./BookAppointment.css";
 
@@ -64,6 +65,9 @@ const isSlotAvailable = (availability, day, time, interval) => {
   }
   return true;
 };
+=======
+import Typography from "@mui/material/Typography";
+>>>>>>> main
 
 function BookAppointment() {
   const [householdSize, setHouseholdSize] = useState("");
@@ -147,6 +151,7 @@ function BookAppointment() {
   }
 
   return (
+<<<<<<< annaliese-appt-booking
     <div className="booking-container">
       <div className="calendar-area">
 
@@ -255,9 +260,17 @@ function BookAppointment() {
       )}
 
     </div>
+=======
+    <>
+      <Typography variant="h2">Booking an Appointment Page</Typography>;
+    </>
+>>>>>>> main
   );
 }
 
 export default BookAppointment;
+<<<<<<< annaliese-appt-booking
 
 // Claude.AI was used in page formatting and debugging
+=======
+>>>>>>> main
