@@ -58,16 +58,29 @@ function BookAppointment() {
 
   return (
     <div className="booking-container">
+      <div className="calendar-area">
 
       {/* Week Navigation */}
-      <div className="week-controls" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      {/* <div className="week-controls"
+           style={{ display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center" }}>
         <button onClick={goToPrevWeek}>Previous Week</button>
         {!isCurrentWeek && <button onClick={goToToday}>Today</button>}
         <button onClick={goToNextWeek}>Next Week</button>
-      </div>
+      </div> */}
 
-      {/* Calendar */}
-      <div className="calendar">
+      <div className="calendar-header-wrapper">
+          <button className="week-nav-button week-prev" onClick={goToPrevWeek}>
+                ← Previous
+            </button>
+            
+            {!isCurrentWeek && (
+              <button className="today-button" onClick={goToToday}>
+                Today
+              </button>
+            )}
+
         <div className="calendar-header">
           <div className="time-column"></div>
           {days.map((day, index) => {
@@ -87,6 +100,13 @@ function BookAppointment() {
           })}
         </div>
 
+        <button className="week-nav-button week-next" onClick={goToNextWeek}>
+          Next →
+        </button>
+      </div>
+
+      {/* Calendar */}
+      <div className="calendar">
         {timeSlots.map((time) => (
           <div key={time} className="calendar-row">
             <div className="time-label">{time}</div>
@@ -110,6 +130,7 @@ function BookAppointment() {
             })}
           </div>
         ))}
+        </div>
       </div>
 
       {/* Booking Panel */}
