@@ -4,18 +4,21 @@ import "./BookAppointment.css";
 const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 // generate time slots from 9am – 5pm (30 min slots for now)
-const generateTimeSlots = () => {
+const generateTimeSlots = (size) => {
   const slots = [];
+  const interval = size >= 5 ? 30 : 15;
+
   for (let hour = 9; hour < 17; hour++) {
-    slots.push(`${hour}:00`);
-    slots.push(`${hour}:30`);
+    for (let minute = 0; minute < 60; minute += interval) {
+      slots.push(
+        `${hour}:${minute === 0 ? "00" : minute}`
+      );
+    }
   }
   return slots;
 };
 
-const timeSlots = generateTimeSlots();
-
-const formatAppointmentDate = (date) => {
+const formatDate = (date) => {
   return date.toLocaleString("en-US", {
     weekday: "long",
     month: "long",
@@ -30,8 +33,15 @@ const formatAppointmentDate = (date) => {
 };
 
 function BookAppointment() {
+  const [householdSize, setHouseholdSize] = useState("");
+  const [sizeError, setSizeError] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [confirmed, setConfirmed] = useState(false);
+
+  const timeSlots =
+    householdSize && householdSize > 0
+      ? generateTimeSlots(Number(householdSize))
+      : [];
 
   const today = new Date();
   const startOfWeek = new Date(today);
@@ -40,6 +50,10 @@ function BookAppointment() {
   const [weekStart, setWeekStart] = useState(startOfWeek);
 
   const handleBook = () => {
+    if (!householdSize || householdSize < 1) {
+      setSizeError(true);
+      return;
+    }
     setConfirmed(true);
   };
 
@@ -64,7 +78,7 @@ function BookAppointment() {
         <h2>Appointment Confirmed!</h2>
         <p>
           Your appointment for{" "}
-          <strong>{formatAppointmentDate(selectedSlot.date)}</strong>{" "}
+          <strong>{formatDate(selectedSlot.date)}</strong>{" "}
           has been successfully booked. See you then!
           <br />
           <br />
@@ -79,6 +93,30 @@ function BookAppointment() {
 
   return (
     <div className="booking-container">
+      <div className="household-input">
+      <label>
+        Household Size (required):
+      <input
+        type="number"
+        min="1"
+        value={householdSize}
+        onChange={(e) => {
+          setHouseholdSize(e.target.value);
+          setSizeError(false);
+        }}
+        required
+      />
+      </label>
+
+      {sizeError && (
+        <p className="error-text">
+          Please enter a valid household size (1 or more).
+        </p>
+      )}
+    </div>
+
+      {householdSize && householdSize > 0 ? (
+    <>
       <div className="calendar-area">
         <div className="calendar-header-wrapper">
           <button className="week-nav-button week-prev" onClick={goToPrevWeek}>
@@ -161,13 +199,17 @@ function BookAppointment() {
         <h3>Appointment Details</h3>
         {selectedSlot ? (
           <>
-            <p>{formatAppointmentDate(selectedSlot.date)}</p>
+            <p>{formatDate(selectedSlot.date)}</p>
             <button onClick={handleBook}>Book Appointment</button>
           </>
         ) : (
           <p>Select an available time slot.</p>
         )}
       </div>
+    </>
+    ) : (
+        <p>Please enter your household size to view available appointments.</p>
+      )}
     </div>
   );
 }
