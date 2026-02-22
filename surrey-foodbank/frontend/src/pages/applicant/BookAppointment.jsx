@@ -1,15 +1,14 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import "./BookAppointment.css";
 
 const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
-// generate time slots from 9am – 5pm (30 min slots for now)
-const generateTimeSlots = (size) => {
+// generate 15-minute time slots from 9am – 5pm
+const generateTimeSlots = () => {
   const slots = [];
-  const interval = size >= 5 ? 30 : 15;
 
   for (let hour = 9; hour < 17; hour++) {
-    for (let minute = 0; minute < 60; minute += interval) {
+    for (let minute = 0; minute < 60; minute += 15) {
       const mm = minute.toString().padStart(2, "0");
       slots.push(`${hour}:${mm}`);
     }
@@ -26,6 +25,11 @@ const generateRowLabels = () => {
   return labels;
 };
 
+const getInterval = (size) => Number(size) >= 5 ? 30 : 15;
+
+const getTimeSlots = (size) =>
+  generateTimeSlots().filter((_, i) => getInterval(size) === 15 || i % 2 === 0);
+
 const formatDate = (date) => {
   return date.toLocaleString("en-US", {
     weekday: "long",
@@ -40,6 +44,27 @@ const formatDate = (date) => {
   });
 };
 
+const generateAvailability = (existing = {}) => {
+  const map = {};
+  days.forEach((day) => {
+    generateTimeSlots().forEach((time) => {
+      const key = `${day}-${time}`;
+      map[key] = existing[key] ?? Math.random() > 0.4;
+    });
+  });
+  return map;
+};
+
+const isSlotAvailable = (availability, day, time, interval) => {
+  if (!availability[`${day}-${time}`]) return false;
+  if (interval === 30) {
+    const [h, m] = time.split(":").map(Number);
+    const nextTime = `${h}:${(m + 15).toString().padStart(2, "0")}`;
+    if (!availability[`${day}-${nextTime}`]) return false;
+  }
+  return true;
+};
+
 function BookAppointment() {
   const [householdSize, setHouseholdSize] = useState("");
   const [sizeError, setSizeError] = useState(false);
@@ -51,32 +76,39 @@ function BookAppointment() {
   const today = new Date();
   const startOfWeek = new Date(today);
   startOfWeek.setDate(today.getDate() - today.getDay());
-
   const [weekStart, setWeekStart] = useState(startOfWeek);
+
   const sizeEntered = householdSize && Number(householdSize) >= 1;
-  const interval = sizeEntered && Number(householdSize) >= 5 ? 30 : 15;
-  const timeSlots = sizeEntered ? generateTimeSlots(Number(householdSize)) : [];
-  const rowLabels = generateRowLabels();
+  const interval = sizeEntered ? getInterval(householdSize) : 15;
+  const timeSlots = sizeEntered ? getTimeSlots(householdSize) : [];
+  const isCurrentWeek = weekStart.toDateString() === startOfWeek.toDateString();
 
   useEffect(() => {
     if (!sizeEntered) return;
-    const map = {};
-    // always generate at 15-min granularity so 30-min availability checks work
-    generateTimeSlots(1).forEach((time) => {
-      days.forEach((day) => {
-        const key = `${day}-${time}`;
-        map[key] = availability[key] ?? (Math.random() > 0.4);
-      });
-    });
-    setAvailability(map);
+    setAvailability((prev) => generateAvailability(prev));
   }, [householdSize]);
 
+  const handleSlotClick = (day, time) => {
+    if (!isSlotAvailable(availability, day, time, interval)) return;
+    const dayIndex = days.indexOf(day);
+    const slotDate = new Date(weekStart);
+    slotDate.setDate(weekStart.getDate() + dayIndex);
+    const [hour, minute] = time.split(":");
+    slotDate.setHours(parseInt(hour), parseInt(minute), 0, 0);
+    setSelectedSlot({ day, time, date: slotDate });
+    setModalOpen(true);
+  };
+
   const handleBook = () => {
-    if (!householdSize || householdSize < 1) {
-      setSizeError(true);
-      return;
-    }
+    if (!sizeEntered) { setSizeError(true); return; }
     setConfirmed(true);
+    setModalOpen(false);
+  };
+
+  const handleSizeChange = (e) => {
+    setHouseholdSize(e.target.value);
+    setSizeError(false);
+    setSelectedSlot(null);
     setModalOpen(false);
   };
 
@@ -87,13 +119,14 @@ function BookAppointment() {
   };
     
   const goToPrevWeek = () => {
-    const prev = new Date(weekStart); prev.setDate(prev.getDate() - 7);
+    const prev = new Date(weekStart);
+    prev.setDate(prev.getDate() - 7);
     setWeekStart(prev);
   };
-    
-  const goToToday = () => { setWeekStart(startOfWeek); };
-    
-  const isCurrentWeek = weekStart.toDateString() === startOfWeek.toDateString();
+
+  const goToToday = () => setWeekStart(startOfWeek);
+
+  const rowLabels = generateRowLabels();
 
   // once confirmed user cannot book another
   if (confirmed) {
@@ -104,11 +137,9 @@ function BookAppointment() {
           Your appointment for{" "}
           <strong>{formatDate(selectedSlot.date)}</strong>{" "}
           has been successfully booked. See you then!
-          <br />
-          <br />
+          <br /><br />
             Please remember to bring valid government-issued ID for each adult in your household containing proof of address (e.g. driver’s license, BCID, etc.) for your appointment.
-          <br />
-          <br />
+          <br /><br />
             If you need to reschedule or cancel, you can do so through your online account or by calling us at (604) 581-5443.
         </p>
       </div>
@@ -119,7 +150,7 @@ function BookAppointment() {
     <div className="booking-container">
       <div className="calendar-area">
 
-        {/* Household size bar above calendar */}
+        {/* Household size bar */}
       <div className="household-bar">
         <label className="household-label">
           Household Size (required):
@@ -127,23 +158,15 @@ function BookAppointment() {
             type="number"
             min="1"
             value={householdSize}
-            onChange={(e) => {
-              setHouseholdSize(e.target.value);
-              setSizeError(false);
-              setSelectedSlot(null);
-              setModalOpen(false);
-            }}
+            onChange={handleSizeChange}
             required
           />
         </label>
-        {sizeError && (
-          <p className="error-text">Please enter a valid household size (1 or more).</p>
-        )}
-        {!sizeEntered && (
-          <p className="hint-text">Enter your household size to see available time slots.</p>
-        )}
+        {sizeError && <p className="error-text">Please enter a valid household size (1 or more).</p>}
+        {!sizeEntered && <p className="hint-text">Enter your household size to see available time slots.</p>}
       </div>
 
+        {/* Calendar header */}
         <div className="calendar-header-wrapper">
           <button className="week-nav-button week-prev" onClick={goToPrevWeek}>
                 ← Previous Week
@@ -156,19 +179,15 @@ function BookAppointment() {
             )}
 
         <div className="calendar-header">
-          <div className="time-column"></div>
+          <div className="time-column" />
           {days.map((day, index) => {
             const date = new Date(weekStart);
             date.setDate(weekStart.getDate() + index);
-
-            const formatted = date.toLocaleDateString("en-US", {
-              month: "short",
-              day: "numeric",
-            });
-
             return (
               <div key={day} className="day-header">
-                {day} {formatted}
+                {day} {date.toLocaleDateString("en-US",
+                  { month: "short",
+                  day: "numeric" })}
               </div>
             );
           })}
@@ -187,54 +206,27 @@ function BookAppointment() {
               ? [
                   `${rowHour}:${rowMinute.toString().padStart(2, "0")}`,
                   `${rowHour}:${(rowMinute + 15).toString().padStart(2, "0")}`,
-                  ].filter((t) => t.endsWith(":00") || t.endsWith(":15") || t.endsWith(":30") || t.endsWith(":45"))
+                  ].filter((t) => generateTimeSlots().includes(t))
               : [rowTime];
-
             const activeSlots = slotsInRow.filter((s) => timeSlots.includes(s));
 
             return (
               <div key={rowTime} className="calendar-row">
                 <div className="time-label">{rowTime}</div>
-
                 {days.map((day) => (
                   <div key={day} className="slot-cell">
                     {sizeEntered ? (
                       activeSlots.map((time) => {
-                        const isAvailable = (() => {
-                          if (!availability[`${day}-${time}`]) return false;
-                          // for 30-min appointments, check that the :15 sub-slot is also free
-                          if (interval === 30) {
-                            const [h, m] = time.split(":").map(Number);
-                            const nextMinute = (m + 15).toString().padStart(2, "0");
-                            const nextKey = `${day}-${h}:${nextMinute}`;
-                            if (availability[nextKey] === false) return false;
-                          }
-                          return true;
-                        })();
-                        
+                        const available = isSlotAvailable(availability, day, time, interval);
                         return (
                           <div
                             key={time}
                             className={`slot slot-${interval}min ${
-                              isAvailable ? "available" : "unavailable"
+                              available ? "available" : "unavailable"
                             } ${
                               selectedSlot?.day === day && selectedSlot?.time === time ? "selected" : ""
                             }`}
-                            onClick={() => {
-                              if (!isAvailable) return;
-                              const dayIndex = days.indexOf(day);
-                              const slotDate = new Date(weekStart);
-                              slotDate.setDate(weekStart.getDate() + dayIndex);
-
-                              const [hour, minute] = time.split(":");
-                              slotDate.setHours(parseInt(hour), parseInt(minute), 0, 0);
-                              setSelectedSlot({
-                                day,
-                                time,
-                                date: slotDate,
-                              });
-                              setModalOpen(true);
-                            }}
+                            onClick={() => handleSlotClick(day, time)}
                           />
                         );
                       })
