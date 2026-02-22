@@ -10,12 +10,20 @@ const generateTimeSlots = (size) => {
 
   for (let hour = 9; hour < 17; hour++) {
     for (let minute = 0; minute < 60; minute += interval) {
-      slots.push(
-        `${hour}:${minute === 0 ? "00" : minute}`
-      );
+      const mm = minute.toString().padStart(2, "0");
+      slots.push(`${hour}:${mm}`);
     }
   }
   return slots;
+};
+
+const generateRowLabels = () => {
+  const labels = [];
+  for (let hour = 9; hour < 17; hour++) {
+    labels.push(`${hour}:00`);
+    labels.push(`${hour}:30`);
+  }
+  return labels;
 };
 
 const formatDate = (date) => {
@@ -38,16 +46,15 @@ function BookAppointment() {
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [confirmed, setConfirmed] = useState(false);
 
-  const timeSlots =
-    householdSize && householdSize > 0
-      ? generateTimeSlots(Number(householdSize))
-      : [];
-
   const today = new Date();
   const startOfWeek = new Date(today);
   startOfWeek.setDate(today.getDate() - today.getDay());
 
   const [weekStart, setWeekStart] = useState(startOfWeek);
+  const sizeEntered = householdSize && Number(householdSize) >= 1;
+  const interval = sizeEntered && Number(householdSize) >= 5 ? 30 : 15;
+  const timeSlots = sizeEntered ? generateTimeSlots(Number(householdSize)) : [];
+  const rowLabels = generateRowLabels();
 
   const handleBook = () => {
     if (!householdSize || householdSize < 1) {
@@ -93,30 +100,6 @@ function BookAppointment() {
 
   return (
     <div className="booking-container">
-      <div className="household-input">
-      <label>
-        Household Size (required):
-      <input
-        type="number"
-        min="1"
-        value={householdSize}
-        onChange={(e) => {
-          setHouseholdSize(e.target.value);
-          setSizeError(false);
-        }}
-        required
-      />
-      </label>
-
-      {sizeError && (
-        <p className="error-text">
-          Please enter a valid household size (1 or more).
-        </p>
-      )}
-    </div>
-
-      {householdSize && householdSize > 0 ? (
-    <>
       <div className="calendar-area">
         <div className="calendar-header-wrapper">
           <button className="week-nav-button week-prev" onClick={goToPrevWeek}>
@@ -155,47 +138,92 @@ function BookAppointment() {
 
       {/* Calendar */}
       <div className="calendar">
-        {timeSlots.map((time) => (
-          <div key={time} className="calendar-row">
-            <div className="time-label">{time}</div>
-            {days.map((day) => {
-              const isAvailable = Math.random() > 0.4; // random availability
+        {rowLabels.map((rowTime) => {
+          const [rowHour, rowMinute] = rowTime.split(":").map(Number);
+          const slotsInRow = interval === 15
+              ? [
+                  `${rowHour}:${rowMinute.toString().padStart(2, "0")}`,
+                  `${rowHour}:${(rowMinute + 15).toString().padStart(2, "0")}`,
+                  ].filter((t) => t.endsWith(":00") || t.endsWith(":15") || t.endsWith(":30") || t.endsWith(":45"))
+              : [rowTime];
 
-              return (
-                <div
-                  key={day + time}
-                  className={`slot ${isAvailable ? "available" : "unavailable"} ${
-                    selectedSlot?.day === day &&
-                    selectedSlot?.time === time
-                      ? "selected"
-                      : ""
-                  }`}
-                  onClick={() => {
-                    if (!isAvailable) return;
-                    
-                    const dayIndex = days.indexOf(day);
-                    const slotDate = new Date(weekStart);
-                    slotDate.setDate(weekStart.getDate() + dayIndex);
+            const activeSlots = slotsInRow.filter((s) => timeSlots.includes(s));
 
-                    const [hour, minute] = time.split(":");
-                    slotDate.setHours(parseInt(hour), parseInt(minute), 0, 0);
+            return (
+              <div key={rowTime} className="calendar-row">
+                <div className="time-label">{rowTime}</div>
 
-                    setSelectedSlot({
-                      day,
-                      time,
-                      date: slotDate,
-                    });
-                  }}
-                ></div>
-              );
-            })}
-          </div>
-        ))}
+                {days.map((day) => {
+                  <div key={day} className="slot-cell">
+                    {sizeEntered ? (
+                      activeSlots.map((time) => {
+                        const isAvailable = Math.random() > 0.4; // random availability
+                        
+                        return (
+                          <div
+                            key={time}
+                            className={`slot slot-${interval}min ${
+                              isAvailable ? "available" : "unavailable"
+                            } ${
+                              selectedSlot?.day === day && selectedSlot?.time === time ? "selected" : ""
+                            }`}
+                            onClick={() => {
+                              if (!isAvailable) return;
+                              const dayIndex = days.indexOf(day);
+                              const slotDate = new Date(weekStart);
+                              slotDate.setDate(weekStart.getDate() + dayIndex);
+
+                              const [hour, minute] = time.split(":");
+                              slotDate.setHours(parseInt(hour), parseInt(minute), 0, 0);
+                              setSelectedSlot({
+                                day,
+                                time,
+                                date: slotDate,
+                              });
+                            }}
+                          />
+                        );
+                      })
+                    ) : (
+                      <div className="slot slot-30min unactivated" />
+                    )}
+                  </div>
+                })}
+              </div>
+            );
+          })}
         </div>
       </div>
 
       {/* Booking Panel */}
       <div className="side-panel">
+        <div className="household-input">
+          <label>
+            Household Size (required):
+            <input
+              type="number"
+              min="1"
+              value={householdSize}
+              onChange={(e) => {
+                setHouseholdSize(e.target.value);
+                setSizeError(false);
+                setSelectedSlot(null); // reset selection if size changes
+              }}
+              required
+            />
+          </label>
+          {sizeError && (
+            <p className="error-text">
+              Please enter a valid household size (1 or more).
+            </p>
+          )}
+          {!sizeEntered && (
+            <p className="hint-text">
+              Enter your household size to see available slots.
+            </p>
+          )}
+        </div>
+
         <h3>Appointment Details</h3>
         {selectedSlot ? (
           <>
@@ -206,10 +234,7 @@ function BookAppointment() {
           <p>Select an available time slot.</p>
         )}
       </div>
-    </>
-    ) : (
-        <p>Please enter your household size to view available appointments.</p>
-      )}
+
     </div>
   );
 }
