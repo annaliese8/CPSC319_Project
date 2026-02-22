@@ -42,15 +42,16 @@
 }
 
 .calendar-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: 120px repeat(7, 1fr);
   height: 60px;
   align-items: stretch;
 }
 
-.slot-cell {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
+.slot {
+  border-left: 1px solid #eee;
+  border-top: 1px solid #eee;
+  cursor: pointer;
 }
 
 .slot-30min {
@@ -63,6 +64,13 @@
 
 .time-column {
   width: 120px;
+}
+
+.time-label {
+  padding: 10px;
+  font-size: 12px;
+  color: #666;
+  border-top: 1px solid #eee;
 }
 
 .week-nav-button {
@@ -78,7 +86,7 @@
 }
 
 .week-nav-button:hover {
-    background: #003f55;
+    background: #f24c62;
 }
 
 .week-prev {
@@ -105,26 +113,12 @@
 }
 
 .today-button:hover {
-    background: #003f55;
+    background: #f24c62;
 }
 
 .calendar-row {
   display: grid;
     grid-template-columns: 120px repeat(7, 1fr);
-}
-
-.time-label {
-  padding: 10px;
-  font-size: 12px;
-  color: #666;
-  border-top: 1px solid #eee;
-}
-
-.slot {
-  height: 40px;
-  border-left: 1px solid #eee;
-  border-top: 1px solid #eee;
-  cursor: pointer;
 }
 
 .available {
@@ -138,6 +132,12 @@
 .unavailable {
   background-color: #f2f2f2;
   cursor: not-allowed;
+}
+
+.unactivated {
+  background-color: #e0e0e0;
+  cursor: default;
+  pointer-events: none;
 }
 
 .selected {
@@ -156,6 +156,7 @@
   border: none;
   border-radius: 4px;
   cursor: pointer;
+  font-size: 14px;
 }
 
 .side-panel button:hover {
@@ -169,5 +170,15 @@
 
 .confirmation-page button {
   margin-top: 20px;
-  padding: 10px 20px;
+  padding: 6px 12px;
+  background-color: #005070;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.confirmation-page button:hover {
+  background-color: #f24c62;
 }
