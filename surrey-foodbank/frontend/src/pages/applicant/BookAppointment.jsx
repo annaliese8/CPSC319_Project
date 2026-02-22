@@ -19,9 +19,29 @@ function BookAppointment() {
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [confirmed, setConfirmed] = useState(false);
 
+  const today = new Date();
+  const startOfWeek = new Date(today);
+  startOfWeek.setDate(today.getDate() - today.getDay());
+
+  const [weekStart, setWeekStart] = useState(startOfWeek);
+
   const handleBook = () => {
     setConfirmed(true);
   };
+
+  const goToNextWeek = () => { const next = new Date(weekStart);
+    next.setDate(next.getDate() + 7);
+    setWeekStart(next);
+  };
+    
+  const goToPrevWeek = () => {
+    const prev = new Date(weekStart); prev.setDate(prev.getDate() - 7);
+    setWeekStart(prev);
+  };
+    
+  const goToToday = () => { setWeekStart(startOfWeek); };
+    
+  const isCurrentWeek = weekStart.toDateString() === startOfWeek.toDateString();
 
   // once confirmed user cannot book another
   if (confirmed) {
@@ -38,15 +58,33 @@ function BookAppointment() {
 
   return (
     <div className="booking-container">
+
+      {/* Week Navigation */}
+      <div className="week-controls" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <button onClick={goToPrevWeek}>Previous Week</button>
+        {!isCurrentWeek && <button onClick={goToToday}>Today</button>}
+        <button onClick={goToNextWeek}>Next Week</button>
+      </div>
+
       {/* Calendar */}
       <div className="calendar">
         <div className="calendar-header">
           <div className="time-column"></div>
-          {days.map((day) => (
-            <div key={day} className="day-header">
-              {day}
-            </div>
-          ))}
+          {days.map((day, index) => {
+            const date = new Date(weekStart);
+            date.setDate(weekStart.getDate() + index);
+
+            const formatted = date.toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+            });
+
+            return (
+              <div key={day} className="day-header">
+                {day} {formatted}
+              </div>
+            );
+          })}
         </div>
 
         {timeSlots.map((time) => (
@@ -94,3 +132,5 @@ function BookAppointment() {
 }
 
 export default BookAppointment;
+
+// Claude.AI was used in page formatting and debugging
