@@ -1,4 +1,3 @@
-import {Box, Button, Divider, Paper, Stack, Typography} from "@mui/material";
 import React, { useState } from "react";
 import "./AdminCalendar.css";
 
@@ -101,18 +100,7 @@ function AdminCalendar() {
     const isCurrentWeek = weekStart.toDateString() === startOfWeek.toDateString();
 
     return (
-        <div className="booking-container">
             <div className="calendar-area">
-
-                {/* Week Navigation */}
-                {/* <div className="week-controls"
-           style={{ display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center" }}>
-        <button onClick={goToPrevWeek}>Previous Week</button>
-        {!isCurrentWeek && <button onClick={goToToday}>Today</button>}
-        <button onClick={goToNextWeek}>Next Week</button>
-      </div> */}
 
                 <div className="calendar-header-wrapper">
                     <button className="week-nav-button week-prev" onClick={goToPrevWeek}>
@@ -193,7 +181,6 @@ function AdminCalendar() {
                         </div>
                     ))}
                 </div>
-            </div>
 
             {/* Booking Panel */}
             <div className="side-panel">
