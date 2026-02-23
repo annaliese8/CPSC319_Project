@@ -7,20 +7,22 @@ import {
   Button,
   Stack,
 } from "@mui/material";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import BookingInfo from "../../components/BookingInfo";
 import AppointmentPersonalInfo from "../../components/AppointmentPersonalInfo";
 import ApplicantTopBar from "../../components/ApplicantTopBar";
 
 function Profile() {
   const navigate = useNavigate();
+  const location = useLocation();
+
   const handleLogout = () => {
     localStorage.removeItem("activeUser");
     navigate("/applicant/login");
   };
 
   // Sample appointment data - in production, this would come from a backend or localStorage
-  const appointment = {
+    const appointment = location.state ?? {
     name: "Harnoor Kaur",
     address: "5462 Example Ln.",
     statusInCanada: "Temporary Resident (6 months+)",
