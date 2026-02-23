@@ -9,20 +9,32 @@ import AppointmentInfoDialog from "../../components/ApplicantInfoCard";
 function Home() {
   const navigate = useNavigate();
   const staffBase = import.meta.env.VITE_STAFF_BASE;
-  // const handleLogout = () => navigate(`/${staffBase}/login`);
-  //const handleEditSlots = () => console.log("Edit Available Slots clicked");
   const handleLogout = () => navigate('/staff/login');
   const handleEditSlots = () => console.log("Edit Available Slots clicked");
   const [openInfoDialog, setOpenInfoDialog] = React.useState(false);
-  const sampleAppointment = {
-    name: "Joshua Pemberton",
-    address: "123 Main Street, Surrey BC V3T 1A2",
-    statusInCanada: "Permanent Resident",
-    applyingToTinyBundles: "yes",
-    householdMembers: "2",
-    dateLabel: "Monday March 26, 2026",
-    timeLabel: "3:30pm – 3:45pm",
-  };
+  const [appointmentData, setAppointmentData] = React.useState(null);
+
+  // Load appointment from demo user for testing
+  React.useEffect(() => {
+    // Get demo user's appointment data (harnoor@example.com from InitDemoData)
+    const demoEmail = localStorage.getItem("activeUser") ? JSON.parse(localStorage.getItem("activeUser")).email : "harnoor@exmaple.com";
+    const storedData = localStorage.getItem(`applicant_${demoEmail}`);
+    
+    if (storedData) {
+      setAppointmentData(JSON.parse(storedData));
+    } else {
+      // Fallback to sample data if no stored data exists
+      setAppointmentData({
+        name: "Joshua Pemberton",
+        address: "123 Main Street, Surrey BC V3T 1A2",
+        statusInCanada: "Permanent Resident",
+        applyingToTinyBundles: "yes",
+        householdMembers: "2",
+        dateLabel: "Monday March 26, 2026",
+        timeLabel: "3:30pm – 3:45pm",
+      });
+    }
+  }, []);
 
 
 
@@ -48,11 +60,11 @@ function Home() {
         <Button variant="outlined" onClick={() => setOpenInfoDialog(true)}>
             Open Appointment Dialog (test)
         </Button>
-        <AppointmentInfoDialog open={openInfoDialog} onClose={() => setOpenInfoDialog(false)} appointment={sampleAppointment} onDelete={() => {}} />
+        <AppointmentInfoDialog open={openInfoDialog} onClose={() => setOpenInfoDialog(false)} appointment={appointmentData} onDelete={() => {}} />
       </Box>
     </Box>
   );
 }
 
 export default Home;
-// GitHub Copilot was used to debug the code above 
+// GitHub Copilot was used to debug the code above and help with localStorage logic

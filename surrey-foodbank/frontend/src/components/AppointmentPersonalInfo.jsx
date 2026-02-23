@@ -17,25 +17,45 @@ import InfoIcon from "@mui/icons-material/Info";
 const STATUS_OPTIONS = [
   "Temporary Resident (6 months+)",
   "Permanent Resident",
-  "Citizen",
-  "Refugee/Protected Person",
-  "Other",
+  "Canadian Citizen",
+  "Refugee/Protected Person"
 ];
 
-export default function ApplicantPersonalInfo({ appointment }) {
-  // Frontend-only form state (you’ll hook backend later)
+export default function ApplicantPersonalInfo({ appointment, onSave }) {
+  // Frontend-only form state (you'll hook backend later)
   const [form, setForm] = React.useState({
     name: appointment?.name ?? "",
     address: appointment?.address ?? "",
     statusInCanada: appointment?.statusInCanada ?? "Temporary Resident (6 months+)",   
-     applyingToTinyBundles: appointment?.applyingToTinyBundles ?? "no",
-    householdMembers: appointment?.householdMembers ?? "",  });
+    applyingToTinyBundles: appointment?.applyingToTinyBundles ?? "no",
+    householdMembers: appointment?.householdMembers ?? "",
+    dateLabel: appointment?.dateLabel ?? "",
+    timeLabel: appointment?.timeLabel ?? "",
+  });
+
+  // Update form when appointment prop changes
+  React.useEffect(() => {
+    if (appointment) {
+      setForm({
+        name: appointment.name ?? "",
+        address: appointment.address ?? "",
+        statusInCanada: appointment.statusInCanada ?? "Temporary Resident (6 months+)",
+        applyingToTinyBundles: appointment.applyingToTinyBundles ?? "no",
+        householdMembers: appointment.householdMembers ?? "",
+        dateLabel: appointment.dateLabel ?? "",
+        timeLabel: appointment.timeLabel ?? "",
+      });
+    }
+  }, [appointment]);
 
   const onChange = (key) => (e) => setForm((prev) => ({ ...prev, [key]: e.target.value }));
 
-  const onSave = () => {
-    console.log("Save changes", form);
-    // Later: call API 
+  const handleSave = () => {
+    if (onSave) {
+      onSave(form);
+    } else {
+      console.log("Save changes", form);
+    }
   };
 
   return (
@@ -113,7 +133,7 @@ export default function ApplicantPersonalInfo({ appointment }) {
                   <Button
                     variant="contained"
                     color="secondary"
-                    onClick={onSave}
+                    onClick={handleSave}
                     sx={{ fontWeight: 800, color: "common.white" }}
                   >
                     Save Changes
@@ -123,4 +143,4 @@ export default function ApplicantPersonalInfo({ appointment }) {
             </Box>
   );
 }
-// GitHub Copilot was used to debug the code above 
+// GitHub Copilot was used to debug the code above and help with localStorage logic
