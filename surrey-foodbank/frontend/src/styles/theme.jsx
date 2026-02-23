@@ -11,6 +11,9 @@ const theme = createTheme({
     warning: {
       main: "#f24c62",
     },
+    greyDark: {
+      main: "#8f8f8f",
+    },
   },
   typography: { fontFamily: "Figtree, sans-serif" },
 });
