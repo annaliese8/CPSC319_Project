@@ -2,7 +2,6 @@ import {
   AppBar,
   Toolbar,
   Typography,
-  Box,
   Button,
   Stack,
   IconButton,
@@ -23,7 +22,7 @@ import { useNavigate } from "react-router-dom";
 
 
 // Used as a common top bar for the admin page
-function StaffTopBar({ onLogout }) {
+function StaffTopBar({ onLogout, label }) {
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const navigate = useNavigate();
@@ -59,7 +58,7 @@ function StaffTopBar({ onLogout }) {
             </a>
             
             <Typography variant="h6" sx={{ ml: 2 }}>
-              Admin Page
+              {label}
             </Typography>
           </Stack>
         </Stack>

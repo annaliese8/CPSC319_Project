@@ -1,18 +1,34 @@
-import { Box } from "@mui/material";
+import React from "react";
+import { Box, Button } from "@mui/material";
 import StaffTopBar from "../../components/StaffTopBar";
 import WelcomePanel from "../../components/WelcomePanel";
-//import AdminCalendarPanel from "../../components/AdminCalendarPanel";
+import AdminCalendarPanel from "../../components/AdminCalendarPanel";
 import { useNavigate } from 'react-router-dom';
+import AppointmentInfoDialog from "../../components/ApplicantInfoCard";
 
 function Home() {
   const navigate = useNavigate();
   const staffBase = import.meta.env.VITE_STAFF_BASE;
-  const handleLogout = () => navigate(`/${staffBase}/login`);
+  // const handleLogout = () => navigate(`/${staffBase}/login`);
   //const handleEditSlots = () => console.log("Edit Available Slots clicked");
+  const handleLogout = () => navigate('/staff/login');
+  const handleEditSlots = () => console.log("Edit Available Slots clicked");
+  const [openInfoDialog, setOpenInfoDialog] = React.useState(false);
+  const sampleAppointment = {
+    name: "Joshua Pemberton",
+    address: "123 Main Street, Surrey BC V3T 1A2",
+    statusInCanada: "Permanent Resident",
+    applyingToTinyBundles: "yes",
+    householdMembers: "2",
+    dateLabel: "Monday March 26, 2026",
+    timeLabel: "3:30pm – 3:45pm",
+  };
+
+
 
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
-      <StaffTopBar onLogout={handleLogout} />
+      <StaffTopBar onLogout={handleLogout} label = "Admin Page"/>
 
       {/* Main Layout */}
       <Box
@@ -27,10 +43,16 @@ function Home() {
         {/* Left Panel for staff instructions */}
         <WelcomePanel />
         {/* Right panel to show calender and manage bookings */}
-        {/* <AdminCalendarPanel onEditSlots={handleEditSlots} /> */}
+        <AdminCalendarPanel onEditSlots={handleEditSlots} />
+        {/*TODO: Testing Applicant Info */}
+        <Button variant="outlined" onClick={() => setOpenInfoDialog(true)}>
+            Open Appointment Dialog (test)
+        </Button>
+        <AppointmentInfoDialog open={openInfoDialog} onClose={() => setOpenInfoDialog(false)} appointment={sampleAppointment} onDelete={() => {}} />
       </Box>
     </Box>
   );
 }
 
 export default Home;
+// GitHub Copilot was used to debug the code above 
