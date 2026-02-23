@@ -17,12 +17,11 @@ import InfoIcon from "@mui/icons-material/Info";
 const STATUS_OPTIONS = [
   "Temporary Resident (6 months+)",
   "Permanent Resident",
-  "Citizen",
-  "Refugee/Protected Person",
-  "Other",
+  "Canadian Citizen",
+  "Refugee/Protected Person"
 ];
 
-export default function ApplicantPersonalInfo({ appointment }) {
+export default function AppointmentPersonalInfo({ appointment }) {
   // Frontend-only form state (you’ll hook backend later)
   const [form, setForm] = React.useState({
     name: appointment?.name ?? "",
