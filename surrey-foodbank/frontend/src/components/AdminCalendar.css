@@ -10,7 +10,7 @@
 .calendar {
   flex: 3;
   overflow-y: scroll;
-  max-height: 475px;
+  max-height: 500px;
   font-family: Arial, sans-serif;
   -webkit-user-select: none; /* Safari */
   -ms-user-select: none; /* IE 10 and IE 11 */
