@@ -1,5 +1,4 @@
 import React, {useState} from "react";
-// import AdminCalendar from "./AdminCalendar";
 import "./AdminCalendar.css";
 import {
   Typography,
@@ -10,6 +9,7 @@ import {
   Chip,
   Divider,
 } from "@mui/material";
+import AppointmentInfoDialog from "./ApplicantInfoCard.jsx";
 
 const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
@@ -50,7 +50,6 @@ function AdminCalendarPanel() {
     const removeBlockedSlot = (slot) => {
         setBlockedSlots((prevSlots) => prevSlots.filter(s => s[0] !== slot[0] || s[1] !== slot[1]));
     }
-
 
     const [editing, setEditing] = useState(false);
     const [isBlocking, setIsBlocking] = useState(false);
@@ -101,6 +100,14 @@ function AdminCalendarPanel() {
     const goToPrevWeek = () => {
         const prev = new Date(weekStart); prev.setDate(prev.getDate() - 7);
         setWeekStart(prev);
+    };
+
+
+    const [openInfoDialog, setOpenInfoDialog] = React.useState(false);
+    const sampleAppointment = {
+        name: "Joshua Pemberton",
+        dateLabel: "Monday March 26, 2026",
+        timeLabel: "3:30pm – 3:45pm",
     };
 
     // const goToToday = () => { setWeekStart(startOfWeek); };
@@ -170,13 +177,6 @@ function AdminCalendarPanel() {
         >
                 <div className="calendar-area">
                     <div className="calendar-header-wrapper">
-
-                        {/*{!isCurrentWeek && (*/}
-                        {/*    <button className="today-button" onClick={goToToday}>*/}
-                        {/*        Today*/}
-                        {/*    </button>*/}
-                        {/*)}*/}
-
                         <div className="calendar-header">
                             <div className="time-column"></div>
                             {days.map((day, index) => {
@@ -208,7 +208,7 @@ function AdminCalendarPanel() {
                                         return (
                                             <div
                                                 key={day + time}
-                                                className={`slot ${isBlocked(day,time)? "unavailable-vis" : isAvailable? "available": "booked"}`}
+                                                className={`slot ${isBlocked(day,time)? "unavailable-vis" : isAvailable? "admin-available": "admin-booked"}`}
                                                 onMouseDown={() => {
                                                     if (!isBlocked(day,time)) setIsBlocking(true)
                                                     else setIsUnblocking(true)
@@ -232,7 +232,10 @@ function AdminCalendarPanel() {
                                         return (
                                             <div
                                                 key={day + time}
-                                                className={`slot ${isBlocked(day,time)? "unavailable-invis" : isAvailable? "available": "booked"}`}
+                                                className={`slot ${isBlocked(day,time)? "unavailable-invis" : isAvailable? "admin-available": "admin-booked"}`}
+                                                onClick={() =>
+                                                    !isAvailable? setOpenInfoDialog(true) : ""
+                                                }
                                             >
                                             </div>
                                         );
@@ -277,7 +280,7 @@ function AdminCalendarPanel() {
                   Edit Available Slots
               </Button>
           )}
-
+          <AppointmentInfoDialog open={openInfoDialog} onClose={() => setOpenInfoDialog(false)} appointment={sampleAppointment} onDelete={() => {}} />
       </Box>
     </Paper>
   );

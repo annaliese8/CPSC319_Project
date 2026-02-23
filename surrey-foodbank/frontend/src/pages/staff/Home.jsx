@@ -8,7 +8,7 @@ import AppointmentInfoDialog from "../../components/ApplicantInfoCard";
 
 function Home() {
   const navigate = useNavigate();
-  const staffBase = import.meta.env.VITE_STAFF_BASE;
+  // const staffBase = import.meta.env.VITE_STAFF_BASE;
   // const handleLogout = () => navigate(`/${staffBase}/login`);
   //const handleEditSlots = () => console.log("Edit Available Slots clicked");
   const handleLogout = () => navigate('/staff/login');
@@ -38,7 +38,7 @@ function Home() {
       >
         {/* Left Panel for staff instructions */}
         <WelcomePanel />
-        {/* Right panel to show calender and manage bookings */}
+        {/* Right panel to show calendar and manage bookings */}
         <AdminCalendarPanel onEditSlots={handleEditSlots} />
         {/*TODO: Testing Applicant Info */}
         <Button variant="outlined" onClick={() => setOpenInfoDialog(true)}>
