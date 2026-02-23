@@ -16,6 +16,10 @@ function Home() {
   const [openInfoDialog, setOpenInfoDialog] = React.useState(false);
   const sampleAppointment = {
     name: "Joshua Pemberton",
+    address: "123 Main Street, Surrey BC V3T 1A2",
+    statusInCanada: "Permanent Resident",
+    applyingToTinyBundles: "yes",
+    householdMembers: "2",
     dateLabel: "Monday March 26, 2026",
     timeLabel: "3:30pm – 3:45pm",
   };
@@ -51,3 +55,4 @@ function Home() {
 }
 
 export default Home;
+// GitHub Copilot was used to debug the code above 

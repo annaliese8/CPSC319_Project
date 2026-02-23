@@ -22,7 +22,7 @@ function AppointmentInfoDialog({
 
   const handleMoreDetails = () => {
     // Pass data via router state for now (no backend yet)
-    navigate("/admin/applicant-info", { state: { appointment } });
+    navigate("/staff/applicant-info", { state: { appointment } });
   };  
 
   return (
