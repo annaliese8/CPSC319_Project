@@ -141,7 +141,7 @@ export default function ApplicantPersonalInfo({ appointment, onSave }) {
                   </Button>
                 </Box>
               </Stack>
-            </Box>
+     </Box>
   );
 }
 // GitHub Copilot was used to debug the code above and help with localStorage logic

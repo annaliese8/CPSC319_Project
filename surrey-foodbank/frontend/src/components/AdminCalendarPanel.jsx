@@ -23,6 +23,7 @@ const generateTimeSlots = () => {
     return slots;
 };
 
+
 const generateInitBlockedSlots = () => {
     const blockedSlots = [];
     days.forEach((day) => {
@@ -40,7 +41,32 @@ const generateInitBlockedSlots = () => {
 
 const timeSlots = generateTimeSlots();
 
+
 function AdminCalendarPanel() {
+    const [appointmentData, setAppointmentData] = React.useState(null);
+
+    React.useEffect(() => {
+        // Get demo user's appointment data (harnoor@example.com from InitDemoData)
+        const demoEmail = localStorage.getItem("activeUser") ? JSON.parse(localStorage.getItem("activeUser")).email : "harnoor@exmaple.com";
+        const storedData = localStorage.getItem(`applicant_${demoEmail}`);
+
+        if (storedData) {
+            setAppointmentData(JSON.parse(storedData));
+        } else {
+            // Fallback to sample data if no stored data exists
+            setAppointmentData({
+                name: "Joshua Pemberton",
+                address: "123 Main Street, Surrey BC V3T 1A2",
+                statusInCanada: "Permanent Resident",
+                applyingToTinyBundles: "yes",
+                householdMembers: "2",
+                dateLabel: "Monday March 26, 2026",
+                timeLabel: "3:30pm – 3:45pm",
+            });
+        }
+    }, []);
+
+
     const [savedBlockedSlots, setsavedBlockedSlots] = useState(generateInitBlockedSlots);
     const [blockedSlots, setBlockedSlots] = useState(savedBlockedSlots);
     const addBlockedSlot = (slot) => {
@@ -104,11 +130,6 @@ function AdminCalendarPanel() {
 
 
     const [openInfoDialog, setOpenInfoDialog] = React.useState(false);
-    const sampleAppointment = {
-        name: "Joshua Pemberton",
-        dateLabel: "Monday March 26, 2026",
-        timeLabel: "3:30pm – 3:45pm",
-    };
 
     // const goToToday = () => { setWeekStart(startOfWeek); };
     // const isCurrentWeek = weekStart.toDateString() === startOfWeek.toDateString();
@@ -200,7 +221,7 @@ function AdminCalendarPanel() {
                     {/* Calendar */}
                     <div className="calendar">
                         {timeSlots.map((time) => (
-                            <div key={time} className="calendar-row">
+                            <div key={time} className="admin-calendar-row">
                                 <div className="admin-time-label">{time}</div>
                                 {days.map((day) => {
                                     const isAvailable = Math.random() > 0.4; // random availability
@@ -280,7 +301,7 @@ function AdminCalendarPanel() {
                   Edit Available Slots
               </Button>
           )}
-          <AppointmentInfoDialog open={openInfoDialog} onClose={() => setOpenInfoDialog(false)} appointment={sampleAppointment} onDelete={() => {}} />
+          <AppointmentInfoDialog open={openInfoDialog} onClose={() => setOpenInfoDialog(false)} appointment={appointmentData} onDelete={() => {}} />
       </Box>
     </Paper>
   );

@@ -206,8 +206,9 @@
 }
 
 .side-panel {
-  flex: 1;
-  padding: 30px;
+    flex: 1;
+    padding: 30px;
+}
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -236,7 +237,8 @@
 }
 
 .side-panel button {
-  padding: 10px 20px;
+    padding: 10px 20px;
+}
 .modal p {
   font-size: 15px;
   margin-bottom: 24px;
@@ -268,7 +270,8 @@
 }
 
 .side-panel button:hover {
-  background-color: #f24c62;
+    background-color: #f24c62;
+}
 .modal-close:hover {
   color: #f24c62 !important;
   background: none !important;
@@ -291,5 +294,5 @@
 }
 
 .confirmation-page button:hover {
-  background-color: #f24c62;
+    background-color: #f24c62;
 }
