@@ -1,4 +1,5 @@
-import React from "react";
+import React, {useState} from "react";
+import "./AdminCalendar.css";
 import {
   Typography,
   Box,
@@ -8,8 +9,131 @@ import {
   Chip,
   Divider,
 } from "@mui/material";
+import AppointmentInfoDialog from "./ApplicantInfoCard.jsx";
 
-function AdminCalendarPanel({ onEditSlots }) {
+const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+// generate time slots from 9am – 5pm (30 min slots for now)
+const generateTimeSlots = () => {
+    const slots = [];
+    for (let hour = 0; hour < 24; hour++) {
+        slots.push(`${hour}:00`);
+        slots.push(`${hour}:15`);
+    }
+    return slots;
+};
+
+
+const generateInitBlockedSlots = () => {
+    const blockedSlots = [];
+    days.forEach((day) => {
+        for (let hour = 0; hour < 9; hour++) {
+            blockedSlots.push([day,`${hour}:00`]);
+            blockedSlots.push([day,`${hour}:15`]);
+        }
+        for (let hour = 15; hour < 24; hour++) {
+            blockedSlots.push([day,`${hour}:00`]);
+            blockedSlots.push([day,`${hour}:15`]);
+        }
+    })
+    return blockedSlots;
+};
+
+const timeSlots = generateTimeSlots();
+
+
+function AdminCalendarPanel() {
+    const [appointmentData, setAppointmentData] = React.useState(null);
+
+    React.useEffect(() => {
+        // Get demo user's appointment data (harnoor@example.com from InitDemoData)
+        const demoEmail = localStorage.getItem("activeUser") ? JSON.parse(localStorage.getItem("activeUser")).email : "harnoor@exmaple.com";
+        const storedData = localStorage.getItem(`applicant_${demoEmail}`);
+
+        if (storedData) {
+            setAppointmentData(JSON.parse(storedData));
+        } else {
+            // Fallback to sample data if no stored data exists
+            setAppointmentData({
+                name: "Joshua Pemberton",
+                address: "123 Main Street, Surrey BC V3T 1A2",
+                statusInCanada: "Permanent Resident",
+                applyingToTinyBundles: "yes",
+                householdMembers: "2",
+                dateLabel: "Monday March 26, 2026",
+                timeLabel: "3:30pm – 3:45pm",
+            });
+        }
+    }, []);
+
+
+    const [savedBlockedSlots, setsavedBlockedSlots] = useState(generateInitBlockedSlots);
+    const [blockedSlots, setBlockedSlots] = useState(savedBlockedSlots);
+    const addBlockedSlot = (slot) => {
+        setBlockedSlots((prevSlots) => [...prevSlots, slot]);
+    }
+
+    const removeBlockedSlot = (slot) => {
+        setBlockedSlots((prevSlots) => prevSlots.filter(s => s[0] !== slot[0] || s[1] !== slot[1]));
+    }
+
+    const [editing, setEditing] = useState(false);
+    const [isBlocking, setIsBlocking] = useState(false);
+    const [isUnblocking, setIsUnblocking] = useState(false);
+
+    const handleSave = () => {
+        setsavedBlockedSlots(blockedSlots);
+        setEditing(false);
+        clearMouseTrackers();
+    };
+    const handleCancel = () => {
+        setBlockedSlots(savedBlockedSlots);
+        setEditing(false);
+        clearMouseTrackers();
+    };
+
+    const clearMouseTrackers = () => {
+        setIsBlocking(false);
+        setIsUnblocking(false);
+    }
+
+    const handleEditMode = () => {
+        setEditing(true);
+    };
+
+    const isBlocked = (day,time) => {
+        if(editing) {
+            return blockedSlots.some(arr =>
+                arr.every((val, index) => val === [day,time][index])
+            );
+        }
+        return savedBlockedSlots.some(arr =>
+            arr.every((val, index) => val === [day,time][index])
+        );
+    }
+
+    const today = new Date();
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - today.getDay());
+
+    const [weekStart, setWeekStart] = useState(startOfWeek);
+
+    const goToNextWeek = () => { const next = new Date(weekStart);
+        next.setDate(next.getDate() + 7);
+        setWeekStart(next);
+    };
+
+    const goToPrevWeek = () => {
+        const prev = new Date(weekStart); prev.setDate(prev.getDate() - 7);
+        setWeekStart(prev);
+    };
+
+
+    const [openInfoDialog, setOpenInfoDialog] = React.useState(false);
+
+    // const goToToday = () => { setWeekStart(startOfWeek); };
+    // const isCurrentWeek = weekStart.toDateString() === startOfWeek.toDateString();
+
   return (
     <Paper sx={{ padding: { xs: 2, md: 3 }, borderRadius: 2 }} elevation={1}>
       {/* Week header row to show current date */}
@@ -23,7 +147,7 @@ function AdminCalendarPanel({ onEditSlots }) {
       >
         <Button
           variant="outlined"
-          onClick={() => console.log("Previous 7 Days")}
+          onClick={goToPrevWeek}
           size="small"
         >
           Previous 7 Days
@@ -40,7 +164,7 @@ function AdminCalendarPanel({ onEditSlots }) {
 
         <Button
           variant="outlined"
-          onClick={() => console.log("Next 7 Days")}
+          onClick={goToNextWeek}
           size="small"
         >
           Next 7 Days
@@ -72,7 +196,76 @@ function AdminCalendarPanel({ onEditSlots }) {
             color: "text.secondary",
           }}
         >
-          Calendar should go here
+                <div className="calendar-area">
+                    <div className="calendar-header-wrapper">
+                        <div className="calendar-header">
+                            <div className="time-column"></div>
+                            {days.map((day, index) => {
+                                const date = new Date(weekStart);
+                                date.setDate(weekStart.getDate() + index);
+
+                                const formatted = date.toLocaleDateString("en-US", {
+                                    month: "short",
+                                    day: "numeric",
+                                });
+
+                                return (
+                                    <div key={day} className="day-header">
+                                        {day}, {formatted}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    {/* Calendar */}
+                    <div className="calendar">
+                        {timeSlots.map((time) => (
+                            <div key={time} className="admin-calendar-row">
+                                <div className="admin-time-label">{time}</div>
+                                {days.map((day) => {
+                                    const isAvailable = Math.random() > 0.4; // random availability
+                                    if(editing) {
+                                        return (
+                                            <div
+                                                key={day + time}
+                                                className={`slot ${isBlocked(day,time)? "unavailable-vis" : isAvailable? "admin-available": "admin-booked"}`}
+                                                onMouseDown={() => {
+                                                    if (!isBlocked(day,time)) setIsBlocking(true)
+                                                    else setIsUnblocking(true)
+                                                }
+                                                }
+                                                onMouseUp={() => {
+                                                    clearMouseTrackers()
+                                                }
+                                                }
+                                                onMouseOver={() => {
+                                                    if (isBlocking && !isBlocked(day,time)) addBlockedSlot([day,time])
+                                                    if (isUnblocking && isBlocked(day,time)) removeBlockedSlot([day,time])
+                                                }
+                                                }
+                                                onClick={() =>
+                                                    !isBlocked(day,time)? addBlockedSlot([day,time]) : removeBlockedSlot([day,time])
+                                                }
+                                            ></div>
+                                        );
+                                    } else {
+                                        return (
+                                            <div
+                                                key={day + time}
+                                                className={`slot ${isBlocked(day,time)? "unavailable-invis" : isAvailable? "admin-available": "admin-booked"}`}
+                                                onClick={() =>
+                                                    !isAvailable? setOpenInfoDialog(true) : ""
+                                                }
+                                            >
+                                            </div>
+                                        );
+                                    }
+                                })}
+                            </div>
+                        ))}
+                    </div>
+                </div>
         </Box>
 
         {/* Legend */}
@@ -92,9 +285,23 @@ function AdminCalendarPanel({ onEditSlots }) {
 
       {/* Edit slots should take you to edit slot window using the function we pass on here*/}
       <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 3 }}>
-        <Button variant="contained" color="secondary" onClick={onEditSlots} sx={{ fontWeight: "bold", color: "common.white"}}>
-          Edit Available Slots
-        </Button>
+          {editing ? (
+              <>
+                  <Button variant="contained" color="greyDark" onClick={handleCancel} sx={{ fontWeight: "bold", color: "common.white"}}>
+                      Discard Changes
+                  </Button>
+                  <Button variant="contained" color="secondary" onClick={handleSave} sx={{ fontWeight: "bold", color: "common.white"}}>
+                      Confirm Changes
+                  </Button>
+              </>
+
+
+          ) : (
+              <Button variant="contained" color="secondary" onClick={handleEditMode} sx={{ fontWeight: "bold", color: "common.white"}}>
+                  Edit Available Slots
+              </Button>
+          )}
+          <AppointmentInfoDialog open={openInfoDialog} onClose={() => setOpenInfoDialog(false)} appointment={appointmentData} onDelete={() => {}} />
       </Box>
     </Paper>
   );

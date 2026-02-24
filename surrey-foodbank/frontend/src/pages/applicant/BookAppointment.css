@@ -62,7 +62,7 @@
     z-index: 3;
     background: #f7f7f7;
     display: flex;
-    align-items: center; 
+    align-items: center;
     justify-content: center;
     padding: 10px 0;
 }
@@ -132,7 +132,7 @@
 }
 
 .week-nav-button:hover {
-    background: #f24c62;
+    background: #003f55;
 }
 
 .week-prev {
@@ -160,12 +160,26 @@
 }
 
 .today-button:hover {
-    background: #f24c62;
+    background: #003f55;
 }
 
 .calendar-row {
   display: grid;
     grid-template-columns: 120px repeat(7, 1fr);
+}
+
+.time-label {
+  padding: 10px;
+  font-size: 12px;
+  color: #666;
+  border-top: 1px solid #eee;
+}
+
+.slot {
+  height: 40px;
+  border-left: 1px solid #eee;
+  border-top: 1px solid #eee;
+  cursor: pointer;
 }
 
 .available {
@@ -191,6 +205,10 @@
   background-color: #005070 !important;
 }
 
+.side-panel {
+    flex: 1;
+    padding: 30px;
+}
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -218,6 +236,9 @@
   color: #005070;
 }
 
+.side-panel button {
+    padding: 10px 20px;
+}
 .modal p {
   font-size: 15px;
   margin-bottom: 24px;
@@ -248,6 +269,9 @@
   cursor: pointer;
 }
 
+.side-panel button:hover {
+    background-color: #f24c62;
+}
 .modal-close:hover {
   color: #f24c62 !important;
   background: none !important;
@@ -270,5 +294,5 @@
 }
 
 .confirmation-page button:hover {
-  background-color: #f24c62;
+    background-color: #f24c62;
 }

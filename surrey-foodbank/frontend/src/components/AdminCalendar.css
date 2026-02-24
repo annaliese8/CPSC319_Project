@@ -1,0 +1,134 @@
+.booking-container {
+  display: flex;
+  height: 100%;
+  font-family: Arial, sans-serif;
+  -webkit-user-select: none; /* Safari */
+  -ms-user-select: none; /* IE 10 and IE 11 */
+  user-select: none; /* Standard syntax */
+}
+
+.calendar {
+  flex: 3;
+  overflow-y: scroll;
+  max-height: 500px;
+  font-family: Arial, sans-serif;
+  -webkit-user-select: none; /* Safari */
+  -ms-user-select: none; /* IE 10 and IE 11 */
+  user-select: none; /* Standard syntax */
+  border-right: 1px solid #ddd;
+}
+
+.calendar-header {
+  display: flex;
+  background: #f7f7f7;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.day-header {
+  flex: 1;
+  /*padding: 5px;*/
+  font-family: Arial, sans-serif;
+  text-align: center;
+  font-weight: bold;
+  border-left: 1px solid #eee;
+}
+
+.time-column {
+  width: 70px;
+}
+
+.admin-calendar-row {
+  display: flex;
+  height:15px;
+}
+
+.admin-time-label {
+  width: 60px;
+  padding: 1px 5px 1px 1px;
+  text-align: right;
+  font-size: 12px;
+  color: #666;
+  border-top: 1px solid #eee;
+}
+
+.slot {
+  flex: 1;
+  max-height: 15px;
+  border-left: 1px solid #eee;
+  border-top: 1px solid #eee;
+  cursor: pointer;
+}
+
+.admin-booked {
+  background-color: #4CC5DCFF;
+}
+
+.admin-booked:hover {
+  background-color: #2eafc4;
+}
+
+.admin-available {
+  background-color: #b6b6b6;
+}
+
+.admin-available:hover {
+  background-color: #9b9b9b;
+}
+
+.unavailable-invis {
+  background-color: #e7e7e7;
+  cursor: not-allowed;
+}
+
+.unavailable-vis {
+  background-color: #e07171;
+}
+
+.unavailable-vis:hover {
+  background-color: #af5353;
+}
+
+.side-panel {
+  flex: 1;
+  padding: 30px;
+}
+
+.side-panel button {
+  padding: 10px 20px;
+  margin: 5px;
+  background-color: #005070;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.side-panel button:hover {
+  background-color: #f24c62;
+}
+
+button.cancel-button {
+  background-color: #8f8f8f;
+}
+
+button.cancel-button:hover {
+  background-color: #6e6e6e;
+}
+
+.confirmation-page {
+  text-align: center;
+  padding: 100px;
+}
+
+.confirmation-page button {
+  margin-top: 20px;
+  padding: 10px 20px;
+}
+
+.prevent-select {
+  -webkit-user-select: none; /* Safari */
+  -ms-user-select: none; /* IE 10 and IE 11 */
+  user-select: none; /* Standard syntax */
+}

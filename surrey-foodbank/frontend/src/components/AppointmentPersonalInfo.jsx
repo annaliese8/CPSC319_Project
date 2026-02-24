@@ -18,7 +18,8 @@ const STATUS_OPTIONS = [
   "Temporary Resident (6 months+)",
   "Permanent Resident",
   "Canadian Citizen",
-  "Refugee/Protected Person"
+  "Refugee/Protected Person",
+  "Other",
 ];
 
 export default function AppointmentPersonalInfo({ appointment }) {
@@ -140,7 +141,7 @@ export default function AppointmentPersonalInfo({ appointment }) {
                   </Button>
                 </Box>
               </Stack>
-            </Box>
+     </Box>
   );
 }
 // GitHub Copilot was used to debug the code above and help with localStorage logic

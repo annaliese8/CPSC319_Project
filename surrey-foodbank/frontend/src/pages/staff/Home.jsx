@@ -19,7 +19,7 @@ function Home() {
     // Get demo user's appointment data (harnoor@example.com from InitDemoData)
     const demoEmail = localStorage.getItem("activeUser") ? JSON.parse(localStorage.getItem("activeUser")).email : "harnoor@exmaple.com";
     const storedData = localStorage.getItem(`applicant_${demoEmail}`);
-    
+
     if (storedData) {
       setAppointmentData(JSON.parse(storedData));
     } else {
@@ -54,13 +54,13 @@ function Home() {
       >
         {/* Left Panel for staff instructions */}
         <WelcomePanel />
-        {/* Right panel to show calender and manage bookings */}
+        {/* Right panel to show calendar and manage bookings */}
         <AdminCalendarPanel onEditSlots={handleEditSlots} />
         {/*TODO: Testing Applicant Info */}
-        <Button variant="outlined" onClick={() => setOpenInfoDialog(true)}>
-            Open Appointment Dialog (test)
-        </Button>
         <AppointmentInfoDialog open={openInfoDialog} onClose={() => setOpenInfoDialog(false)} appointment={appointmentData} onDelete={() => {}} />
+          <Button variant="outlined" onClick={() => setOpenInfoDialog(true)}>
+              Open Appointment Dialog (test)
+          </Button>
       </Box>
     </Box>
   );
