@@ -9,6 +9,7 @@ import ListItemText from "@mui/material/ListItemText";
 import Stack from "@mui/material/Stack";
 import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
+import logo from "../../styles/full-logo.png";
 
 function Home() {
   const listItemIconStyle = {
@@ -30,7 +31,7 @@ function Home() {
           <Link href="https://surreyfoodbank.org/">
             <Box
               component="img"
-              src="/full-logo.png"
+              src={logo}
               alt="Surrey Food Bank Logo"
               height={40}
             />

@@ -110,7 +110,22 @@ function Home() {
                   hover
                   sx={{ cursor: "pointer" }} 
                   // navigate into the applicant page on click TODO
-                  onClick={() => navigate(`/staff/applicants/${applicant.id}`)}
+                  onClick={() => navigate(`/staff/applicant-info`, { 
+                  state: { 
+                  appointment: {
+                  name: applicant.name,
+                  address: "123 Example St.",         
+                  statusInCanada: "Canadian Citizen", 
+                  applyingToTinyBundles: "no",         
+                  householdMembers: "2",               
+                  dateLabel: "Monday March 26, 2026",  
+                  timeLabel: "3:30pm – 3:45pm",        
+                  email: applicant.email,
+                  status: applicant.status,
+                  createdAt: applicant.createdAt,
+                  }
+                }
+})}
                 >
                   {/* Fill in applicant information */}
                   <TableCell>{applicant.name}</TableCell>

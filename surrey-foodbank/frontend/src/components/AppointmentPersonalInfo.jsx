@@ -22,8 +22,8 @@ const STATUS_OPTIONS = [
   "Other",
 ];
 
-export default function ApplicantPersonalInfo({ appointment, onSave }) {
-  // Frontend-only form state (you'll hook backend later)
+export default function AppointmentPersonalInfo({ appointment }) {
+  // Frontend-only form state (you’ll hook backend later)
   const [form, setForm] = React.useState({
     name: appointment?.name ?? "",
     address: appointment?.address ?? "",
