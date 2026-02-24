@@ -7,7 +7,7 @@ import {
   Button,
   Stack,
 } from "@mui/material";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
 import BookingInfo from "../../components/BookingInfo";
 import AppointmentPersonalInfo from "../../components/AppointmentPersonalInfo";
@@ -16,52 +16,29 @@ import CancelBookingDialogue from "../../components/CancelBookingDialogue";
 
 function Profile() {
   const navigate = useNavigate();
-  const [appointment, setAppointment] = useState(null);
+  const location = useLocation();
   const [showCancelDialog, setShowCancelDialog] = useState(false);
-
-  // Load applicant data from localStorage on mount
-  useEffect(() => {
-    const activeUser = JSON.parse(localStorage.getItem("activeUser"));
-    if (!activeUser || !activeUser.email) {
-      navigate("/applicant/login");
-      return;
-    }
-
-    // Get applicant data from localStorage
-    const applicantData = JSON.parse(localStorage.getItem(`applicant_${activeUser.email}`)) || {
-      name: "",
-      address: "",
-      statusInCanada: "Temporary Resident (6 months+)",
-      applyingToTinyBundles: "no",
-      householdMembers: "0",
-      dateLabel: "Monday March 26, 2026",
-      timeLabel: "3:30pm – 3:45pm",
-    };
-
-    setAppointment(applicantData);
-  }, [navigate]);
 
   const handleLogout = () => {
     localStorage.removeItem("activeUser");
     navigate("/applicant/login");
   };
 
-  const handleSavePersonalInfo = (updatedData) => {
-    const activeUser = JSON.parse(localStorage.getItem("activeUser"));
-    if (activeUser && activeUser.email) {
-      // Save to localStorage
-      localStorage.setItem(`applicant_${activeUser.email}`, JSON.stringify(updatedData));
-      // Update local state
-      setAppointment(updatedData);
-      console.log("Data saved to localStorage", updatedData);
-    }
+  // Sample appointment data - in production, this would come from a backend or localStorage
+    const appointment = location.state ?? {
+    name: "Harnoor Kaur",
+    address: "5462 Example Ln.",
+    statusInCanada: "Temporary Resident (6 months+)",
+    applyingToTinyBundles: "Yes",
+    householdMembers: "3",
+    dateLabel: "Monday March 26, 2026",
+    timeLabel: "3:30pm – 3:45pm",
   };
 
   const onCancelBooking = () => {
     setShowCancelDialog(true);
   };
-  
-  const onChangeBooking = () => console.log("Change booking clicked");
+  const onChangeBooking = () => navigate(`/applicant/book-appointment`);
 
   return (
     <Box sx={{ minHeight: "100vh" }}>
@@ -77,10 +54,7 @@ function Profile() {
               alignItems: "start",
             }}
           >
-            <AppointmentPersonalInfo 
-              appointment={appointment} 
-              onSave={handleSavePersonalInfo}
-            />
+            <AppointmentPersonalInfo appointment={appointment} />
             <BookingInfo
               appointment={appointment}
               onCancelBooking={onCancelBooking}
@@ -89,7 +63,6 @@ function Profile() {
           </Box>
         </Paper>
       </Box>
-
       <CancelBookingDialogue
         open={showCancelDialog}
         onClose={() => setShowCancelDialog(false)}

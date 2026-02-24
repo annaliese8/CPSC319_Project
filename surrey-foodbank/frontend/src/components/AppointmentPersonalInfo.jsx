@@ -18,8 +18,7 @@ const STATUS_OPTIONS = [
   "Temporary Resident (6 months+)",
   "Permanent Resident",
   "Canadian Citizen",
-  "Refugee/Protected Person",
-  "Other",
+  "Refugee/Protected Person"
 ];
 
 export default function AppointmentPersonalInfo({ appointment }) {
