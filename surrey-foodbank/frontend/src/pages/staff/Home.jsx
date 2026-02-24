@@ -9,7 +9,7 @@ import AppointmentInfoDialog from "../../components/ApplicantInfoCard";
 function Home() {
   const navigate = useNavigate();
   const staffBase = import.meta.env.VITE_STAFF_BASE;
-  const handleLogout = () => navigate('/staff/login');
+  const handleLogout = () => navigate(`/${staffBase}/login`);
   const handleEditSlots = () => console.log("Edit Available Slots clicked");
   const [openInfoDialog, setOpenInfoDialog] = React.useState(false);
   const [appointmentData, setAppointmentData] = React.useState(null);
