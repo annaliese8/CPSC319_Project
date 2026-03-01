@@ -369,3 +369,5 @@ export default function StaffBookingPanel({
     </Box>
   );
 }
+
+// Copilot was used to format the code and help with bug fixes. The code has been reviewed
