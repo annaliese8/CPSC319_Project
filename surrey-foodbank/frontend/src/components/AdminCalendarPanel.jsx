@@ -233,6 +233,7 @@ function AdminCalendarPanel() {
             Vancouver - America (GMT -08:00)
           </Typography>
         </Box>
+        
 
         <Button
           variant="outlined"
@@ -243,7 +244,21 @@ function AdminCalendarPanel() {
         </Button>
       </Box>
 
-      <Divider sx={{ my: 2 }} />
+      <Divider sx={{ my: 1 }} />
+
+      {/* Legend */}
+        <Stack direction="row" spacing={1.5} sx={{ mb: 1, justifyContent: "center" }}>
+          <LegendChip label="Available" sx={{ bgcolor: "grey.300" }} />
+          <LegendChip label="Booked" sx={{ bgcolor: "secondary.main" }} />
+          <LegendChip
+            label="Staff Booked"
+            sx={{ bgcolor: "primary.main", color: "common.white" }}
+          />
+          <LegendChip
+            label="Blocked"
+            sx={{ bgcolor: "warning.main", color: "common.white" }}
+          />
+        </Stack>
 
       {/* Calendar placeholder + legend */}
       <Box
@@ -338,19 +353,6 @@ function AdminCalendarPanel() {
                 </div>
         </Box>
 
-        {/* Legend */}
-        <Stack direction = "column" spacing={1.5}>
-          <LegendChip label="Available" sx={{ bgcolor: "grey.300" }} />
-          <LegendChip label="Booked" sx={{ bgcolor: "secondary.main" }} />
-          <LegendChip
-            label="Staff Booked"
-            sx={{ bgcolor: "primary.main", color: "common.white" }}
-          />
-          <LegendChip
-            label="Blocked"
-            sx={{ bgcolor: "warning.main", color: "common.white" }}
-          />
-        </Stack>
       </Box>
 
       {/* Edit slots should take you to edit slot window using the function we pass on here*/}
@@ -392,16 +394,26 @@ function AdminCalendarPanel() {
 
 function LegendChip({ label, sx }) {
   return (
-    <Chip
-      label={label}
+    <Stack 
+      direction="row" 
+      spacing={1} 
+      alignItems="center"
       sx={{
-        justifyContent: "flex-start",
-        borderRadius: 2,
-        fontWeight: 600,
-        px: 0.5,
-        ...sx,
+        p: 0.5
       }}
-    />
+    >
+      <Box
+        sx={{
+          width: 20,
+          height: 20,
+          borderRadius: 0.5,
+          ...sx,
+        }}
+      />
+      <Typography variant="body2" sx={{ fontWeight: 600 }}>
+        {label}
+      </Typography>
+    </Stack>
   );
 }
 
