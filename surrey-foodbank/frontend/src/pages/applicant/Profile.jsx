@@ -1,11 +1,6 @@
 import {
-  AppBar,
-  Toolbar,
-  Typography,
   Box,
   Paper,
-  Button,
-  Stack,
 } from "@mui/material";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
@@ -18,22 +13,49 @@ function Profile() {
   const navigate = useNavigate();
   const location = useLocation();
   const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [appointment, setAppointment] = useState({
+    name: "",
+    phone: "",
+    address: "",
+    statusInCanada: "",
+    applyingToTinyBundles: "no",
+    householdMembers: "",
+    dateLabel: "",
+    timeLabel: "",
+  });
 
   const handleLogout = () => {
     localStorage.removeItem("activeUser");
     navigate("/applicant/login");
   };
 
-  // Sample appointment data - in production, this would come from a backend or localStorage
-    const appointment = location.state ?? {
-    name: "Harnoor Kaur",
-    address: "5462 Example Ln.",
-    statusInCanada: "Temporary Resident (6 months+)",
-    applyingToTinyBundles: "Yes",
-    householdMembers: "3",
-    dateLabel: "Monday March 26, 2026",
-    timeLabel: "3:30pm – 3:45pm",
-  };
+  useEffect(() => {
+    const activeUser = JSON.parse(localStorage.getItem("activeUser") || "null");
+
+    if (!activeUser?.email) {
+      navigate("/applicant/login");
+      return;
+    }
+
+    const storageKey = `applicant_${activeUser.email}`;
+    
+    // Prioritize location.state (just completed booking) over stored data
+    if (location.state) {
+      setAppointment((prev) => ({ ...prev, ...location.state }));
+      localStorage.setItem(storageKey, JSON.stringify(location.state));
+      return;
+    }
+
+    // Otherwise load from localStorage
+    const storedData = JSON.parse(localStorage.getItem(storageKey) || "null");
+    if (storedData) {
+      setAppointment((prev) => ({ ...prev, ...storedData }));
+      return;
+    }
+
+    // Fallback to email-based name if no data exists
+    setAppointment((prev) => ({ ...prev, name: activeUser.email.split("@")[0] || "" }));
+  }, [navigate, location.state]);
 
   const onCancelBooking = () => {
     setShowCancelDialog(true);
