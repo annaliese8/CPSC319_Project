@@ -10,6 +10,7 @@ import {
   Divider,
 } from "@mui/material";
 import AppointmentInfoDialog from "./ApplicantInfoCard.jsx";
+import StaffBookingPanel from "./StaffBookingPanel.jsx";
 
 const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
@@ -44,6 +45,31 @@ const timeSlots = generateTimeSlots();
 
 function AdminCalendarPanel() {
     const [appointmentData, setAppointmentData] = React.useState(null);
+    const [appointments, setAppointments] = React.useState([]);
+    const [selectedSlot, setSelectedSlot] = React.useState(null);
+    const [showBookingPanel, setShowBookingPanel] = React.useState(false);
+
+    // Load all appointments from localStorage
+    React.useEffect(() => {
+        const loadedAppointments = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key.startsWith('applicant_')) {
+                try {
+                    const data = JSON.parse(localStorage.getItem(key));
+                    if (data.day && data.startTime) {
+                        loadedAppointments.push({
+                            email: key.replace('applicant_', ''),
+                            ...data
+                        });
+                    }
+                } catch (e) {
+                    console.error('Error loading appointment:', e);
+                }
+            }
+        }
+        setAppointments(loadedAppointments);
+    }, []);
 
     React.useEffect(() => {
         // Get demo user's appointment data (harnoor@example.com from InitDemoData)
@@ -130,6 +156,52 @@ function AdminCalendarPanel() {
 
 
     const [openInfoDialog, setOpenInfoDialog] = React.useState(false);
+
+    // Handle clicking on an available slot to book
+    const handleSlotClick = (day, time) => {
+        if (!editing && !isBlocked(day, time) && !isSlotBooked(day, time)) {
+            setSelectedSlot({ day, time, weekStart });
+            setShowBookingPanel(true);
+        } else if (!editing && isSlotBooked(day, time)) {
+            // Show appointment info if slot is booked
+            const appointment = appointments.find(apt => apt.day === day && apt.startTime === time);
+            if (appointment) {
+                setAppointmentData(appointment);
+                setOpenInfoDialog(true);
+            }
+        }
+    };
+
+    // Check if a slot is booked
+    const isSlotBooked = (day, time) => {
+        return appointments.some(apt => {
+            if (apt.day !== day) return false;
+            
+            // Check if this time falls within the appointment duration
+            const [aptHour, aptMinute] = apt.startTime.split(':').map(Number);
+            const [slotHour, slotMinute] = time.split(':').map(Number);
+            
+            const aptStartMinutes = aptHour * 60 + aptMinute;
+            const slotMinutes = slotHour * 60 + slotMinute;
+            const aptEndMinutes = aptStartMinutes + apt.duration;
+            
+            return slotMinutes >= aptStartMinutes && slotMinutes < aptEndMinutes;
+        });
+    };
+
+    // Handle confirming a booking
+    const handleConfirmBooking = (appointmentData) => {
+        // Save to localStorage
+        const key = `applicant_${appointmentData.email}`;
+        localStorage.setItem(key, JSON.stringify(appointmentData));
+        
+        // Update appointments list
+        setAppointments(prev => [...prev, appointmentData]);
+        
+        // Close booking panel
+        setShowBookingPanel(false);
+        setSelectedSlot(null);
+    };
 
     // const goToToday = () => { setWeekStart(startOfWeek); };
     // const isCurrentWeek = weekStart.toDateString() === startOfWeek.toDateString();
@@ -224,12 +296,12 @@ function AdminCalendarPanel() {
                             <div key={time} className="admin-calendar-row">
                                 <div className="admin-time-label">{time}</div>
                                 {days.map((day) => {
-                                    const isAvailable = Math.random() > 0.4; // random availability
+                                    const slotBooked = isSlotBooked(day, time);
                                     if(editing) {
                                         return (
                                             <div
                                                 key={day + time}
-                                                className={`slot ${isBlocked(day,time)? "unavailable-vis" : isAvailable? "admin-available": "admin-booked"}`}
+                                                className={`slot ${isBlocked(day,time)? "unavailable-vis" : slotBooked? "admin-booked": "admin-available"}`}
                                                 onMouseDown={() => {
                                                     if (!isBlocked(day,time)) setIsBlocking(true)
                                                     else setIsUnblocking(true)
@@ -253,10 +325,8 @@ function AdminCalendarPanel() {
                                         return (
                                             <div
                                                 key={day + time}
-                                                className={`slot ${isBlocked(day,time)? "unavailable-invis" : isAvailable? "admin-available": "admin-booked"}`}
-                                                onClick={() =>
-                                                    !isAvailable? setOpenInfoDialog(true) : ""
-                                                }
+                                                className={`slot ${isBlocked(day,time)? "unavailable-invis" : slotBooked? "admin-booked": "admin-available"}`}
+                                                onClick={() => handleSlotClick(day, time)}
                                             >
                                             </div>
                                         );
@@ -303,6 +373,19 @@ function AdminCalendarPanel() {
           )}
           <AppointmentInfoDialog open={openInfoDialog} onClose={() => setOpenInfoDialog(false)} appointment={appointmentData} onDelete={() => {}} />
       </Box>
+
+      {/* Staff Booking Panel */}
+      {showBookingPanel && (
+        <StaffBookingPanel
+          selectedSlot={selectedSlot}
+          onClose={() => {
+            setShowBookingPanel(false);
+            setSelectedSlot(null);
+          }}
+          onConfirmBooking={handleConfirmBooking}
+          existingAppointments={appointments}
+        />
+      )}
     </Paper>
   );
 }

@@ -148,6 +148,13 @@ export function StepPersonalInfo({ form, errors, onChange, onNext }) {
           </div>
 
           <div className="ba-field full">
+            <label className="ba-label">Phone Number<span className="req">*</span></label>
+            <input className="ba-input" type="tel" value={form.phone} placeholder="(123) 456-7890"
+              onChange={(e) => onChange("phone", e.target.value)} />
+            {errors.phone && <p className="ba-error">{errors.phone}</p>}
+          </div>
+
+          <div className="ba-field full">
             <label className="ba-label">Status in Canada<span className="req">*</span></label>
             <select className="ba-select" value={form.status}
               onChange={(e) => onChange("status", e.target.value)}>
