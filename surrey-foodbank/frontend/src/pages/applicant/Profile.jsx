@@ -1,14 +1,11 @@
 import {
-  AppBar,
-  Toolbar,
-  Typography,
   Box,
   Paper,
   Button,
-  Stack,
+  Typography
 } from "@mui/material";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import BookingInfo from "../../components/BookingInfo";
 import AppointmentPersonalInfo from "../../components/AppointmentPersonalInfo";
 import ApplicantTopBar from "../../components/ApplicantTopBar";
@@ -35,6 +32,8 @@ function Profile() {
     timeLabel: "3:30pm – 3:45pm",
   };
 
+  const hasAppointment = Boolean(appointment.dateLabel && appointment.timeLabel);
+
   const onCancelBooking = () => {
     setShowCancelDialog(true);
   };
@@ -55,11 +54,36 @@ function Profile() {
             }}
           >
             <AppointmentPersonalInfo appointment={appointment} />
+            {hasAppointment ? (
             <BookingInfo
               appointment={appointment}
               onCancelBooking={onCancelBooking}
               onChangeBooking={onChangeBooking}
             />
+            ) : (
+              <Box>
+                <Typography variant="h4" sx={{ fontWeight: 800, color: "primary.main", mb: 2 }}>
+                  Booking Info
+                </Typography>
+                <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 2, bgcolor: "grey.50" }}>
+                  <Typography sx={{ fontSize: 20, fontWeight: 800, color: "#f24c62", mb: 2 }}>
+                    No Appointment Booked
+                  </Typography>
+                  <Button
+                    variant="contained"
+                    onClick={onChangeBooking}
+                    sx={{
+                      fontWeight: 800,
+                      bgcolor: "#4cc5dc",
+                      color: "common.white",
+                      "&:hover": { bgcolor: "#3aafca" },
+                    }}
+                  >
+                    Book an Appointment
+                  </Button>
+                </Paper>
+              </Box>
+            )}
           </Box>
         </Paper>
       </Box>

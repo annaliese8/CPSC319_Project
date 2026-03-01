@@ -3,7 +3,6 @@ import { useState } from "react";
 import { useBookingStyles } from "./Bookingstyles";
 import {
   Stepper,
-  StepPersonalInfo,
   StepChooseTime,
   StepReview,
   StepThankYou,
