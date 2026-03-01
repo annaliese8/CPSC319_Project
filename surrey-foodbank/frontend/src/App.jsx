@@ -9,6 +9,7 @@ import StaffApplicantDatabase from "./pages/staff/ApplicantDatabase";
 import ApplicantLogin from "./pages/applicant/Login";
 import ApplicantHome from "./pages/applicant/Home";
 import ApplicantCreateAccount from "./pages/applicant/CreateAccount";
+import ApplicantRegistrationForm from "./pages/applicant/RegistrationForm";
 import ApplicantBookAppointment from "./pages/applicant/BookAppointment";
 import ApplicantProfile from "./pages/applicant/Profile";
 
@@ -35,6 +36,10 @@ function App() {
           <Route
             path="/applicant/create-account"
             element={<ApplicantCreateAccount />}
+          />
+          <Route
+            path="/applicant/register"
+            element={<ApplicantRegistrationForm />}
           />
           <Route
             path="/applicant/book-appointment"
