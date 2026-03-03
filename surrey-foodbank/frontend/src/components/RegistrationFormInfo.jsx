@@ -5,6 +5,7 @@ import {
   FormControlLabel,
   Link,
   MenuItem,
+  Paper,
   Radio,
   RadioGroup,
   Stack,
@@ -92,171 +93,180 @@ export default function RegistrationFormInfo({ appointment, onSave }) {
 
   return (
     <Box>
-      <Stack spacing={2} component="form" noValidate onSubmit={handleSubmit}>
-        <Divider />
-        {/* Buttons for editing the form, saving changes, and discarding changes */}
-        {isDisabled ? (
-          <Button
-            variant="contained"
-            color="primary"
-            size="large"
-            startIcon={<EditIcon />}
-            onClick={() => setIsDisabled(false)}
-            sx={{ fontWeight: 800, color: "common.white" }}
-          >
-            Edit
-          </Button>
-        ) : (
-          <Stack direction="row" spacing={2}>
+      <Paper
+        variant="outlined"
+        sx={{
+          p: 4,
+          borderRadius: 2,
+          bgcolor: "grey.25",
+        }}
+      >
+        <Stack spacing={2} component="form" noValidate onSubmit={handleSubmit}>
+          {/* Buttons for editing the form, saving changes, and discarding changes */}
+          {isDisabled ? (
             <Button
-              variant="outlined"
-              color="primary"
-              size="large"
-              startIcon={<ClearIcon />}
-              onClick={handleCancel}
-              sx={{ fontWeight: 800, flex: 1 }}
-            >
-              Discard Changes
-            </Button>
-            <Button
-              type="submit"
               variant="contained"
               color="primary"
               size="large"
-              startIcon={<CheckIcon />}
-              sx={{ fontWeight: 800, color: "common.white", flex: 1 }}
+              startIcon={<EditIcon />}
+              onClick={() => setIsDisabled(false)}
+              sx={{ fontWeight: 800, color: "common.white" }}
             >
-              Save Changes
+              Edit
             </Button>
-          </Stack>
-        )}
-        <Divider />
-        {/* Start of form fields */}
-        <TextField
-          label="Full Name"
-          value={form.name}
-          onChange={onChange("name")}
-          fullWidth
-          required
-          disabled={isDisabled}
-          error={isNameInvalid}
-          helperText={
-            isNameInvalid
-              ? "Please enter a valid name using letters, spaces, hyphens, or apostrophes."
-              : ""
-          }
-        />
+          ) : (
+            <Stack direction="row" spacing={2}>
+              <Button
+                variant="outlined"
+                color="primary"
+                size="large"
+                startIcon={<ClearIcon />}
+                onClick={handleCancel}
+                sx={{ fontWeight: 800, flex: 1 }}
+              >
+                Discard Changes
+              </Button>
+              <Button
+                type="submit"
+                variant="contained"
+                color="primary"
+                size="large"
+                startIcon={<CheckIcon />}
+                sx={{ fontWeight: 800, color: "common.white", flex: 1 }}
+              >
+                Save Changes
+              </Button>
+            </Stack>
+          )}
+          <Divider />
+          {/* Start of form fields */}
+          <TextField
+            label="Full Name"
+            value={form.name}
+            onChange={onChange("name")}
+            fullWidth
+            required
+            disabled={isDisabled}
+            error={isNameInvalid}
+            helperText={
+              isNameInvalid
+                ? "Please enter a valid name using letters, spaces, hyphens, or apostrophes."
+                : ""
+            }
+          />
 
-        <TextField
-          label="Phone Number"
-          type="tel"
-          value={form.phone}
-          onChange={onChange("phone")}
-          fullWidth
-          placeholder="(123) 456-7890"
-          error={phoneInvalid}
-          helperText={
-            phoneInvalid
-              ? "Please enter a valid phone number (at least 10 digits)"
-              : ""
-          }
-          required
-          disabled={isDisabled}
-        />
+          <TextField
+            label="Phone Number"
+            type="tel"
+            value={form.phone}
+            onChange={onChange("phone")}
+            fullWidth
+            placeholder="(123) 456-7890"
+            error={phoneInvalid}
+            helperText={
+              phoneInvalid
+                ? "Please enter a valid phone number (at least 10 digits)"
+                : ""
+            }
+            required
+            disabled={isDisabled}
+          />
 
-        <TextField
-          label="Address"
-          value={form.address}
-          onChange={onChange("address")}
-          fullWidth
-          required
-          error={isAddressInvalid}
-          helperText={isAddressInvalid ? "Please enter an address" : ""}
-          disabled={isDisabled}
-        />
+          <TextField
+            label="Address"
+            value={form.address}
+            onChange={onChange("address")}
+            fullWidth
+            required
+            error={isAddressInvalid}
+            helperText={isAddressInvalid ? "Please enter an address" : ""}
+            disabled={isDisabled}
+          />
 
-        <TextField
-          select
-          label="Status in Canada"
-          value={form.statusInCanada}
-          onChange={onChange("statusInCanada")}
-          fullWidth
-          required
-          disabled={isDisabled}
-        >
-          {STATUS_OPTIONS.map((opt) => (
-            <MenuItem key={opt} value={opt}>
-              {opt}
-            </MenuItem>
-          ))}
-        </TextField>
-
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            gap: 1,
-            color: isDisabled ? "text.disabled" : "text.primary",
-          }}
-        >
-          <Typography sx={{ fontWeight: 500 }}>
-            Applying to the Tiny Bundles Program?
-          </Typography>
-          <Tooltip
-            title="Please select Yes if your household has a pregnant mom or children under 12 months old.
+          <TextField
+            select
+            label="Status in Canada"
+            value={form.statusInCanada}
+            onChange={onChange("statusInCanada")}
+            fullWidth
+            required
+            disabled={isDisabled}
+          >
+            {STATUS_OPTIONS.map((opt) => (
+              <MenuItem key={opt} value={opt}>
+                {opt}
+              </MenuItem>
+            ))}
+          </TextField>
+          <Stack direction="row" spacing={3}>
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 1,
+                color: isDisabled ? "text.disabled" : "text.primary",
+              }}
+            >
+              <Typography sx={{ fontWeight: 500 }}>
+                Applying to the Tiny Bundles Program?
+              </Typography>
+              <Tooltip
+                title="Please select Yes if your household has a pregnant mom or children under 12 months old.
                   Tiny Bundles families receive food every week instead of every two weeks. They are also
                   supplied with fresh eggs and milk while pregnant or nursing. Additional fresh vegetables
                   and other nutritional items are supplied when available."
-          >
-            <Link
-              href="https://surreyfoodbank.org/program/babies-toddlers/"
-              target="_blank"
-              rel="noopener noreferrer"
+              >
+                <Link
+                  href="https://surreyfoodbank.org/program/babies-toddlers/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <InfoIcon
+                    sx={{
+                      fontSize: 20,
+                      cursor: "pointer",
+                      color: isDisabled ? "text.disabled" : "primary.main",
+                    }}
+                  />
+                </Link>
+              </Tooltip>
+            </Box>
+            <RadioGroup
+              row
+              value={form.applyingToTinyBundles}
+              onChange={onChange("applyingToTinyBundles")}
             >
-              <InfoIcon
-                sx={{
-                  fontSize: 20,
-                  cursor: "pointer",
-                  color: isDisabled ? "text.disabled" : "primary.main",
-                }}
+              <FormControlLabel
+                value="yes"
+                control={<Radio />}
+                label="Yes"
+                disabled={isDisabled}
               />
-            </Link>
-          </Tooltip>
-        </Box>
-        <RadioGroup
-          row
-          value={form.applyingToTinyBundles}
-          onChange={onChange("applyingToTinyBundles")}
-        >
-          <FormControlLabel
-            value="yes"
-            control={<Radio />}
-            label="Yes"
-            disabled={isDisabled}
-          />
-          <FormControlLabel
-            value="no"
-            control={<Radio />}
-            label="No"
-            disabled={isDisabled}
-          />
-        </RadioGroup>
+              <FormControlLabel
+                value="no"
+                control={<Radio />}
+                label="No"
+                disabled={isDisabled}
+              />
+            </RadioGroup>
+          </Stack>
 
-        <TextField
-          label="Household size (including yourself)"
-          type="number"
-          value={form.householdMembers}
-          onChange={onChange("householdMembers")}
-          fullWidth
-          inputProps={{ min: "1", step: "1" }}
-          error={householdSizeInvalid}
-          helperText={
-            householdSizeInvalid ? "Household size must be 1 or more" : ""
-          }
-          required
-          disabled={isDisabled}
-        />
-      </Stack>
+          <TextField
+            label="Household size (including yourself)"
+            type="number"
+            value={form.householdMembers}
+            onChange={onChange("householdMembers")}
+            fullWidth
+            inputProps={{ min: "1", step: "1" }}
+            error={householdSizeInvalid}
+            helperText={
+              householdSizeInvalid ? "Household size must be 1 or more" : ""
+            }
+            required
+            disabled={isDisabled}
+          />
+        </Stack>
+      </Paper>
     </Box>
   );
 }

@@ -2,6 +2,7 @@ import {
   Box,
   Divider,
   Link,
+  Paper,
   Stack,
   Tab,
   Tabs,
@@ -134,7 +135,17 @@ function Profile() {
         value={activeTab}
         onChange={handleTabChange}
         centered
-        sx={{ my: 3 }}
+        sx={{
+          my: 4,
+          "& .Mui-selected": {
+            border: "2px solid",
+            borderColor: "secondary.main",
+            borderRadius: 2,
+          },
+          "& .MuiTabs-indicator": {
+            display: "none",
+          },
+        }}
       >
         <Tab
           value="appointment"
@@ -184,19 +195,26 @@ function Profile() {
         </Stack>
       ) : (
         // Registration Information Section
-        <Box
+        <Stack
+          direction={{ xs: "column", md: "row" }}
+          spacing={2}
+          divider={<Divider orientation="vertical" flexItem />}
           sx={{
-            width: "100%",
-            maxWidth: 700,
-            mx: "auto",
-            px: 2,
+            justifyContent: "center",
+            alignItems: "stretch",
           }}
         >
-          <RegistrationFormInfo
-            appointment={appointment}
-            onSave={handleRegistrationSave}
-          />
-        </Box>
+          <Box sx={{ flex: 1, px: 5 }}>
+            <Typography variant="h4" sx={{ fontWeight: 800, mb: 2 }}>
+              Registration Form
+            </Typography>
+            <RegistrationFormInfo
+              appointment={appointment}
+              onSave={handleRegistrationSave}
+            />
+          </Box>
+          <NextSteps />
+        </Stack>
       )}
     </>
   );
@@ -209,86 +227,94 @@ function NextSteps() {
       <Typography variant="h4" sx={{ fontWeight: 800, mb: 2 }}>
         Next Steps
       </Typography>
+      <Paper
+        variant="outlined"
+        sx={{
+          p: 4,
+          borderRadius: 2,
+          bgcolor: "grey.25",
+        }}
+      >
+        <Stack spacing={3}>
+          {/* What to Bring */}
+          <Box>
+            <Stack direction="row" spacing={1.5} alignItems="center" mb={1}>
+              <BadgeIcon color="secondary" />
+              <Typography variant="h5" sx={{ fontWeight: 700 }} color="primary">
+                What to Bring
+              </Typography>
+            </Stack>
+            <Stack spacing={1} mb={1}>
+              <Typography color="text.secondary">
+                • Government-issued photo ID for each adult - no photocopies or
+                digital copies
+              </Typography>
+              <Typography color="text.secondary">
+                • Proof of current address within Surrey or North Delta
+              </Typography>
+              <Typography color="text.secondary">
+                • BC Services Card for each child under 19
+              </Typography>
+            </Stack>
+          </Box>
 
-      <Stack spacing={3}>
-        {/* What to Bring */}
-        <Box>
-          <Stack direction="row" spacing={1.5} alignItems="center" mb={1}>
-            <BadgeIcon color="secondary" />
-            <Typography variant="h6" sx={{ fontWeight: 700 }} color="primary">
-              What to Bring
-            </Typography>
-          </Stack>
-          <Stack spacing={1} mb={1}>
-            <Typography color="text.secondary">
-              • Government-issued photo ID for each adult - no photocopies or
-              digital copies
-            </Typography>
-            <Typography color="text.secondary">
-              • Proof of current address within Surrey or North Delta
-            </Typography>
-            <Typography color="text.secondary">
-              • BC Services Card for each child under 19
-            </Typography>
-          </Stack>
-        </Box>
+          {/* Location */}
+          <Box>
+            <Stack direction="row" spacing={1.5} alignItems="center" mb={1}>
+              <PlaceIcon color="secondary" />
+              <Typography variant="h5" sx={{ fontWeight: 700 }} color="primary">
+                Where to Go
+              </Typography>
+            </Stack>
 
-        {/* Location */}
-        <Box>
-          <Stack direction="row" spacing={1.5} alignItems="center" mb={1}>
-            <PlaceIcon color="secondary" />
-            <Typography variant="h6" sx={{ fontWeight: 700 }} color="primary">
-              Where to Go
-            </Typography>
-          </Stack>
-
-          <Typography color="text.secondary">
-            Registration Office:{" "}
-            <Link
-              href="https://maps.app.goo.gl/1H39wzvMBqmki2se6"
-              target="_blank"
-              rel="noopener noreferrer"
-              color="primary"
-            >
-              Unit 1 - 13478 78th Avenue, Surrey, BC
-            </Link>
-          </Typography>
-        </Box>
-
-        {/* Contact */}
-        <Box>
-          <Stack direction="row" spacing={1.5} alignItems="center" mb={1}>
-            <ContactSupportIcon color="secondary" />
-            <Typography variant="h6" sx={{ fontWeight: 700 }} color="primary">
-              Contact & Support
-            </Typography>
-          </Stack>
-          <Stack spacing={1} mb={1}>
             <Typography color="text.secondary">
-              If you have questions or need assistance:
-            </Typography>
-            <Typography color="text.secondary">
-              • Visit our website:{" "}
+              Registration Office:{" "}
               <Link
-                href="https://surreyfoodbank.org/clients/"
+                href="https://maps.app.goo.gl/1H39wzvMBqmki2se6"
                 target="_blank"
                 rel="noopener noreferrer"
+                color="primary"
               >
-                surreyfoodbank.org/clients
+                Unit 1 - 13478 78th Avenue, Surrey, BC
               </Link>
             </Typography>
-            <Typography color="text.secondary">
-              • Email:{" "}
-              <Link href="mailto:registration@surreyfoodbank.org">
-                registration@surreyfoodbank.org
-              </Link>
-            </Typography>
-            <Typography color="text.secondary">
-              • Call: <Link href="tel:16045815443">(604) 581-5443</Link>
-            </Typography>
-          </Stack>
-        </Box>
-      </Stack>
+          </Box>
+
+          {/* Contact */}
+          <Box>
+            <Stack direction="row" spacing={1.5} alignItems="center" mb={1}>
+              <ContactSupportIcon color="secondary" />
+              <Typography variant="h5" sx={{ fontWeight: 700 }} color="primary">
+                Contact & Support
+              </Typography>
+            </Stack>
+            <Stack spacing={1} mb={1}>
+              <Typography color="text.secondary">
+                If you have questions or need assistance:
+              </Typography>
+              <Typography color="text.secondary">
+                • Visit our website:{" "}
+                <Link
+                  href="https://surreyfoodbank.org/clients/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  surreyfoodbank.org/clients
+                </Link>
+              </Typography>
+              <Typography color="text.secondary">
+                • Email:{" "}
+                <Link href="mailto:registration@surreyfoodbank.org">
+                  registration@surreyfoodbank.org
+                </Link>
+              </Typography>
+              <Typography color="text.secondary">
+                • Call: <Link href="tel:16045815443">(604) 581-5443</Link>
+              </Typography>
+            </Stack>
+          </Box>
+        </Stack>
+      </Paper>
     </Box>
   );
 }
