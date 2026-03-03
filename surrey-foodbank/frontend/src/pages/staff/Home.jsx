@@ -1,4 +1,4 @@
-import React from "react";
+import React, {useState} from "react";
 import { Box, Button } from "@mui/material";
 import StaffTopBar from "../../components/StaffTopBar";
 import WelcomePanel from "../../components/WelcomePanel";
@@ -10,9 +10,16 @@ function Home() {
   const navigate = useNavigate();
   const staffBase = import.meta.env.VITE_STAFF_BASE;
   const handleLogout = () => navigate(`/${staffBase}/login`);
-  const handleEditSlots = () => console.log("Edit Available Slots clicked");
+  const handleEditSlots = () => {setIsEditing(true)}
+  const handleCancel = () => {setCanceled(true)}
+  const handleSave = () => {setSaved(true)}
   const [openInfoDialog, setOpenInfoDialog] = React.useState(false);
   const [appointmentData, setAppointmentData] = React.useState(null);
+    const [isEditing, setIsEditing] = useState(true);
+    const [canceled, setCanceled] = useState(false);
+    const [saved, setSaved] = useState(false);
+
+
 
   // Load appointment from demo user for testing
   React.useEffect(() => {
@@ -36,11 +43,9 @@ function Home() {
     }
   }, []);
 
-
-
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
-      <StaffTopBar onLogout={handleLogout} label = "Admin Page"/>
+      <StaffTopBar position="static" onLogout={handleLogout}/>
 
       {/* Main Layout */}
       <Box
@@ -53,14 +58,11 @@ function Home() {
         }}
       >
         {/* Left Panel for staff instructions */}
-        <WelcomePanel />
+        <WelcomePanel onEditSlots={<>handleEditSlots</>} onCancel={handleCancel} onSave={handleSave}/>
         {/* Right panel to show calendar and manage bookings */}
-        <AdminCalendarPanel onEditSlots={handleEditSlots} />
+        <AdminCalendarPanel isEditing={isEditing} saveChanges={saved} discardChanges={canceled}/>
         {/*TODO: Testing Applicant Info */}
         <AppointmentInfoDialog open={openInfoDialog} onClose={() => setOpenInfoDialog(false)} appointment={appointmentData} onDelete={() => {}} />
-          <Button variant="outlined" onClick={() => setOpenInfoDialog(true)}>
-              Open Appointment Dialog (test)
-          </Button>
       </Box>
     </Box>
   );

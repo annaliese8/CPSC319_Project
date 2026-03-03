@@ -13,7 +13,6 @@ import {
 import { useNavigate } from 'react-router-dom';
 import ApplicantTopBar from "../../components/ApplicantTopBar";    
 
-
 /**
  * BookAppointment
  * Step order:

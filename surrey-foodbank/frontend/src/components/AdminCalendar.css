@@ -8,7 +8,7 @@
 }
 
 .calendar {
-  flex: 3;
+  flex: fit-content;
   overflow-y: scroll;
   max-height: 500px;
   font-family: Arial, sans-serif;
