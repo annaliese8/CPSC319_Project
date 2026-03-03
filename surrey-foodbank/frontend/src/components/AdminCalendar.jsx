@@ -95,19 +95,12 @@ function AdminCalendar({isEditing, saveChanges, discardChanges}) {
         }
     }, []);
 
-    // React.useEffect(() => {
-    //     if(saveChanges) {
-    //         console.log("AAAAAAAA");
-    //     }
-    // });
-
     const [appointmentData, setAppointmentData] = React.useState(null);
     const [appointments, setAppointments] = React.useState([]);
     const [selectedSlot, setSelectedSlot] = React.useState(null);
     const [showBookingPanel, setShowBookingPanel] = React.useState(false);
     const [savedBlockedSlots, setsavedBlockedSlots] = useState(generateInitBlockedSlots);
     const [blockedSlots, setBlockedSlots] = useState(savedBlockedSlots);
-    const [editing, setEditing] = useState(true);
     const [isBlocking, setIsBlocking] = useState(false);
     const [isUnblocking, setIsUnblocking] = useState(false);
 
@@ -140,6 +133,11 @@ function AdminCalendar({isEditing, saveChanges, discardChanges}) {
         return (timeMax++);
     }
 
+    const isDisplayTime = (time) => {
+        if(time.slice(-2) === "00" || time.slice(-2) === "30") return true;
+        return false;
+    }
+
     const visibleTimeSlots = generateTimeSlots(getEarliestAvailHour(), getLatestAvailHour());
 
     const removeBlockedSlot = (slot) => {
@@ -148,12 +146,10 @@ function AdminCalendar({isEditing, saveChanges, discardChanges}) {
 
     const handleSave = () => {
         setsavedBlockedSlots(blockedSlots);
-        setEditing(false);
         clearMouseTrackers();
     };
     const handleCancel = () => {
         setBlockedSlots(savedBlockedSlots);
-        setEditing(false);
         clearMouseTrackers();
     };
 
@@ -162,12 +158,8 @@ function AdminCalendar({isEditing, saveChanges, discardChanges}) {
         setIsUnblocking(false);
     }
 
-    const handleEditMode = () => {
-        setEditing(true);
-    };
-
     const isBlocked = (day, time) => {
-        if (editing) {
+        if (isEditing) {
             return blockedSlots.some(arr =>
                 arr.every((val, index) => val === [day, time][index])
             );
@@ -199,10 +191,10 @@ function AdminCalendar({isEditing, saveChanges, discardChanges}) {
 
     // Handle clicking on an available slot to book
     const handleSlotClick = (day, time) => {
-        if (!editing && !isBlocked(day, time) && !isSlotBooked(day, time)) {
+        if (!isEditing && !isBlocked(day, time) && !isSlotBooked(day, time)) {
             setSelectedSlot({day, time, weekStart});
             setShowBookingPanel(true);
-        } else if (!editing && isSlotBooked(day, time)) {
+        } else if (!isEditing && isSlotBooked(day, time)) {
             // Show appointment info if slot is booked
             const appointment = appointments.find(apt => apt.day === day && apt.startTime === time);
             if (appointment) {
@@ -258,22 +250,28 @@ function AdminCalendar({isEditing, saveChanges, discardChanges}) {
                         });
 
                         return (
-                            <div key={day} className="day-header">
-                                {day}, {formatted}
-                            </div>
+                            <>
+                                <div key={day} className="day-header">
+                                    {day}
+                                    <div key={day} className="day-header-2">
+                                        {formatted}
+                                    </div>
+                                </div>
+                            </>
                         );
                     })}
                 </div>
             </div>
 
-            {/* Calendar */}
-            <div className="calendar">
-                {(editing? fullTimeSlots: visibleTimeSlots).map((time) => (
+                {/* Calendar */}
+
+                <div className="calendar">
+                    {(isEditing ? fullTimeSlots : visibleTimeSlots).map((time) => (
                     <div key={time} className="admin-calendar-row">
-                        <div className="admin-time-label">{time}</div>
+                        <div className="admin-time-label">{isDisplayTime(time)? time : ""}</div>
                         {days.map((day) => {
                             const slotBooked = isSlotBooked(day, time);
-                            if (editing) {
+                            if (isEditing) {
                                 return (
                                     <div
                                         key={day + time}

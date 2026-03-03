@@ -12,8 +12,6 @@ import {
 import AppointmentInfoDialog from "./ApplicantInfoCard.jsx";
 import StaffBookingPanel from "./StaffBookingPanel.jsx";
 import AdminCalendar from "./AdminCalendar.jsx";
-import AdminCalendar2 from "./AdminCalendar2.jsx";
-
 
 function AdminCalendarPanel({isEditing, saveChanges, discardChanges}) {
     const [appointmentData, setAppointmentData] = React.useState(null);
@@ -71,6 +69,7 @@ function AdminCalendarPanel({isEditing, saveChanges, discardChanges}) {
     const [weekStart, setWeekStart] = useState(startOfWeek);
 
     const goToNextWeek = () => {
+        console.log(isEditing);
         const next = new Date(weekStart);
         next.setDate(next.getDate() + 7);
         setWeekStart(next);
@@ -81,7 +80,6 @@ function AdminCalendarPanel({isEditing, saveChanges, discardChanges}) {
         prev.setDate(prev.getDate() - 7);
         setWeekStart(prev);
     };
-
 
     const [openInfoDialog, setOpenInfoDialog] = React.useState(false);
 
@@ -116,7 +114,6 @@ function AdminCalendarPanel({isEditing, saveChanges, discardChanges}) {
                     </Typography>
                 </Box>
 
-
                 <Button
                     variant="outlined"
                     onClick={goToNextWeek}
@@ -148,30 +145,13 @@ function AdminCalendarPanel({isEditing, saveChanges, discardChanges}) {
                 sx={{
                     display: "grid",
                     gridTemplateColumns: {xs: "0.75fr", md: "1fr 130px"},
-                    gap: 2,
+                    alignContent: "center",
                     alignItems: "center",
                 }}
             >
                 {/* Calendar Placeholder */}
-                <Box
-                    sx={{
-                        height: {xs: 420, md: 560},
-                        width: 1000,
-                        border: "1px solid",
-                        borderColor: "grey.300",
-                        borderRadius: 2,
-                        bgcolor: "common.white",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        color: "text.secondary",
-                    }}
-                >
-
                     {/* Calendar NEW*/}
                     <AdminCalendar isEditing={isEditing} saveChanges={saveChanges} discardChanges={discardChanges}/>
-                    {/*<AdminCalendar2/>*/}
-                </Box>
             </Box>
 
             <AppointmentInfoDialog open={openInfoDialog} onClose={() => setOpenInfoDialog(false)}
