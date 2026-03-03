@@ -65,6 +65,27 @@ function CreateAccount() {
       const users = JSON.parse(localStorage.getItem("users") || "[]");
       users.push({ email: emailField.value, password: passwordField.value });
       localStorage.setItem("users", JSON.stringify(users));
+
+      const applicantKey = `applicant_${emailField.value}`;
+      if (!localStorage.getItem(applicantKey)) {
+        localStorage.setItem(
+          applicantKey,
+          JSON.stringify({
+            name: "",
+            phone: "",
+            address: "",
+            statusInCanada: "",
+            applyingToTinyBundles: "no",
+            householdMembers: "",
+            day: "",
+            startTime: "",
+            duration: 0,
+            dateLabel: "",
+            timeLabel: "",
+          }),
+        );
+      }
+
       localStorage.setItem(
         "activeUser",
         JSON.stringify({ email: emailField.value }),

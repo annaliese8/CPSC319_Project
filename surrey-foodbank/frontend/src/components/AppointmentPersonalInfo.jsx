@@ -25,6 +25,7 @@ export default function AppointmentPersonalInfo({ appointment }) {
   // Frontend-only form state (you’ll hook backend later)
   const [form, setForm] = React.useState({
     name: appointment?.name ?? "",
+    phone: appointment?.phone ?? "",
     address: appointment?.address ?? "",
     statusInCanada: appointment?.statusInCanada ?? "Temporary Resident (6 months+)",   
     applyingToTinyBundles: appointment?.applyingToTinyBundles ?? "no",
@@ -38,6 +39,7 @@ export default function AppointmentPersonalInfo({ appointment }) {
     if (appointment) {
       setForm({
         name: appointment.name ?? "",
+        phone: appointment.phone ?? "",
         address: appointment.address ?? "",
         statusInCanada: appointment.statusInCanada ?? "Temporary Resident (6 months+)",
         applyingToTinyBundles: appointment.applyingToTinyBundles ?? "no",
@@ -49,8 +51,16 @@ export default function AppointmentPersonalInfo({ appointment }) {
   }, [appointment]);
 
   const onChange = (key) => (e) => setForm((prev) => ({ ...prev, [key]: e.target.value }));
+  const isValidPhone = (value) => value.replace(/\D/g, "").length >= 10;
+  const phoneInvalid = form.phone !== "" && !isValidPhone(form.phone);
+  const householdSizeInvalid =
+    form.householdMembers !== "" && Number(form.householdMembers) < 1;
 
   const handleSave = () => {
+    if (!form.phone.trim() || !isValidPhone(form.phone)) {
+      return;
+    }
+
     if (onSave) {
       onSave(form);
     } else {
@@ -70,6 +80,17 @@ export default function AppointmentPersonalInfo({ appointment }) {
                   value={form.name}
                   onChange={onChange("name")}
                   fullWidth
+                />
+
+                <TextField
+                  label="Phone Number*"
+                  type="tel"
+                  value={form.phone}
+                  onChange={onChange("phone")}
+                  fullWidth
+                  placeholder="(123) 456-7890"
+                  error={phoneInvalid}
+                  helperText={phoneInvalid ? "Please enter a valid phone number (at least 10 digits)" : ""}
                 />
 
                 <TextField
@@ -121,12 +142,14 @@ export default function AppointmentPersonalInfo({ appointment }) {
                 </RadioGroup>
 
                 <TextField
-                  label="Number of additional household members*"
+                  label="Please enter a valid household size including you (1 or more)"
                   type="number"
                   value={form.householdMembers}
                   onChange={onChange("householdMembers")}
                   fullWidth
-                  inputProps={{ min: "0" }}
+                  inputProps = {{ min: "1", step: "1" }}
+                  error={householdSizeInvalid}
+                  helperText={householdSizeInvalid ? "Household size must be 1 or more" : ""}
                 />
 
                 <Box sx={{ display: "flex", justifyContent: "flex-end" }}>

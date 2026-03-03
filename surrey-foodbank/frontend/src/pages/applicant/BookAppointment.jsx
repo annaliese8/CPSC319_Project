@@ -34,6 +34,28 @@ export default function BookAppointment() {
   const next = () => setStep((s) => s + 1);
   const prev = () => setStep((s) => s - 1);
 
+  // Step 1: Personal Info
+  const [form, setForm] = useState({
+    name: "", address: "", status: "",  householdSize: "", tinyBundles: "no", language: "English",
+  });
+  const [formErrors, setFormErrors] = useState({});
+
+  const handleFormChange = (field, value) => {
+  setForm((f) => ({ ...f, [field]: value }));
+  setFormErrors((e) => ({ ...e, [field]: undefined }));
+};
+
+  const handlePersonalNext = () => {
+    const errors = {};
+    if (!form.name.trim())                          errors.name          = "Required";
+    if (!form.address.trim())                       errors.address       = "Required";
+    if (!form.status)                               errors.status        = "Required";
+    if (!form.householdSize || Number(form.householdSize) < 1)
+                                                    errors.householdSize = "Please enter a valid household size (1 or more)";
+    setFormErrors(errors);
+    if (!Object.keys(errors).length) next();
+  };
+
  // Time Slot
   const [selectedSlot, setSelectedSlot] = useState(null);
 
@@ -41,18 +63,33 @@ export default function BookAppointment() {
   const handleConfirm = () => next();
 
   const handleDone = () => {
+    const activeUser = JSON.parse(localStorage.getItem("activeUser") || "null");
+    const applicantKey = activeUser?.email ? `applicant_${activeUser.email}` : null;
+    const duration = Number(form.householdSize) >= 5 ? 30 : 15;
+
+    const payload = {
+      name: form.name,
+      phone: form.phone,
+      address: form.address,
+      statusInCanada: form.status,
+      applyingToTinyBundles: form.tinyBundles,
+      householdMembers: form.householdSize,
+      day: selectedSlot.date.toLocaleDateString("en-US", { weekday: "long" }),
+      startTime: selectedSlot.time,
+      duration,
+      dateLabel: selectedSlot.date.toLocaleDateString("en-US", {
+        weekday: "long", month: "long", day: "numeric", year: "numeric",
+      }),
+      timeLabel: `${formatTime(selectedSlot.time)} – ${formatTime(addMinutes(selectedSlot.time, duration))}`,
+    };
+
+    if (applicantKey) {
+      const existing = JSON.parse(localStorage.getItem(applicantKey) || "{}");
+      localStorage.setItem(applicantKey, JSON.stringify({ ...existing, ...payload }));
+    }
+
     navigate("/applicant/profile", {
-      state: {
-        name: profileData.name,
-        address: profileData.address,
-        statusInCanada: profileData.status,
-        applyingToTinyBundles: profileData.tinyBundles,
-        householdMembers: profileData.householdSize,
-        dateLabel: selectedSlot.date.toLocaleDateString("en-US", {
-          weekday: "long", month: "long", day: "numeric", year: "numeric",
-        }),
-        timeLabel: `${formatTime(selectedSlot.time)} – ${formatTime(addMinutes(selectedSlot.time, selectedSlot.interval ?? 15))}`,
-      },
+      state: payload,
     });
   };
 

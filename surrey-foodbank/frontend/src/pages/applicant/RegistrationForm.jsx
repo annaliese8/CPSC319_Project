@@ -13,9 +13,11 @@ export default function Register() {
   const handleLogout = () => navigate("/applicant/home");
 
   const [form, setForm] = useState({
-    name: "", address: "", status: "", householdSize: "", tinyBundles: "no", language: "English",
+    name: "", address: "", phone: "", status: "",  householdSize: "", tinyBundles: "no", language: "English",
   });
   const [formErrors, setFormErrors] = useState({});
+
+  const isValidPhone = (value) => value.replace(/\D/g, "").length >= 10;
 
   const handleFormChange = (field, value) => {
     setForm((f) => ({ ...f, [field]: value }));
@@ -26,6 +28,8 @@ export default function Register() {
     const errors = {};
     if (!form.name.trim())                         errors.name          = "Required";
     if (!form.address.trim())                      errors.address       = "Required";
+    if (!form.phone.trim())                        errors.phone         = "Required";
+    else if (!isValidPhone(form.phone))            errors.phone         = "Please enter a valid phone number (at least 10 digits)";
     if (!form.status)                              errors.status        = "Required";
     if (!form.householdSize || Number(form.householdSize) < 1)
       errors.householdSize = "Please enter a valid household size (1 or more)";
