@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import "./AdminCalendar.css";
 import AppointmentInfoDialog from "./ApplicantInfoCard.jsx";
+import StaffBookingPanel from "./StaffBookingPanel.jsx";
 
 const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -52,7 +53,16 @@ const generateInitBlockedSlots = () => {
 const fullTimeSlots = generateTimeSlots(0, 24);
 const dayTimeSlots = generateDayTimeSlots()
 
-function AdminCalendar({isEditing, saveChanges, discardChanges, weekStart, setShowBookingPanel}) {
+function AdminCalendar({isEditing, saveChanges, discardChanges, weekStart, isBookingPanel}) {
+    const [appointmentData, setAppointmentData] = React.useState(null);
+    const [appointments, setAppointments] = React.useState([]);
+    const [selectedSlot, setSelectedSlot] = React.useState(null);
+    const [showBookingPanel, setShowBookingPanel] = React.useState(false);
+    const [savedBlockedSlots, setsavedBlockedSlots] = useState(generateInitBlockedSlots);
+    const [blockedSlots, setBlockedSlots] = useState(savedBlockedSlots);
+    const [isBlocking, setIsBlocking] = useState(false);
+    const [isUnblocking, setIsUnblocking] = useState(false);
+
     // Load all appointments from localStorage
     React.useEffect(() => {
         const loadedAppointments = [];
@@ -96,27 +106,6 @@ function AdminCalendar({isEditing, saveChanges, discardChanges, weekStart, setSh
         }
     }, []);
 
-    React.useEffect(() => {
-        if (saveChanges) {
-            handleSave();
-        }
-    }, [saveChanges]);
-
-    React.useEffect(() => {
-        if (discardChanges) {
-            handleCancel();
-        }
-    }, [discardChanges]);
-
-    const [appointmentData, setAppointmentData] = React.useState(null);
-    const [appointments, setAppointments] = React.useState([]);
-    const [selectedSlot, setSelectedSlot] = React.useState(null);
-    // const [showBookingPanel, setShowBookingPanel] = React.useState(false);
-    const [savedBlockedSlots, setsavedBlockedSlots] = useState(generateInitBlockedSlots);
-    const [blockedSlots, setBlockedSlots] = useState(savedBlockedSlots);
-    const [isBlocking, setIsBlocking] = useState(false);
-    const [isUnblocking, setIsUnblocking] = useState(false);
-
 
     const addBlockedSlot = (slot) => {
         setBlockedSlots((prevSlots) => [...prevSlots, slot]);
@@ -147,8 +136,8 @@ function AdminCalendar({isEditing, saveChanges, discardChanges, weekStart, setSh
     }
 
     const isDisplayTime = (time) => {
-        if(time.slice(-2) === "00" || time.slice(-2) === "30") return true;
-        return false;
+        return time.slice(-2) === "00" || time.slice(-2) === "30";
+
     }
 
     const visibleTimeSlots = generateTimeSlots(getEarliestAvailHour(), getLatestAvailHour());
@@ -165,6 +154,12 @@ function AdminCalendar({isEditing, saveChanges, discardChanges, weekStart, setSh
         setBlockedSlots(savedBlockedSlots);
         clearMouseTrackers();
     };
+
+
+    const handleBookingPanel = (day, time) => {
+        setSelectedSlot({day, time, weekStart});
+        setShowBookingPanel(true);
+    }
 
     const clearMouseTrackers = () => {
         setIsBlocking(false);
@@ -191,14 +186,12 @@ function AdminCalendar({isEditing, saveChanges, discardChanges, weekStart, setSh
     // Handle clicking on an available slot to book
     const handleSlotClick = (day, time) => {
         if (!isEditing && !isBlocked(day, time) && !isSlotBooked(day, time)) {
-            setSelectedSlot({day, time, weekStart});
-            setShowBookingPanel(true);
+            handleBookingPanel(day,time);
         } else if (!isEditing && isSlotBooked(day, time)) {
             // Show appointment info if slot is booked
             const appointment = appointments.find(apt => apt.day === day && apt.startTime === time);
             if (appointment) {
                 setAppointmentData(appointment);
-                console.log("PRESSED!!!!");
                 setOpenInfoDialog(true);
             }
         }
@@ -234,6 +227,22 @@ function AdminCalendar({isEditing, saveChanges, discardChanges, weekStart, setSh
         setShowBookingPanel(false);
         setSelectedSlot(null);
     };
+
+    React.useEffect(() => {
+        if (saveChanges) {
+            handleSave();
+        }
+    }, [saveChanges]);
+
+    React.useEffect(() => {
+        if (discardChanges) {
+            handleCancel();
+        }
+    }, [discardChanges]);
+
+    React.useEffect( () => {
+        handleBookingPanel(days[0],fullTimeSlots[0]);
+    }, [isBookingPanel])
 
     return (
             <div className="calendar-area">
@@ -310,9 +319,19 @@ function AdminCalendar({isEditing, saveChanges, discardChanges, weekStart, setSh
                     </div>
                 ))}
             </div>
-                <AppointmentInfoDialog open={openInfoDialog} onClose={() => setOpenInfoDialog(false)}
-                                       appointment={appointmentData} onDelete={() => {
-                }}/>
+                <AppointmentInfoDialog open={openInfoDialog} onClose={() => setOpenInfoDialog(false)} appointment={appointmentData} onDelete={() => {}} />
+                {/* Staff Booking Panel */}
+                {showBookingPanel && (
+                    <StaffBookingPanel
+                        selectedSlot={selectedSlot}
+                        onClose={() => {
+                            setShowBookingPanel(false);
+                            setSelectedSlot(null);
+                        }}
+                        onConfirmBooking={handleConfirmBooking}
+                        existingAppointments={appointments}
+                    />
+                )}
         </div>
 
 

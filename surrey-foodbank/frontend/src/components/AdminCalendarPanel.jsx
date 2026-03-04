@@ -6,61 +6,11 @@ import {
     Button,
     Paper,
     Stack,
-    Chip,
     Divider,
 } from "@mui/material";
-import AppointmentInfoDialog from "./ApplicantInfoCard.jsx";
-import StaffBookingPanel from "./StaffBookingPanel.jsx";
 import AdminCalendar from "./AdminCalendar.jsx";
 
-function AdminCalendarPanel({isEditing, saveChanges, discardChanges}) {
-    const [appointmentData, setAppointmentData] = React.useState(null);
-    const [appointments, setAppointments] = React.useState([]);
-    const [selectedSlot, setSelectedSlot] = React.useState(null);
-    const [showBookingPanel, setShowBookingPanel] = React.useState(false);
-
-    // Load all appointments from localStorage
-    React.useEffect(() => {
-        const loadedAppointments = [];
-        for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            if (key.startsWith('applicant_')) {
-                try {
-                    const data = JSON.parse(localStorage.getItem(key));
-                    if (data.day && data.startTime) {
-                        loadedAppointments.push({
-                            email: key.replace('applicant_', ''),
-                            ...data
-                        });
-                    }
-                } catch (e) {
-                    console.error('Error loading appointment:', e);
-                }
-            }
-        }
-        setAppointments(loadedAppointments);
-    }, []);
-
-    React.useEffect(() => {
-        // Get demo user's appointment data (harnoor@example.com from InitDemoData)
-        const demoEmail = localStorage.getItem("activeUser") ? JSON.parse(localStorage.getItem("activeUser")).email : "harnoor@exmaple.com";
-        const storedData = localStorage.getItem(`applicant_${demoEmail}`);
-
-        if (storedData) {
-            setAppointmentData(JSON.parse(storedData));
-        } else {
-            // Fallback to sample data if no stored data exists
-            setAppointmentData({
-                name: "Joshua Pemberton",
-                address: "123 Main Street, Surrey BC V3T 1A2",
-                statusInCanada: "Permanent Resident",
-                applyingToTinyBundles: "yes",
-                householdMembers: "2",
-                dateLabel: "Monday March 26, 2026",
-                timeLabel: "3:30pm – 3:45pm",
-            });
-        }
-    }, []);
+function AdminCalendarPanel({isEditing, saveChanges, discardChanges, toggleBookingPanel}) {
 
     const today = new Date();
     const startOfWeek = new Date(today);
@@ -89,13 +39,6 @@ function AdminCalendarPanel({isEditing, saveChanges, discardChanges}) {
         end.setDate(end.getDate() + 6);
         return end;
     }
-
-    const handleBookingPanel = () => {
-        console.log("GHFGJHFHJGFG");
-        setShowBookingPanel(true);
-    }
-
-    const [openInfoDialog, setOpenInfoDialog] = React.useState(false);
 
     // const goToToday = () => { setWeekStart(startOfWeek); };
     // const isCurrentWeek = weekStart.toDateString() === startOfWeek.toDateString();
@@ -169,28 +112,9 @@ function AdminCalendarPanel({isEditing, saveChanges, discardChanges}) {
                                    saveChanges={saveChanges}
                                    discardChanges={discardChanges}
                                    weekStart={weekStart}
-                                   setShowBookingPanel={handleBookingPanel}
+                                   isBookingPanel={toggleBookingPanel}
                     />
             </Box>
-
-            <AppointmentInfoDialog open={openInfoDialog} onClose={() => setOpenInfoDialog(false)}
-                                   appointment={appointmentData} onDelete={() => {
-            }}/>
-
-            {/* Staff Booking Panel */}
-            {showBookingPanel && (
-                <>
-                    <StaffBookingPanel
-                        selectedSlot={selectedSlot}
-                        onClose={() => {
-                            setShowBookingPanel(false);
-                            setSelectedSlot(null);
-                        }}
-                        // onConfirmBooking={handleConfirmBooking}
-                        existingAppointments={appointments}
-                    />
-                </>
-            )}
         </Paper>
     );
 }

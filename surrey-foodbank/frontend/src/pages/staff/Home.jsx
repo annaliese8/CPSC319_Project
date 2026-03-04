@@ -1,11 +1,10 @@
 import React, {useState} from "react";
-import {Box, Button} from "@mui/material";
+import {Box} from "@mui/material";
 import StaffTopBar from "../../components/StaffTopBar";
 import WelcomePanel from "../../components/WelcomePanel";
 import AdminCalendarPanel from "../../components/AdminCalendarPanel";
 import {useNavigate} from 'react-router-dom';
 import AppointmentInfoDialog from "../../components/ApplicantInfoCard";
-import StaffBookingPanel from "../../components/StaffBookingPanel.jsx";
 
 function Home() {
     const [openInfoDialog, setOpenInfoDialog] = React.useState(false);
@@ -13,6 +12,8 @@ function Home() {
     const [isEditing, setIsEditing] = useState(false);
     const [canceled, setCanceled] = useState(false);
     const [saved, setSaved] = useState(false);
+    const [toggleBookingPanel, setToggleBookingPanel] = React.useState(false);
+
 
     const navigate = useNavigate();
     const staffBase = import.meta.env.VITE_STAFF_BASE;
@@ -31,8 +32,8 @@ function Home() {
         setIsEditing(false);
     }
     const handleBook = () => {
+        setToggleBookingPanel(!toggleBookingPanel);
     }
-
 
 
     // Load appointment from demo user for testing
@@ -74,7 +75,11 @@ function Home() {
                 {/* Left Panel for staff instructions */}
                 <WelcomePanel onEditSlots={handleEditSlots} onCancel={handleCancel} onSave={handleSave} onBook={handleBook}/>
                 {/* Right panel to show calendar and manage bookings */}
-                <AdminCalendarPanel isEditing={isEditing} saveChanges={saved} discardChanges={canceled}/>
+                <AdminCalendarPanel isEditing={isEditing}
+                                    saveChanges={saved}
+                                    discardChanges={canceled}
+                                    toggleBookingPanel={toggleBookingPanel}
+                                    setShowBookingPanel={setToggleBookingPanel}/>
                 {/*TODO: Testing Applicant Info */}
                 <AppointmentInfoDialog open={openInfoDialog} onClose={() => setOpenInfoDialog(false)}
                                        appointment={appointmentData} onDelete={() => {
