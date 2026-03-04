@@ -55,14 +55,7 @@ function Profile() {
 
     const storageKey = `applicant_${activeUser.email}`;
 
-    // Prioritize location.state (just completed booking) over stored data
-    if (location.state) {
-      setAppointment((prev) => ({ ...prev, ...location.state }));
-      localStorage.setItem(storageKey, JSON.stringify(location.state));
-      return;
-    }
-
-    // Otherwise load from localStorage
+    // Load from localStorage
     const storedData = JSON.parse(localStorage.getItem(storageKey) || "null");
     if (storedData) {
       setAppointment((prev) => ({ ...prev, ...storedData }));
@@ -125,6 +118,7 @@ function Profile() {
         timeLabel: "",
       });
     }
+    
   };
 
   return (
@@ -186,7 +180,7 @@ function Profile() {
               open={showCancelDialog}
               onClose={() => setShowCancelDialog(false)}
               appointment={appointment}
-              isStaff={true}
+              isStaff={false}
               applicantEmail={appointment?.applicantEmail || null}
               onCancelComplete={handleCancelComplete}
             />

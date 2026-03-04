@@ -7,7 +7,7 @@ export default function BookingInfo({
   onChangeBooking,
   onBookAppointment,
 }) {
-  const hasAppointment = !!appointment?.dateLabel;
+  const hasAppointment = !!appointment?.day && !!appointment?.startTime;
 
   return (
     <Box>
