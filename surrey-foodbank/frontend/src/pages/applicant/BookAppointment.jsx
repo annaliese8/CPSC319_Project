@@ -10,8 +10,7 @@ import {
   addMinutes,
 } from "../../components/BookingSteps";
 import { useNavigate, useLocation } from 'react-router-dom';
-import ApplicantTopBar from "../../components/ApplicantTopBar"; 
-import RegistrationFormInfo from "../../components/RegistrationFormInfo";
+import ApplicantTopBar from "../../components/ApplicantTopBar";
 
 /**
  * BookAppointment
@@ -54,9 +53,9 @@ export default function BookAppointment() {
       name: form.name,
       phone: form.phone,
       address: form.address,
-      statusInCanada: form.status,
-      applyingToTinyBundles: form.tinyBundles,
-      householdMembers: form.householdSize,
+      statusInCanada: form.statusInCanada,
+      applyingToTinyBundles: form.applyingToTinyBundles,
+      householdMembers: form.householdMembers,
       day: selectedSlot.date.toLocaleDateString("en-US", { weekday: "long" }),
       startTime: selectedSlot.time,
       duration,
