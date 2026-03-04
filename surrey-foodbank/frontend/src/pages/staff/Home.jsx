@@ -5,6 +5,7 @@ import WelcomePanel from "../../components/WelcomePanel";
 import AdminCalendarPanel from "../../components/AdminCalendarPanel";
 import {useNavigate} from 'react-router-dom';
 import AppointmentInfoDialog from "../../components/ApplicantInfoCard";
+import StaffBookingPanel from "../../components/StaffBookingPanel.jsx";
 
 function Home() {
     const navigate = useNavigate();
@@ -12,21 +13,20 @@ function Home() {
     const handleLogout = () => navigate(`/${staffBase}/login`);
     const handleEditSlots = () => {
         setIsEditing(true);
-        console.log("EDIT ", isEditing);
+        setCanceled(false);
+        setSaved(false);
     }
     const handleCancel = () => {
         setCanceled(true);
         setIsEditing(false);
-        console.log("CANCEL ", canceled);
     }
     const handleSave = () => {
         setSaved(true);
         setIsEditing(false);
-        console.log("SAVE", saved);
     }
     const [openInfoDialog, setOpenInfoDialog] = React.useState(false);
     const [appointmentData, setAppointmentData] = React.useState(null);
-    const [isEditing, setIsEditing] = useState(true);
+    const [isEditing, setIsEditing] = useState(false);
     const [canceled, setCanceled] = useState(false);
     const [saved, setSaved] = useState(false);
 

@@ -51,7 +51,7 @@ const generateInitBlockedSlots = () => {
 const fullTimeSlots = generateTimeSlots(0, 24);
 const dayTimeSlots = generateDayTimeSlots()
 
-function AdminCalendar({isEditing, saveChanges, discardChanges}) {
+function AdminCalendar({isEditing, saveChanges, discardChanges, weekStart, setShowBookingPanel}) {
     // Load all appointments from localStorage
     React.useEffect(() => {
         const loadedAppointments = [];
@@ -95,10 +95,22 @@ function AdminCalendar({isEditing, saveChanges, discardChanges}) {
         }
     }, []);
 
+    React.useEffect(() => {
+        if (saveChanges) {
+            handleSave();
+        }
+    }, [saveChanges]);
+
+    React.useEffect(() => {
+        if (discardChanges) {
+            handleCancel();
+        }
+    }, [discardChanges]);
+
     const [appointmentData, setAppointmentData] = React.useState(null);
     const [appointments, setAppointments] = React.useState([]);
     const [selectedSlot, setSelectedSlot] = React.useState(null);
-    const [showBookingPanel, setShowBookingPanel] = React.useState(false);
+    // const [showBookingPanel, setShowBookingPanel] = React.useState(false);
     const [savedBlockedSlots, setsavedBlockedSlots] = useState(generateInitBlockedSlots);
     const [blockedSlots, setBlockedSlots] = useState(savedBlockedSlots);
     const [isBlocking, setIsBlocking] = useState(false);
@@ -172,20 +184,6 @@ function AdminCalendar({isEditing, saveChanges, discardChanges}) {
     const today = new Date();
     const startOfWeek = new Date(today);
     startOfWeek.setDate(today.getDate() - today.getDay());
-
-    const [weekStart, setWeekStart] = useState(startOfWeek);
-
-    const goToNextWeek = () => {
-        const next = new Date(weekStart);
-        next.setDate(next.getDate() + 7);
-        setWeekStart(next);
-    };
-
-    const goToPrevWeek = () => {
-        const prev = new Date(weekStart);
-        prev.setDate(prev.getDate() - 7);
-        setWeekStart(prev);
-    };
 
     const [openInfoDialog, setOpenInfoDialog] = React.useState(false);
 
@@ -311,6 +309,7 @@ function AdminCalendar({isEditing, saveChanges, discardChanges}) {
                 ))}
             </div>
         </div>
+
     );
 }
 

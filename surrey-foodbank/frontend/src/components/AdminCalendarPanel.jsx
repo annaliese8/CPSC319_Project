@@ -68,8 +68,11 @@ function AdminCalendarPanel({isEditing, saveChanges, discardChanges}) {
 
     const [weekStart, setWeekStart] = useState(startOfWeek);
 
+    const formatDateShort = (date) => {
+        return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    }
+
     const goToNextWeek = () => {
-        console.log(isEditing);
         const next = new Date(weekStart);
         next.setDate(next.getDate() + 7);
         setWeekStart(next);
@@ -80,6 +83,17 @@ function AdminCalendarPanel({isEditing, saveChanges, discardChanges}) {
         prev.setDate(prev.getDate() - 7);
         setWeekStart(prev);
     };
+
+    const getWeekEnd = (start) => {
+        const end = new Date(start)
+        end.setDate(end.getDate() + 6);
+        return end;
+    }
+
+    const handleBookingPanel = (state) => {
+        console.log(state);
+        setShowBookingPanel(state);
+    }
 
     const [openInfoDialog, setOpenInfoDialog] = React.useState(false);
 
@@ -106,8 +120,8 @@ function AdminCalendarPanel({isEditing, saveChanges, discardChanges}) {
                 </Button>
 
                 <Box sx={{textAlign: "center"}}>
-                    <Typography variant="h6" sx={{fontWeight: 700}}>
-                        Mon Feb 23 - Sun Mar 1
+                    <Typography variant="h5" sx={{fontWeight: 700}}>
+                        Sun {formatDateShort(weekStart)} - Sat {formatDateShort(getWeekEnd(weekStart))}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
                         Vancouver - America (GMT -08:00)
@@ -151,7 +165,12 @@ function AdminCalendarPanel({isEditing, saveChanges, discardChanges}) {
             >
                 {/* Calendar Placeholder */}
                     {/* Calendar NEW*/}
-                    <AdminCalendar isEditing={isEditing} saveChanges={saveChanges} discardChanges={discardChanges}/>
+                    <AdminCalendar isEditing={isEditing}
+                                   saveChanges={saveChanges}
+                                   discardChanges={discardChanges}
+                                   weekStart={weekStart}
+                                   setShowBookingPanel={handleBookingPanel}
+                    />
             </Box>
 
             <AppointmentInfoDialog open={openInfoDialog} onClose={() => setOpenInfoDialog(false)}
@@ -160,15 +179,17 @@ function AdminCalendarPanel({isEditing, saveChanges, discardChanges}) {
 
             {/* Staff Booking Panel */}
             {showBookingPanel && (
-                <StaffBookingPanel
-                    selectedSlot={selectedSlot}
-                    onClose={() => {
-                        setShowBookingPanel(false);
-                        setSelectedSlot(null);
-                    }}
-                    // onConfirmBooking={handleConfirmBooking}
-                    existingAppointments={appointments}
-                />
+                <>
+                    <StaffBookingPanel
+                        selectedSlot={selectedSlot}
+                        onClose={() => {
+                            setShowBookingPanel(false);
+                            setSelectedSlot(null);
+                        }}
+                        // onConfirmBooking={handleConfirmBooking}
+                        existingAppointments={appointments}
+                    />
+                </>
             )}
         </Paper>
     );
