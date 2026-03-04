@@ -22,44 +22,35 @@ function CancelBookingDialogue({
   const navigate = useNavigate();
 
   const handleCancel = () => {
-    if (isStaff) {
-      // Staff side: Remove booking date/time from localStorage
-      if (applicantEmail) {
-        const storedData = localStorage.getItem(`applicant_${applicantEmail}`);
-        if (storedData) {
-          const data = JSON.parse(storedData);
-          // Clear only the booking info, keep personal info
-          data.day= "";
-          data.startTime= "";
-          data.dateLabel= "";
-          data.timeLabel= "";
-          localStorage.setItem(`applicant_${applicantEmail}`, JSON.stringify(data));
-        }
-      }
-      // Notify parent that cancel is complete
-      if (onCancelComplete) {
-        onCancelComplete();
-      }
-      onClose();
-    } else {
-      // Applicant side: Remove booking info and navigate to booking page
-      const activeUser = JSON.parse(localStorage.getItem("activeUser"));
-      if (activeUser && activeUser.email) {
-        const storedData = localStorage.getItem(`applicant_${activeUser.email}`);
-        if (storedData) {
-          const data = JSON.parse(storedData);
-          // Clear booking info
-          data.day= "";
-          data.startTime= "";
-          data.dateLabel= "";
-          data.timeLabel= "";
-          localStorage.setItem(`applicant_${activeUser.email}`, JSON.stringify(data));
-          if (onCancelComplete) onCancelComplete(data);
-        }
-      }
-      onClose();
+  const emailToUse = isStaff
+    ? applicantEmail
+    : JSON.parse(localStorage.getItem("activeUser") || "null")?.email;
+
+  if (emailToUse) {
+    const key = `applicant_${emailToUse}`;
+    const storedData = localStorage.getItem(key);
+    if (storedData) {
+      const data = JSON.parse(storedData);
+      // Clear all booking fields, not just labels
+      data.day = "";
+      data.startTime = "";
+      data.date = "";
+      data.duration = 0;
+      data.dateLabel = "";
+      data.timeLabel = "";
+      localStorage.setItem(key, JSON.stringify(data));
+
     }
-  };
+  }
+
+  if (onCancelComplete) onCancelComplete();
+  onClose();
+
+  // Applicant side: navigate away after cancel
+  if (!isStaff) {
+    navigate("/applicant/profile");
+  }
+};
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>

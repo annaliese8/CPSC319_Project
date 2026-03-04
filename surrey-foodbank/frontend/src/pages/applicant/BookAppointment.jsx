@@ -57,6 +57,7 @@ export default function BookAppointment() {
       applyingToTinyBundles: form.applyingToTinyBundles,
       householdMembers: form.householdMembers,
       day: selectedSlot.date.toLocaleDateString("en-US", { weekday: "long" }),
+      date: selectedSlot.date.toISOString(),
       startTime: selectedSlot.time,
       duration,
       dateLabel: selectedSlot.date.toLocaleDateString("en-US", {

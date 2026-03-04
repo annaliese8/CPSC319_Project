@@ -74,32 +74,44 @@ export const getWeekDates = (weekStart) =>
     d.setDate(weekStart.getDate() + i);
     return d;
   });
-
-export const generateAvailability = () => {
+export const generateAvailability = (weekDates = []) => {
   const map = {};
+
   // Start with all slots available
   DAYS_FULL.forEach((day) =>
     ALL_SLOTS.forEach((time) => { map[`${day}-${time}`] = true; })
   );
 
-  // Read every applicant from localStorage and mark their booked slot as unavailable
+  // Block slots marked unavailable by staff
+  try {
+    const staffBlocked = JSON.parse(localStorage.getItem("staffBlockedSlots") || "[]");
+    staffBlocked.forEach(([day, time]) => {
+      if (map[`${day}-${time}`] !== undefined) map[`${day}-${time}`] = false;
+    });
+  } catch { /* skip */ }
+
+  // Block slots already booked by applicants
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
     if (!key?.startsWith("applicant_")) continue;
     try {
       const data = JSON.parse(localStorage.getItem(key));
-      if (data?.day && data?.startTime && data?.duration) {
-        // Mark the booked 15-min sub-slots as unavailable
-        const numSlots = data.duration / 15;
-        for (let s = 0; s < numSlots; s++) {
-          const blockedTime = addMinutes(data.startTime, s * 15);
-          map[`${data.day}-${blockedTime}`] = false;
-        }
+      if (!data?.day || !data?.startTime || !data?.duration) continue;
+
+      // If date is present, only block for the matching week
+      if (data.date) {
+        const bookedDateStr = new Date(data.date).toDateString();
+        if (!weekDates.some((d) => d.toDateString() === bookedDateStr)) continue;
       }
-    } catch {
-      // skip issues
-    }
+
+      const numSlots = data.duration / 15;
+      for (let s = 0; s < numSlots; s++) {
+        const blockedTime = addMinutes(data.startTime, s * 15);
+        map[`${data.day}-${blockedTime}`] = false;
+      }
+    } catch { /* skip */ }
   }
+
   return map;
 };
 
@@ -317,14 +329,15 @@ function TimerBar({ secondsLeft }) {
 export function StepChooseTime({ form, selectedSlot, onSelectSlot, onClearSlot, onBack, onNext }) {
   const todayStart = getWeekStart(new Date());
   const [weekStart, setWeekStart] = useState(todayStart);
+  const weekDates     = getWeekDates(weekStart);
 
-  const [weekAvailability, setWeekAvailability] = useState(() => generateAvailability());
+  const [weekAvailability, setWeekAvailability] = useState(() => generateAvailability(getWeekDates(weekStart)));
   useEffect(() => {
-    setWeekAvailability(generateAvailability());
+    setWeekAvailability(generateAvailability(getWeekDates(weekStart)));
   }, [weekStart]);
 
   const availability = weekAvailability;
-  const weekDates     = getWeekDates(weekStart);
+  
   const isCurrentWeek = weekStart.getTime() === todayStart.getTime();
 
   const householdSize     = Number(form.householdMembers) || 1;
@@ -481,16 +494,14 @@ export function StepReview({ form, selectedSlot, onBack, onConfirm, onTimerExpir
   const householdSize = Number(form.householdMembers) || 1;
   const interval      = householdSize >= 5 ? 30 : 15;
 
-  // Full name assembled from split fields
-  const fullName = [form.firstName, form.lastName].filter(Boolean).join(" ");
+  
+const fullName = (form.firstName || form.lastName)
+  ? [form.firstName, form.lastName].filter(Boolean).join(" ")
+  : form.name || "";
 
-  // Full address assembled from structured fields
-  const fullAddress = [
-    form.streetAddress,
-    form.city,
-    form.province,
-    form.postalCode,
-  ].filter(Boolean).join(", ");
+const fullAddress = form.streetAddress
+  ? [form.streetAddress, form.city, form.province, form.postalCode].filter(Boolean).join(", ")
+  : form.address || "";
 
   const rows = [
     { label: "Name",             value: fullName },
