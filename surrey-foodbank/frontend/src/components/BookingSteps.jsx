@@ -7,8 +7,8 @@ import { Stack, Typography, Button } from "@mui/material";
 export const STATUS_OPTIONS = [
   "Canadian Citizen",
   "Permanent Resident",
+  "Refugee/Protected Person",
   "Temporary Resident (6 months+)",
-  "Refugee",
 ];
 
 export const LANGUAGES = [
@@ -16,19 +16,24 @@ export const LANGUAGES = [
   "Rohingya", "Tigrinya", "Farsi", "Punjabi", "Arabic",
 ];
 
-export const DAYS_FULL  = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-export const DAYS_SHORT = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+export const CANADIAN_PROVINCES = [
+  "AB", "BC", "MB", "NB", "NL", "NS", "NT", "NU", "ON", "PE", "QC", "SK", "YT",
+];
 
+export const DAYS_FULL  = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
+export const DAYS_SHORT = ["Mon", "Tue", "Wed", "Thu", "Fri"];
+
+// Slots run 9:00 am – 3:00 pm in 15-minute increments
 const generateAllSlots = () => {
   const slots = [];
-  for (let h = 9; h < 17; h++)
+  for (let h = 9; h < 15; h++)
     for (let m = 0; m < 60; m += 15)
       slots.push(`${h}:${m.toString().padStart(2, "0")}`);
   return slots;
 };
 
 export const ALL_SLOTS  = generateAllSlots();
-export const ROW_TIMES  = ALL_SLOTS.filter((_, i) => i % 2 === 0); // one row per 30 min
+export const ROW_TIMES  = ALL_SLOTS.filter((_, i) => i % 2 === 0);
 
 export const addMinutes = (time, mins) => {
   const [h, m] = time.split(":").map(Number);
@@ -72,9 +77,29 @@ export const getWeekDates = (weekStart) =>
 
 export const generateAvailability = () => {
   const map = {};
+  // Start with all slots available
   DAYS_FULL.forEach((day) =>
-    ALL_SLOTS.forEach((time) => { map[`${day}-${time}`] = Math.random() > 0.45; })
+    ALL_SLOTS.forEach((time) => { map[`${day}-${time}`] = true; })
   );
+
+  // Read every applicant from localStorage and mark their booked slot as unavailable
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (!key?.startsWith("applicant_")) continue;
+    try {
+      const data = JSON.parse(localStorage.getItem(key));
+      if (data?.day && data?.startTime && data?.duration) {
+        // Mark the booked 15-min sub-slots as unavailable
+        const numSlots = data.duration / 15;
+        for (let s = 0; s < numSlots; s++) {
+          const blockedTime = addMinutes(data.startTime, s * 15);
+          map[`${data.day}-${blockedTime}`] = false;
+        }
+      }
+    } catch {
+      // skip issues
+    }
+  }
   return map;
 };
 
@@ -89,17 +114,21 @@ export function TopNav({ onLogout }) {
           Book an Appointment
         </Typography>
       </Stack>
-      <Button onClick={onLogout} color="secondary" variant="text" sx={{ fontSize: 14, fontWeight: 800, textTransform: 'none' }}>
-          Log Out
-        </Button>
+      <Button onClick={onLogout} color="secondary" variant="text" sx={{ fontSize: 14, fontWeight: 800, textTransform: "none" }}>
+        Log Out
+      </Button>
     </nav>
   );
 }
 
 export const isSlotAvailable = (availability, day, time, interval = 15) =>
   interval === 30
-    ? !!availability[`${day}-${time}`] && !!availability[`${day}-${addMinutes(time, 15)}`] && !!availability[`${day}-${addMinutes(time, 30)}`] && !!availability[`${day}-${addMinutes(time, 45)}`]
-    : !!availability[`${day}-${time}`] && !!availability[`${day}-${addMinutes(time, 15)}`];
+    ? !!availability[`${day}-${time}`] &&
+      !!availability[`${day}-${addMinutes(time, 15)}`] &&
+      !!availability[`${day}-${addMinutes(time, 30)}`] &&
+      !!availability[`${day}-${addMinutes(time, 45)}`]
+    : !!availability[`${day}-${time}`] &&
+      !!availability[`${day}-${addMinutes(time, 15)}`];
 
 export function Stepper({ currentStep }) {
   return (
@@ -117,6 +146,7 @@ export function Stepper({ currentStep }) {
   );
 }
 
+// StepPersonalInfo
 export function StepPersonalInfo({ form, errors, onChange, onNext }) {
   return (
     <>
@@ -124,27 +154,64 @@ export function StepPersonalInfo({ form, errors, onChange, onNext }) {
         <h2>Please fill out the following questions</h2>
         <div className="ba-form-grid">
 
-          <div className="ba-field full">
-            <label className="ba-label">Name<span className="req">*</span></label>
-            <input className="ba-input" value={form.name} placeholder="Full name"
-              onChange={(e) => onChange("name", e.target.value)} />
-            {errors.name && <p className="ba-error">{errors.name}</p>}
+          {/* First / Last name side by side */}
+          <div className="ba-field half">
+            <label className="ba-label">First Name<span className="req">*</span></label>
+            <input className="ba-input" value={form.firstName} placeholder="First name"
+              onChange={(e) => onChange("firstName", e.target.value)} />
+            {errors.firstName && <p className="ba-error">{errors.firstName}</p>}
           </div>
 
-          <div className="ba-field full">
-            <label className="ba-label">Address<span className="req">*</span></label>
-            <input className="ba-input" value={form.address} placeholder="Street address"
-              onChange={(e) => onChange("address", e.target.value)} />
-            {errors.address && <p className="ba-error">{errors.address}</p>}
+          <div className="ba-field half">
+            <label className="ba-label">Last Name<span className="req">*</span></label>
+            <input className="ba-input" value={form.lastName} placeholder="Last name"
+              onChange={(e) => onChange("lastName", e.target.value)} />
+            {errors.lastName && <p className="ba-error">{errors.lastName}</p>}
           </div>
 
+          {/* Street address */}
           <div className="ba-field full">
+            <label className="ba-label">Street Address<span className="req">*</span></label>
+            <input className="ba-input" value={form.streetAddress} placeholder="123 Main St"
+              onChange={(e) => onChange("streetAddress", e.target.value)} />
+            {errors.streetAddress && <p className="ba-error">{errors.streetAddress}</p>}
+          </div>
+
+          {/* City + Province side by side */}
+          <div className="ba-field half">
+            <label className="ba-label">City<span className="req">*</span></label>
+            <input className="ba-input" value={form.city} placeholder="Surrey"
+              onChange={(e) => onChange("city", e.target.value)} />
+            {errors.city && <p className="ba-error">{errors.city}</p>}
+          </div>
+
+          <div className="ba-field half">
+            <label className="ba-label">Province<span className="req">*</span></label>
+            <select className="ba-select" value={form.province}
+              onChange={(e) => onChange("province", e.target.value)}>
+              <option value="">Select…</option>
+              {CANADIAN_PROVINCES.map((p) => <option key={p} value={p}>{p}</option>)}
+            </select>
+            {errors.province && <p className="ba-error">{errors.province}</p>}
+          </div>
+
+          {/* Postal code */}
+          <div className="ba-field half">
+            <label className="ba-label">Postal Code<span className="req">*</span></label>
+            <input className="ba-input" value={form.postalCode} placeholder="V3T 0A1"
+              onChange={(e) => onChange("postalCode", e.target.value.toUpperCase())} />
+            {errors.postalCode && <p className="ba-error">{errors.postalCode}</p>}
+          </div>
+
+          {/* Phone */}
+          <div className="ba-field half">
             <label className="ba-label">Phone Number<span className="req">*</span></label>
-            <input className="ba-input" type="tel" value={form.phone} placeholder="(123) 456-7890"
+            <input className="ba-input" type="tel" value={form.phone} placeholder="(604) 555-0100"
               onChange={(e) => onChange("phone", e.target.value)} />
             {errors.phone && <p className="ba-error">{errors.phone}</p>}
           </div>
 
+          {/* Status in Canada */}
           <div className="ba-field full">
             <label className="ba-label">Status in Canada<span className="req">*</span></label>
             <select className="ba-select" value={form.statusInCanada}
@@ -155,18 +222,13 @@ export function StepPersonalInfo({ form, errors, onChange, onNext }) {
             {errors.statusInCanada && <p className="ba-error">{errors.statusInCanada}</p>}
           </div>
 
+          {/* Household size */}
           <div className="ba-field full">
             <label className="ba-label">Household Size<span className="req">*</span></label>
-            <input
-              className="ba-input"
-              type="number"
-              min="1"
-              max="20"
-              value={form.householdMembers}
-              placeholder="Number of people"
+            <input className="ba-input" type="number" min="1" max="20"
+              value={form.householdMembers} placeholder="Number of people"
               onChange={(e) => onChange("householdMembers", e.target.value)}
-              style={{ maxWidth: 180 }}
-            />
+              style={{ maxWidth: 180 }} />
             {errors.householdMembers && <p className="ba-error">{errors.householdMembers}</p>}
             {Number(form.householdMembers) >= 5 && (
               <p style={{ fontSize: 12, color: "var(--teal)", marginTop: 4 }}>
@@ -175,6 +237,7 @@ export function StepPersonalInfo({ form, errors, onChange, onNext }) {
             )}
           </div>
 
+          {/* Tiny Bundles */}
           <div className="ba-field full" style={{ marginTop: 4 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <label className="ba-label">Applying to the Tiny Bundles Program?</label>
@@ -205,6 +268,7 @@ export function StepPersonalInfo({ form, errors, onChange, onNext }) {
             )}
           </div>
 
+          {/* Preferred language */}
           <div className="ba-field full">
             <label className="ba-label">Preferred Language</label>
             <select className="ba-select" value={form.language}
@@ -223,53 +287,51 @@ export function StepPersonalInfo({ form, errors, onChange, onNext }) {
   );
 }
 
+// Timer
 const TIMER_SECONDS = 5 * 60;
 
-export function StepChooseTime({ form, selectedSlot, onSelectSlot, onClearSlot, onBack, onNext }) {
-  const todayStart                = getWeekStart(new Date());
-  const [weekStart, setWeekStart] = useState(todayStart);
-  const [weekAvailability, setWeekAvailability] = useState({});
-
-// Regenerate when week changes
-useEffect(() => {
-  const map = {};
-  DAYS_FULL.forEach((day) =>
-    ALL_SLOTS.forEach((time) => {
-      map[`${day}-${time}`] = Math.random() > 0.45;
-    })
-  );
-  setWeekAvailability(map);
-}, [weekStart]);
-
-const availability = weekAvailability;
-
-  // 5-minute timer: when expired, clear the slot and go back
-  const [secondsLeft, setSecondsLeft] = useState(TIMER_SECONDS);
-  const timerExpired = secondsLeft <= 0;
-
-  useEffect(() => {
-    if (timerExpired) {
-      onClearSlot();
-      onBack();
-      return;
-    }
-    const id = setTimeout(() => setSecondsLeft((s) => s - 1), 1000);
-    return () => clearTimeout(id);
-  }, [secondsLeft, timerExpired]);
-
-  const timerMM  = String(Math.floor(secondsLeft / 60)).padStart(2, "0");
-  const timerSS  = String(secondsLeft % 60).padStart(2, "0");
+function TimerBar({ secondsLeft }) {
   const timerPct = Math.max(0, (secondsLeft / TIMER_SECONDS) * 100);
+  const mm = String(Math.floor(secondsLeft / 60)).padStart(2, "0");
+  const ss = String(secondsLeft % 60).padStart(2, "0");
+  return (
+    <div className="ba-timer-wrap" style={{ marginTop: 16 }}>
+      <div className="ba-timer-label"
+        style={{ color: secondsLeft < 60 ? "var(--red)" : "var(--gray-700)" }}>
+        Time remaining to confirm: {mm}:{ss}
+      </div>
+      <div className="ba-timer-bar-bg">
+        <div className="ba-timer-bar-fill"
+          style={{
+            width: `${timerPct}%`,
+            background: secondsLeft < 60 ? "var(--red)" : "var(--teal)",
+            transition: "width 1s linear, background 0.3s",
+          }}
+        />
+      </div>
+    </div>
+  );
+}
 
+// StepChooseTime 
+export function StepChooseTime({ form, selectedSlot, onSelectSlot, onClearSlot, onBack, onNext }) {
+  const todayStart = getWeekStart(new Date());
+  const [weekStart, setWeekStart] = useState(todayStart);
+
+  const [weekAvailability, setWeekAvailability] = useState(() => generateAvailability());
+  useEffect(() => {
+    setWeekAvailability(generateAvailability());
+  }, [weekStart]);
+
+  const availability = weekAvailability;
   const weekDates     = getWeekDates(weekStart);
   const isCurrentWeek = weekStart.getTime() === todayStart.getTime();
 
-  const householdSize = Number(form.householdMembers) || 1;
-  const interval      = householdSize >= 5 ? 30 : 15;
-  const tinyBundles   = form.applyingToTinyBundles === "yes";
-
-  // For tiny bundles: dim all columns except Wednesday
-  const isDimmed = (day) => tinyBundles && day !== "Wednesday";
+  const householdSize     = Number(form.householdMembers) || 1;
+  const isLargeHousehold  = householdSize >= 5;
+  const bookingInterval   = isLargeHousehold ? 30 : 15;
+  const tinyBundles       = form.applyingToTinyBundles === "yes";
+  const isDimmed          = (day) => tinyBundles && day !== "Wednesday";
 
   const shiftWeek = (delta) => {
     const d = new Date(weekStart);
@@ -277,19 +339,25 @@ const availability = weekAvailability;
     setWeekStart(d);
   };
 
-  const handleSlotClick = (day, rowTime) => {
+  const handleSlotClick = (day, time) => {
     if (isDimmed(day)) return;
-    if (!isSlotAvailable(availability, day, rowTime, interval)) return;
+    if (isLargeHousehold) {
+      if (!availability[`${day}-${time}`] || !availability[`${day}-${addMinutes(time, 15)}`]) return;
+    } else {
+      if (!availability[`${day}-${time}`]) return;
+    }
     const d = new Date(weekStart);
     d.setDate(weekStart.getDate() + DAYS_FULL.indexOf(day));
-    const [hh, mm] = rowTime.split(":").map(Number);
+    const [hh, mm] = time.split(":").map(Number);
     d.setHours(hh, mm, 0, 0);
-    onSelectSlot({ day, time: rowTime, date: d, interval });
+    onSelectSlot({ day, time, date: d, interval: bookingInterval });
   };
 
-  // 30-min interval = 2 visual sub-rows per block; 15-min = 1
-  const subSlotsFor = (rowTime) =>
-    interval === 30 ? [rowTime, addMinutes(rowTime, 15)] : [rowTime];
+  const isHighlighted = (day, time) => {
+    if (!selectedSlot || selectedSlot.day !== day) return false;
+    if (isLargeHousehold) return time === selectedSlot.time || time === addMinutes(selectedSlot.time, 15);
+    return time === selectedSlot.time;
+  };
 
   return (
     <>
@@ -301,8 +369,13 @@ const availability = weekAvailability;
             Showing Wednesday appointments only (Tiny Bundles program)
           </p>
         )}
+        {isLargeHousehold && (
+          <p style={{ textAlign: "center", fontSize: 13, color: "var(--teal)", marginBottom: 12, fontWeight: 600 }}>
+            Your household size requires a 30-minute appointment. Selecting any slot will reserve that slot and the following 15 minutes.
+          </p>
+        )}
 
-        {/* Week nav — fixed-width nav areas so range never shifts */}
+        {/* Week nav */}
         <div className="ba-cal-header">
           <div style={{ display: "flex", gap: 8, minWidth: 170 }}>
             <button className="ba-cal-btn" onClick={() => shiftWeek(-7)}>← Prev Week</button>
@@ -311,7 +384,7 @@ const availability = weekAvailability;
             )}
           </div>
           <div className="ba-cal-range">
-            {formatDateShort(weekDates[0])} – {formatDateShort(weekDates[6])}
+            {formatDateShort(weekDates[0])} – {formatDateShort(weekDates[4])}
           </div>
           <div style={{ display: "flex", justifyContent: "flex-end", minWidth: 170 }}>
             <button className="ba-cal-btn" onClick={() => shiftWeek(7)}>Next Week →</button>
@@ -324,19 +397,18 @@ const availability = weekAvailability;
           <span><div className="ba-legend-dot booked" /> Unavailable</span>
         </div>
 
-        {/* Grid — all 7 columns always present for stable layout */}
+        {/* Grid */}
         <div className="ba-cal-grid">
           <table className="ba-cal-table" style={{ tableLayout: "fixed" }}>
             <colgroup>
               <col style={{ width: 54 }} />
-              {DAYS_FULL.map((d) => <col key={d} style={{ width: "calc((100% - 54px) / 7)" }} />)}
+              {DAYS_FULL.map((d) => <col key={d} style={{ width: "calc((100% - 54px) / 5)" }} />)}
             </colgroup>
             <thead>
               <tr>
                 <th className="ba-cal-th" />
                 {DAYS_FULL.map((day, i) => (
-                  <th key={day} className="ba-cal-th"
-                    style={{ opacity: isDimmed(day) ? 0.25 : 1 }}>
+                  <th key={day} className="ba-cal-th" style={{ opacity: isDimmed(day) ? 0.25 : 1 }}>
                     {DAYS_SHORT[i]}<br />
                     <span style={{ fontWeight: 400, color: "var(--gray-500)" }}>
                       {formatDateShort(weekDates[i])}
@@ -346,23 +418,22 @@ const availability = weekAvailability;
               </tr>
             </thead>
             <tbody>
-              {ROW_TIMES.map((rowTime) => (
-                <tr key={rowTime}>
-                  <td className="ba-cal-td time-col">{formatTime(rowTime)}</td>
+              {ALL_SLOTS.map((time, rowIdx) => (
+                <tr key={time}>
+                  <td className="ba-cal-td time-col">
+                    {rowIdx % 2 === 0 ? formatTime(time) : ""}
+                  </td>
                   {DAYS_FULL.map((day) => {
-                    const dimmed = isDimmed(day);
+                    const dimmed   = isDimmed(day);
+                    const avail    = !!availability[`${day}-${time}`];
+                    const selected = isHighlighted(day, time);
                     return (
                       <td key={day} className="ba-cal-td"
                         style={{ opacity: dimmed ? 0.15 : 1, pointerEvents: dimmed ? "none" : "auto" }}>
-                        {subSlotsFor(rowTime).map((time) => {
-                          const avail = isSlotAvailable(availability, day, time, interval);
-                          const isSel = selectedSlot?.day === day && selectedSlot?.time === rowTime;
-                          return (
-                            <div key={time}
-                              className={`ba-slot ${isSel ? "selected" : avail ? "avail" : "unavail"}`}
-                              onClick={() => handleSlotClick(day, rowTime)} />
-                          );
-                        })}
+                        <div
+                          className={`ba-slot ${selected ? "selected" : avail ? "avail" : "unavail"}`}
+                          onClick={() => handleSlotClick(day, time)}
+                        />
                       </td>
                     );
                   })}
@@ -379,7 +450,7 @@ const availability = weekAvailability;
               <div>
                 <div style={{ fontSize: 11, opacity: 0.8, marginBottom: 2 }}>Selected:</div>
                 <div className="ba-pill-time">
-                  {formatTime(selectedSlot.time)} – {formatTime(addMinutes(selectedSlot.time, interval))}
+                  {formatTime(selectedSlot.time)} – {formatTime(addMinutes(selectedSlot.time, bookingInterval))}
                   &nbsp;·&nbsp;
                   {selectedSlot.date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
                 </div>
@@ -394,23 +465,6 @@ const availability = weekAvailability;
         )}
       </div>
 
-      {/* Timer bar */}
-      <div className="ba-timer-wrap" style={{ marginTop: 16 }}>
-        <div className="ba-timer-label"
-          style={{ color: secondsLeft < 60 ? "var(--red)" : "var(--gray-700)" }}>
-          Time remaining to select a slot: {timerMM}:{timerSS}
-        </div>
-        <div className="ba-timer-bar-bg">
-          <div className="ba-timer-bar-fill"
-            style={{
-              width: `${timerPct}%`,
-              background: secondsLeft < 60 ? "var(--red)" : "var(--teal)",
-              transition: "width 1s linear, background 0.3s",
-            }}
-          />
-        </div>
-      </div>
-
       <div className="ba-footer">
         <button className="ba-btn ba-btn-secondary" onClick={onBack}>← Back</button>
         <button className="ba-btn ba-btn-primary" onClick={onNext}
@@ -422,19 +476,43 @@ const availability = weekAvailability;
   );
 }
 
-
-export function StepReview({ form, selectedSlot, onBack, onConfirm }) {
+// StepReview
+export function StepReview({ form, selectedSlot, onBack, onConfirm, onTimerExpired }) {
   const householdSize = Number(form.householdMembers) || 1;
   const interval      = householdSize >= 5 ? 30 : 15;
 
+  // Full name assembled from split fields
+  const fullName = [form.firstName, form.lastName].filter(Boolean).join(" ");
+
+  // Full address assembled from structured fields
+  const fullAddress = [
+    form.streetAddress,
+    form.city,
+    form.province,
+    form.postalCode,
+  ].filter(Boolean).join(", ");
+
   const rows = [
-    { label: "Name",             value: form.name },
-    { label: "Address",          value: form.address },
+    { label: "Name",             value: fullName },
+    { label: "Address",          value: fullAddress },
+    { label: "Phone",            value: form.phone },
     { label: "Status in Canada", value: form.statusInCanada },
     { label: "Household Size",   value: form.householdMembers },
     { label: "Tiny Bundles?",    value: form.applyingToTinyBundles === "yes" ? "Yes" : "No" },
-    { label: "Appointment",      value: formatApptString(selectedSlot, interval) },
+    { label: "Appointment",      value: formatApptString(selectedSlot) },
   ];
+
+  // Timer
+  const [secondsLeft, setSecondsLeft] = useState(TIMER_SECONDS);
+
+  useEffect(() => {
+    if (secondsLeft <= 0) {
+      onTimerExpired(); // parent clears slot and navigates back to calendar
+      return;
+    }
+    const id = setTimeout(() => setSecondsLeft((s) => s - 1), 1000);
+    return () => clearTimeout(id);
+  }, [secondsLeft]);
 
   return (
     <>
@@ -449,7 +527,11 @@ export function StepReview({ form, selectedSlot, onBack, onConfirm }) {
           ))}
         </div>
       </div>
-      <div className="ba-footer" style={{ justifyContent: "center", gap: 16 }}>
+
+      {/* Timer shown on review so user knows how long they have to confirm */}
+      <TimerBar secondsLeft={secondsLeft} />
+
+      <div className="ba-footer" style={{ justifyContent: "center", gap: 16, marginTop: 12 }}>
         <button className="ba-btn ba-btn-secondary" onClick={onBack}>← Back</button>
         <button className="ba-btn ba-btn-confirm" onClick={onConfirm}>Confirm</button>
       </div>
@@ -458,8 +540,7 @@ export function StepReview({ form, selectedSlot, onBack, onConfirm }) {
 }
 
 export function StepThankYou({ selectedSlot, onDone }) {
-  const interval = selectedSlot?.interval ?? 30;
-
+  const interval = selectedSlot?.interval ?? 15;
   return (
     <>
       <div className="ba-body">
@@ -467,11 +548,9 @@ export function StepThankYou({ selectedSlot, onDone }) {
           <div className="ba-thankyou-icon">✓</div>
           <h2>Thank you!</h2>
           <p>Your appointment has been successfully booked for:</p>
-
           <p className="appt-time" style={{ textAlign: "center" }}>
             {formatApptString(selectedSlot, interval)}
           </p>
-
           <p style={{ marginTop: 20, fontSize: 13 }}>
             Please remember to bring valid government-issued ID for each adult in your household
             containing proof of address (e.g. driver's license, BCID) for your appointment.

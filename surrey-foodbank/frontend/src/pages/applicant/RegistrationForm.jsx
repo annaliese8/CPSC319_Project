@@ -13,14 +13,11 @@ export default function Register() {
   const handleLogout = () => navigate("/applicant/home");
 
   const [form, setForm] = useState({
-    name: "",
-    address: "",
-    phone: "",
-    statusInCanada: "",
-    householdMembers: "",
-    applyingToTinyBundles: "no", 
-    language: "English",
-  });
+  firstName: "", lastName: "",
+  streetAddress: "", city: "", province: "", postalCode: "",
+  phone: "", statusInCanada: "",
+  householdMembers: "", applyingToTinyBundles: "no", language: "English",
+});
   const [formErrors, setFormErrors] = useState({});
 
   const isValidPhone = (value) => value.replace(/\D/g, "").length >= 10;
@@ -32,8 +29,12 @@ export default function Register() {
 
   const handlePersonalNext = () => {
     const errors = {};
-    if (!form.name.trim())                         errors.name           = "Required";
-    if (!form.address.trim())                      errors.address        = "Required";
+    if (!form.firstName.trim())    errors.firstName    = "Required";
+    if (!form.lastName.trim())     errors.lastName     = "Required";
+    if (!form.streetAddress.trim()) errors.streetAddress = "Required";
+    if (!form.city.trim())         errors.city         = "Required";
+    if (!form.province)            errors.province     = "Required";
+    if (!/^[A-Za-z]\d[A-Za-z] ?\d[A-Za-z]\d$/.test(form.postalCode)) errors.postalCode = "Enter a valid postal code (e.g. V3T 0A1)";
     if (!form.phone.trim())                        errors.phone          = "Required";
     else if (!isValidPhone(form.phone))            errors.phone          = "Please enter a valid phone number (at least 10 digits)";
     if (!form.statusInCanada)                      errors.statusInCanada = "Required";
@@ -53,15 +54,21 @@ export default function Register() {
 
     navigate("/applicant/profile", {
       state: {
-        name: form.name,
-        address: form.address,
+        firstName: form.firstName,
+        lastName: form.lastName,
+        name: `${form.firstName} ${form.lastName}`,
+        streetAddress: form.streetAddress,
+        city: form.city,
+        province: form.province,
+        postalCode: form.postalCode,
+        address: `${form.streetAddress}, ${form.city}, ${form.province}, ${form.postalCode}`,
         phone: form.phone,
         statusInCanada: form.statusInCanada,
         applyingToTinyBundles: form.applyingToTinyBundles,
         householdMembers: form.householdMembers,
         language: form.language,
-      },
-    });
+    },
+  });
   };
 
   return (
