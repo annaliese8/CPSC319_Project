@@ -13,7 +13,13 @@ export default function Register() {
   const handleLogout = () => navigate("/applicant/home");
 
   const [form, setForm] = useState({
-    name: "", address: "", phone: "", status: "",  householdSize: "", tinyBundles: "no", language: "English",
+    name: "",
+    address: "",
+    phone: "",
+    status: "",
+    householdSize: "",
+    tinyBundles: "no", 
+    language: "English",
   });
   const [formErrors, setFormErrors] = useState({});
 
@@ -36,10 +42,20 @@ export default function Register() {
     setFormErrors(errors);
     if (Object.keys(errors).length) return;
 
+    // Persist to localStorage under the activeUser key so RegistrationFormInfo
+    // and BookAppointment can read the same data without relying solely on router state
+    const activeUser = JSON.parse(localStorage.getItem("activeUser") || "null");
+    const applicantKey = activeUser?.email ? `applicant_${activeUser.email}` : null;
+    if (applicantKey) {
+      const existing = JSON.parse(localStorage.getItem(applicantKey) || "{}");
+      localStorage.setItem(applicantKey, JSON.stringify({ ...existing, ...form }));
+    }
+
     navigate("/applicant/profile", {
       state: {
         name: form.name,
         address: form.address,
+        phone: form.phone,
         statusInCanada: form.status,
         applyingToTinyBundles: form.tinyBundles,
         householdMembers: form.householdSize,

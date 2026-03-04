@@ -10,7 +10,8 @@ import {
   addMinutes,
 } from "../../components/BookingSteps";
 import { useNavigate, useLocation } from 'react-router-dom';
-import ApplicantTopBar from "../../components/ApplicantTopBar";    
+import ApplicantTopBar from "../../components/ApplicantTopBar"; 
+import RegistrationFormInfo from "../../components/RegistrationFormInfo";
 
 /**
  * BookAppointment
@@ -25,46 +26,20 @@ export default function BookAppointment() {
   const location = useLocation();
   const handleLogout = () => navigate(`/applicant/home`);
 
-  // Profile data passed in via router state from the profile page
-  // Falls back to empty strings so the page never hard-crashes if navigated to directly
-  const profileData = location.state ?? {};
+  // Prefer localStorage data (saved via RegistrationFormInfo) over router state,
+  // with router state as a fallback so the page never hard-crashes
+  const activeUser = JSON.parse(localStorage.getItem("activeUser") || "null");
+  const applicantKey = activeUser?.email ? `applicant_${activeUser.email}` : null;
+  const savedForm = applicantKey
+    ? JSON.parse(localStorage.getItem(applicantKey) || "null")
+    : null;
+
+  const form = savedForm ?? location.state ?? {};
 
   // Navigation
   const [step, setStep] = useState(0);
   const next = () => setStep((s) => s + 1);
   const prev = () => setStep((s) => s - 1);
-
-  // Step 1: Personal Info
-  const [form, setForm] = useState({
-    name: "",
-    address: "",
-    phone: "",
-    status: "",
-    householdSize: "",
-    tinyBundles: "no",
-    language: "English",
-  });
-  const [formErrors, setFormErrors] = useState({});
-
-  const handleFormChange = (field, value) => {
-    setForm((f) => ({ ...f, [field]: value }));
-    setFormErrors((e) => ({ ...e, [field]: undefined }));
-  };
-
-  const handlePersonalNext = () => {
-    const errors = {};
-    if (!form.name.trim()) errors.name = "Required";
-    if (!form.address.trim()) errors.address = "Required";
-    if (!form.phone.trim()) errors.phone = "Required";
-    else if (!isValidPhone(form.phone))
-      errors.phone = "Please enter a valid phone number (at least 10 digits)";
-    if (!form.status) errors.status = "Required";
-    if (!form.householdSize || Number(form.householdSize) < 1)
-      errors.householdSize =
-        "Please enter a valid household size including you (1 or more)";
-    setFormErrors(errors);
-    if (!Object.keys(errors).length) next();
-  };
 
   // Time Slot
   const [selectedSlot, setSelectedSlot] = useState(null);
@@ -73,12 +48,7 @@ export default function BookAppointment() {
   const handleConfirm = () => next();
 
   const handleDone = () => {
-    const activeUser = JSON.parse(localStorage.getItem("activeUser") || "null");
-    const applicantKey = activeUser?.email
-      ? `applicant_${activeUser.email}`
-      : null;
     const duration = Number(form.householdSize) >= 5 ? 30 : 15;
-
     const payload = {
       email: activeUser?.email,
       name: form.name,
@@ -124,32 +94,21 @@ export default function BookAppointment() {
           <div className="ba-banner">
             <h1>Book an Appointment</h1>
           </div>
-
           <Stepper currentStep={stepperStep} />
-
           {step === 0 && (
-            <StepPersonalInfo
-              form={form}
-              errors={formErrors}
-              onChange={handleFormChange}
-              onNext={handlePersonalNext}
-            />
-          )}
-
-          {step === 1 && (
             <StepChooseTime
-              form={profileData}
+              form={form}
               selectedSlot={selectedSlot}
               onSelectSlot={setSelectedSlot}
               onClearSlot={() => setSelectedSlot(null)}
-              onBack={() => navigate("/applicant/profile", { state: profileData })}
+              onBack={() => navigate("/applicant/profile", { state: form })}
               onNext={selectedSlot ? next : undefined}
             />
           )}
 
           {step === 1 && (
             <StepReview
-              form={profileData}
+              form={form}
               selectedSlot={selectedSlot}
               onBack={prev}
               onConfirm={handleConfirm}
