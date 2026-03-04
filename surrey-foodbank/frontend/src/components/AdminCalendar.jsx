@@ -3,7 +3,7 @@ import "./AdminCalendar.css";
 import AppointmentInfoDialog from "./ApplicantInfoCard.jsx";
 import StaffBookingPanel from "./StaffBookingPanel.jsx";
 
-const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 // generate time slots from startHour to endHour
 const generateTimeSlots = (startHour, endHour) => {

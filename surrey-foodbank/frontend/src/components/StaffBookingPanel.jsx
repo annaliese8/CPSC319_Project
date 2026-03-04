@@ -40,9 +40,9 @@ export default function StaffBookingPanel({
   // Initialize editable date/time when slot changes
   React.useEffect(() => {
     if (selectedSlot) {
-      const dayIndex = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(selectedSlot.day);
+      const dayIndex = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"].indexOf(selectedSlot.day);
       const date = new Date(selectedSlot.weekStart);
-      date.setDate(date.getDate() + dayIndex - 1);
+      date.setDate(date.getDate() + dayIndex);
       setEditableDate(date.toISOString().split('T')[0]);
       setStartTime(selectedSlot.time);
       setEndTime(addMinutesToTime(selectedSlot.time, 15));
