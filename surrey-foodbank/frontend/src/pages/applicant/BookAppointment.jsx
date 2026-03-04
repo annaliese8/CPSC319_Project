@@ -47,7 +47,7 @@ export default function BookAppointment() {
   const handleConfirm = () => next();
 
   const handleDone = () => {
-    const duration = Number(form.householdSize) >= 5 ? 30 : 15;
+    const duration = Number(form.householdMembers) >= 5 ? 30 : 15;
     const payload = {
       email: activeUser?.email,
       name: form.name,
@@ -65,7 +65,7 @@ export default function BookAppointment() {
         day: "numeric",
         year: "numeric",
       }),
-      timeLabel: `${formatTime(selectedSlot.time)} – ${formatTime(addMinutes(selectedSlot.time, duration))}`,
+      timeLabel: `${formatTime(selectedSlot.time)} – ${formatTime(addMinutes(selectedSlot.time, selectedSlot.interval ?? 15))}`,
     };
 
     if (applicantKey) {
@@ -111,7 +111,11 @@ export default function BookAppointment() {
               selectedSlot={selectedSlot}
               onBack={prev}
               onConfirm={handleConfirm}
-            />
+              onTimerExpired={() => {        
+              setSelectedSlot(null);
+              setStep(0);                  
+            }}
+          />
           )}
 
           {step === 2 && (
