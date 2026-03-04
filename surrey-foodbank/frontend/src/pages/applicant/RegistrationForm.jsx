@@ -16,9 +16,9 @@ export default function Register() {
     name: "",
     address: "",
     phone: "",
-    status: "",
-    householdSize: "",
-    tinyBundles: "no", 
+    statusInCanada: "",
+    householdMembers: "",
+    applyingToTinyBundles: "no", 
     language: "English",
   });
   const [formErrors, setFormErrors] = useState({});
@@ -32,13 +32,13 @@ export default function Register() {
 
   const handlePersonalNext = () => {
     const errors = {};
-    if (!form.name.trim())                         errors.name          = "Required";
-    if (!form.address.trim())                      errors.address       = "Required";
-    if (!form.phone.trim())                        errors.phone         = "Required";
-    else if (!isValidPhone(form.phone))            errors.phone         = "Please enter a valid phone number (at least 10 digits)";
-    if (!form.status)                              errors.status        = "Required";
-    if (!form.householdSize || Number(form.householdSize) < 1)
-      errors.householdSize = "Please enter a valid household size (1 or more)";
+    if (!form.name.trim())                         errors.name           = "Required";
+    if (!form.address.trim())                      errors.address        = "Required";
+    if (!form.phone.trim())                        errors.phone          = "Required";
+    else if (!isValidPhone(form.phone))            errors.phone          = "Please enter a valid phone number (at least 10 digits)";
+    if (!form.statusInCanada)                      errors.statusInCanada = "Required";
+    if (!form.householdMembers || Number(form.householdMembers) < 1)
+      errors.householdMembers = "Please enter a valid household size (1 or more)";
     setFormErrors(errors);
     if (Object.keys(errors).length) return;
 
@@ -56,9 +56,10 @@ export default function Register() {
         name: form.name,
         address: form.address,
         phone: form.phone,
-        statusInCanada: form.status,
-        applyingToTinyBundles: form.tinyBundles,
-        householdMembers: form.householdSize,
+        statusInCanada: form.statusInCanada,
+        applyingToTinyBundles: form.applyingToTinyBundles,
+        householdMembers: form.householdMembers,
+        language: form.language,
       },
     });
   };
