@@ -12,7 +12,7 @@ function Home() {
     const [isEditing, setIsEditing] = useState(false);
     const [canceled, setCanceled] = useState(false);
     const [saved, setSaved] = useState(false);
-    const [toggleBookingPanel, setToggleBookingPanel] = React.useState(false);
+    const [toggleBookingPanel, setToggleBookingPanel] = React.useState(0);
 
 
     const navigate = useNavigate();
@@ -32,7 +32,7 @@ function Home() {
         setIsEditing(false);
     }
     const handleBook = () => {
-        setToggleBookingPanel(!toggleBookingPanel);
+        setToggleBookingPanel(toggleBookingPanel+1);
     }
 
 

@@ -155,7 +155,6 @@ function AdminCalendar({isEditing, saveChanges, discardChanges, weekStart, isBoo
         clearMouseTrackers();
     };
 
-
     const handleBookingPanel = (day, time) => {
         setSelectedSlot({day, time, weekStart});
         setShowBookingPanel(true);
@@ -241,7 +240,9 @@ function AdminCalendar({isEditing, saveChanges, discardChanges, weekStart, isBoo
     }, [discardChanges]);
 
     React.useEffect( () => {
-        handleBookingPanel(days[0],fullTimeSlots[0]);
+        if (isBookingPanel > 0) {
+            handleBookingPanel(days[0],fullTimeSlots[0]);
+        }
     }, [isBookingPanel])
 
     return (
