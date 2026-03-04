@@ -5,7 +5,10 @@ export default function BookingInfo({
   appointment,
   onCancelBooking,
   onChangeBooking,
+  onBookAppointment,
 }) {
+  const hasAppointment = !!appointment?.dateLabel;
+
   return (
     <Box>
       <Paper
@@ -26,48 +29,70 @@ export default function BookingInfo({
             textAlign: "center",
           }}
         >
-          <Typography
-            color="secondary"
-            variant="h5"
-            size="large"
-            sx={{ fontWeight: 700 }}
-          >
-            {appointment?.dateLabel ?? "Monday, March 26, 2026"}
-          </Typography>
-          <Typography color="primary" variant="h6" sx={{ fontWeight: 600 }}>
-            {appointment?.timeLabel ?? "3:30pm – 3:45pm"}
-          </Typography>
+          {hasAppointment ? (
+            <>
+              <Typography
+                color="secondary"
+                variant="h5"
+                size="large"
+                sx={{ fontWeight: 700 }}
+              >
+                {appointment.dateLabel}
+              </Typography>
+              <Typography color="primary" variant="h6" sx={{ fontWeight: 600 }}>
+                {appointment.timeLabel}
+              </Typography>
+              </>
+          ) : (
+            <Button
+              variant="contained"
+              onClick={onBookAppointment}
+              sx={{
+                fontWeight: 700,
+                backgroundColor: "#4cc5dc",
+                color: "common.white",
+                fontSize: "1.2rem",
+                px: 4,
+                py: 1.5,
+                "&:hover": { backgroundColor: "#005070" },
+              }}
+            >
+              Book an Appointment
+            </Button>
+          )}
         </Paper>
 
-        <Divider sx={{ my: 2 }} />
-
-        <Stack
-          justifyContent="center"
-          direction={{ xs: "column", sm: "row" }}
-          spacing={2}
-        >
-          <Button
-            variant="contained"
-            color="warning"
-            onClick={onCancelBooking}
-            sx={{ fontWeight: 800, color: "common.white" }}
-          >
-            Cancel Booking
-          </Button>
-
-          <Button
-            variant="contained"
-            onClick={onChangeBooking}
-            sx={{
-              fontWeight: 800,
-              bgcolor: "grey.600",
-              color: "common.white",
-              "&:hover": { bgcolor: "grey.700" },
-            }}
-          >
-            Change Booking
-          </Button>
-        </Stack>
+        {hasAppointment && (
+          <>
+            <Divider sx={{ my: 2 }} />
+            <Stack
+              justifyContent="center"
+              direction={{ xs: "column", sm: "row" }}
+              spacing={2}
+            >
+              <Button
+                variant="contained"
+                color="warning"
+                onClick={onCancelBooking}
+                sx={{ fontWeight: 800, color: "common.white" }}
+              >
+                Cancel Booking
+              </Button>
+              <Button
+                variant="contained"
+                onClick={onChangeBooking}
+                sx={{
+                  fontWeight: 800,
+                  bgcolor: "grey.600",
+                  color: "common.white",
+                  "&:hover": { bgcolor: "grey.700" },
+                }}
+              >
+                Change Booking
+              </Button>
+            </Stack>
+            </>
+        )}
       </Paper>
     </Box>
   );

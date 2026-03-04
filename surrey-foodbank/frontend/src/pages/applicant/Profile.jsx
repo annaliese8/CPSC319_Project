@@ -1,5 +1,6 @@
 import {
   Box,
+  Button,
   Divider,
   Link,
   Paper,
@@ -91,10 +92,9 @@ function Profile() {
     };
   }, []);
 
-  const onCancelBooking = () => {
-    setShowCancelDialog(true);
-  };
+  const onCancelBooking = () => setShowCancelDialog(true);
   const onChangeBooking = () => navigate(`/applicant/book-appointment`);
+  const onBookAppointment = () => navigate(`/applicant/book-appointment`);
 
   const handleLogout = () => {
     localStorage.removeItem("activeUser");
@@ -180,6 +180,7 @@ function Profile() {
               appointment={appointment}
               onCancelBooking={onCancelBooking}
               onChangeBooking={onChangeBooking}
+              onBookAppointment={onBookAppointment}
             />
             <CancelBookingDialogue
               open={showCancelDialog}
