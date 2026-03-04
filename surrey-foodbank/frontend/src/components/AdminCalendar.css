@@ -27,6 +27,13 @@
   /*border-right: 1px solid #ddd;*/
 }
 
+.button-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
 .calendar-header {
   display: flex;
   background: #f7f7f7;

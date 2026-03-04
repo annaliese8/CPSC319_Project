@@ -3,7 +3,7 @@ import {Typography, Box, Button} from "@mui/material";
 import AppointmentInfoDialog from "./ApplicantInfoCard.jsx";
 
 
-function WelcomePanel({onEditSlots, onCancel, onSave}) {
+function WelcomePanel({onEditSlots, onCancel, onSave, onBook}) {
 
     const [editing, setEditing] = useState(false);
 
@@ -12,14 +12,17 @@ function WelcomePanel({onEditSlots, onCancel, onSave}) {
         onEditSlots();
     }
 
+    const handleDiscard = () => {
+        onCancel();
+        setEditing(false);
+    }
+
     const handleSave = () => {
         onSave();
         setEditing(false);
     }
-
-    const handleDiscard= () => {
-        onCancel();
-        setEditing(false);
+    const handleBook = () => {
+        onBook();
     }
 
     return (
@@ -33,24 +36,30 @@ function WelcomePanel({onEditSlots, onCancel, onSave}) {
             <Typography variant="body1" sx={{fontStyle: "italic"}}>
                 Click on grey availability slots to book appointment.
             </Typography>
-            <Box sx={{display: "flex", justifyContent: "flex-end", mt: 3}}>
+            <Box sx={{display: "flex", justifyContent: "center", mt: 3}}>
                 {editing ? (
-                    <>
-                        <Button variant="contained" color="greyDark" onClick={handleDiscard}
-                                sx={{marginRight: "3px", fontWeight: "bold", color: "common.white"}}>
-                            Discard Changes
-                        </Button>
+                    <div className="button-container">
                         <Button variant="contained" color="secondary" onClick={handleSave}
                                 sx={{fontWeight: "bold", color: "common.white"}}>
                             Confirm Changes
                         </Button>
-                    </>
+                        <Button variant="contained" color="greyDark" onClick={handleDiscard}
+                                sx={{fontWeight: "bold", color: "common.white"}}>
+                            Discard Changes
+                        </Button>
+                    </div>
 
                 ) : (
-                    <Button variant="contained" color="secondary" onClick={handleEdit}
-                            sx={{fontWeight: "bold", color: "common.white"}}>
-                        Edit Available Slots
-                    </Button>
+                    <div className="button-container">
+                        <Button variant="contained" color="primary" onClick={handleBook}
+                                sx={{fontWeight: "bold", color: "common.white"}}>
+                            Book Appointment
+                        </Button>
+                        <Button variant="contained" color="secondary" onClick={handleEdit}
+                                sx={{fontWeight: "bold", color: "common.white"}}>
+                            Edit Available Slots
+                        </Button>
+                    </div>
                 )}
             </Box>
         </Box>

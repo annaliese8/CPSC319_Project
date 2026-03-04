@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import "./AdminCalendar.css";
+import AppointmentInfoDialog from "./ApplicantInfoCard.jsx";
 
 const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -142,7 +143,7 @@ function AdminCalendar({isEditing, saveChanges, discardChanges, weekStart, setSh
             const intTime = parseInt(slot[1].slice(0, slot[1].indexOf(":")));
             if(intTime > timeMax) {timeMax = intTime}
         })
-        return (timeMax++);
+        return (timeMax+1);
     }
 
     const isDisplayTime = (time) => {
@@ -197,6 +198,7 @@ function AdminCalendar({isEditing, saveChanges, discardChanges, weekStart, setSh
             const appointment = appointments.find(apt => apt.day === day && apt.startTime === time);
             if (appointment) {
                 setAppointmentData(appointment);
+                console.log("PRESSED!!!!");
                 setOpenInfoDialog(true);
             }
         }
@@ -308,7 +310,11 @@ function AdminCalendar({isEditing, saveChanges, discardChanges, weekStart, setSh
                     </div>
                 ))}
             </div>
+                <AppointmentInfoDialog open={openInfoDialog} onClose={() => setOpenInfoDialog(false)}
+                                       appointment={appointmentData} onDelete={() => {
+                }}/>
         </div>
+
 
     );
 }

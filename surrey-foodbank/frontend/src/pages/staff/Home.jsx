@@ -8,6 +8,12 @@ import AppointmentInfoDialog from "../../components/ApplicantInfoCard";
 import StaffBookingPanel from "../../components/StaffBookingPanel.jsx";
 
 function Home() {
+    const [openInfoDialog, setOpenInfoDialog] = React.useState(false);
+    const [appointmentData, setAppointmentData] = React.useState(null);
+    const [isEditing, setIsEditing] = useState(false);
+    const [canceled, setCanceled] = useState(false);
+    const [saved, setSaved] = useState(false);
+
     const navigate = useNavigate();
     const staffBase = import.meta.env.VITE_STAFF_BASE;
     const handleLogout = () => navigate(`/${staffBase}/login`);
@@ -24,11 +30,9 @@ function Home() {
         setSaved(true);
         setIsEditing(false);
     }
-    const [openInfoDialog, setOpenInfoDialog] = React.useState(false);
-    const [appointmentData, setAppointmentData] = React.useState(null);
-    const [isEditing, setIsEditing] = useState(false);
-    const [canceled, setCanceled] = useState(false);
-    const [saved, setSaved] = useState(false);
+    const handleBook = () => {
+    }
+
 
 
     // Load appointment from demo user for testing
@@ -55,7 +59,7 @@ function Home() {
 
     return (
         <Box sx={{minHeight: "100vh", bgcolor: "background.default"}}>
-            <StaffTopBar position="static" onLogout={handleLogout}/>
+            <StaffTopBar position="sticky" onLogout={handleLogout}/>
 
             {/* Main Layout */}
             <Box
@@ -68,7 +72,7 @@ function Home() {
                 }}
             >
                 {/* Left Panel for staff instructions */}
-                <WelcomePanel onEditSlots={handleEditSlots} onCancel={handleCancel} onSave={handleSave}/>
+                <WelcomePanel onEditSlots={handleEditSlots} onCancel={handleCancel} onSave={handleSave} onBook={handleBook}/>
                 {/* Right panel to show calendar and manage bookings */}
                 <AdminCalendarPanel isEditing={isEditing} saveChanges={saved} discardChanges={canceled}/>
                 {/*TODO: Testing Applicant Info */}
