@@ -77,9 +77,29 @@ export const getWeekDates = (weekStart) =>
 
 export const generateAvailability = () => {
   const map = {};
+  // Start with all slots available
   DAYS_FULL.forEach((day) =>
     ALL_SLOTS.forEach((time) => { map[`${day}-${time}`] = true; })
   );
+
+  // Read every applicant from localStorage and mark their booked slot as unavailable
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (!key?.startsWith("applicant_")) continue;
+    try {
+      const data = JSON.parse(localStorage.getItem(key));
+      if (data?.day && data?.startTime && data?.duration) {
+        // Mark the booked 15-min sub-slots as unavailable
+        const numSlots = data.duration / 15;
+        for (let s = 0; s < numSlots; s++) {
+          const blockedTime = addMinutes(data.startTime, s * 15);
+          map[`${data.day}-${blockedTime}`] = false;
+        }
+      }
+    } catch {
+      // skip issues
+    }
+  }
   return map;
 };
 
