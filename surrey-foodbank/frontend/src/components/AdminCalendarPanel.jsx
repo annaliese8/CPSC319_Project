@@ -90,9 +90,9 @@ function AdminCalendarPanel({isEditing, saveChanges, discardChanges}) {
         return end;
     }
 
-    const handleBookingPanel = (state) => {
-        console.log(state);
-        setShowBookingPanel(state);
+    const handleBookingPanel = () => {
+        console.log("GHFGJHFHJGFG");
+        setShowBookingPanel(true);
     }
 
     const [openInfoDialog, setOpenInfoDialog] = React.useState(false);
