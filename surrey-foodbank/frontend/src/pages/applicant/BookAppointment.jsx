@@ -3,79 +3,85 @@ import { useState } from "react";
 import { useBookingStyles } from "./Bookingstyles";
 import {
   Stepper,
-  StepPersonalInfo,
   StepChooseTime,
   StepReview,
   StepThankYou,
-  formatTime,      
-  addMinutes, 
+  formatTime,
+  addMinutes,
 } from "../../components/BookingSteps";
-import { useNavigate } from 'react-router-dom';
-import ApplicantTopBar from "../../components/ApplicantTopBar";    
-
+import { useNavigate, useLocation } from 'react-router-dom';
+import ApplicantTopBar from "../../components/ApplicantTopBar";
 
 /**
  * BookAppointment
  * Step order:
- *   0  Personal Info
- *   1  Choose Time
- *   2  Review
- *   3  Thank You
+ *   0  Choose Time
+ *   1  Review
+ *   2  Thank You
  */
 export default function BookAppointment() {
   useBookingStyles();
-
   const navigate = useNavigate();
+  const location = useLocation();
   const handleLogout = () => navigate(`/applicant/home`);
+
+  // Prefer localStorage data (saved via RegistrationFormInfo) over router state,
+  // with router state as a fallback so the page never hard-crashes
+  const activeUser = JSON.parse(localStorage.getItem("activeUser") || "null");
+  const applicantKey = activeUser?.email ? `applicant_${activeUser.email}` : null;
+  const savedForm = applicantKey
+    ? JSON.parse(localStorage.getItem(applicantKey) || "null")
+    : null;
+
+  const form = savedForm ?? location.state ?? {};
 
   // Navigation
   const [step, setStep] = useState(0);
   const next = () => setStep((s) => s + 1);
   const prev = () => setStep((s) => s - 1);
 
-  // Step 1: Personal Info
-  const [form, setForm] = useState({
-    name: "", address: "", status: "",  householdSize: "", tinyBundles: "no", language: "English",
-  });
-  const [formErrors, setFormErrors] = useState({});
-
-  const handleFormChange = (field, value) => {
-  setForm((f) => ({ ...f, [field]: value }));
-  setFormErrors((e) => ({ ...e, [field]: undefined }));
-};
-
-  const handlePersonalNext = () => {
-    const errors = {};
-    if (!form.name.trim())                          errors.name          = "Required";
-    if (!form.address.trim())                       errors.address       = "Required";
-    if (!form.status)                               errors.status        = "Required";
-    if (!form.householdSize || Number(form.householdSize) < 1)
-                                                    errors.householdSize = "Please enter a valid household size (1 or more)";
-    setFormErrors(errors);
-    if (!Object.keys(errors).length) next();
-  };
-
- // Time Slot
+  // Time Slot
   const [selectedSlot, setSelectedSlot] = useState(null);
 
-  // Confirm 
+  // Confirm
   const handleConfirm = () => next();
 
   const handleDone = () => {
+    const duration = Number(form.householdMembers) >= 5 ? 30 : 15;
+    const payload = {
+      email: activeUser?.email,
+      name: form.name,
+      phone: form.phone,
+      address: form.address,
+      statusInCanada: form.statusInCanada,
+      applyingToTinyBundles: form.applyingToTinyBundles,
+      householdMembers: form.householdMembers,
+      day: selectedSlot.date.toLocaleDateString("en-US", { weekday: "long" }),
+      startTime: selectedSlot.time,
+      duration,
+      dateLabel: selectedSlot.date.toLocaleDateString("en-US", {
+        weekday: "long",
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+      }),
+      timeLabel: `${formatTime(selectedSlot.time)} – ${formatTime(addMinutes(selectedSlot.time, selectedSlot.interval ?? 15))}`,
+    };
+
+    if (applicantKey) {
+      const existing = JSON.parse(localStorage.getItem(applicantKey) || "{}");
+      localStorage.setItem(
+        applicantKey,
+        JSON.stringify({ ...existing, ...payload }),
+      );
+    }
+
     navigate("/applicant/profile", {
-      state: {
-        name: form.name,
-        address: form.address,
-        statusInCanada: form.status,
-        applyingToTinyBundles: form.tinyBundles,
-        householdMembers: form.householdSize,
-        dateLabel: selectedSlot.date.toLocaleDateString("en-US", {
-          weekday: "long", month: "long", day: "numeric", year: "numeric",
-        }),
-        timeLabel: `${formatTime(selectedSlot.time)} – ${formatTime(addMinutes(selectedSlot.time, selectedSlot.interval ?? 15))}`,
-      },
+      state: payload,
     });
   };
+
+  const stepperStep = step + 1;
 
   // Render
   return (
@@ -87,39 +93,32 @@ export default function BookAppointment() {
           <div className="ba-banner">
             <h1>Book an Appointment</h1>
           </div>
-
-          <Stepper currentStep={step} />
-
+          <Stepper currentStep={stepperStep} />
           {step === 0 && (
-            <StepPersonalInfo
-              form={form}
-               errors={formErrors}
-                onChange={handleFormChange}
-                onNext={handlePersonalNext}
-            />
-          )}
-
-          {step === 1 && (
             <StepChooseTime
               form={form}
               selectedSlot={selectedSlot}
               onSelectSlot={setSelectedSlot}
               onClearSlot={() => setSelectedSlot(null)}
-              onBack={prev}
+              onBack={() => navigate("/applicant/profile", { state: form })}
               onNext={selectedSlot ? next : undefined}
             />
           )}
 
-          {step === 2 && (
+          {step === 1 && (
             <StepReview
               form={form}
               selectedSlot={selectedSlot}
               onBack={prev}
               onConfirm={handleConfirm}
-            />
+              onTimerExpired={() => {        
+              setSelectedSlot(null);
+              setStep(0);                  
+            }}
+          />
           )}
 
-          {step === 3 && (
+          {step === 2 && (
             <StepThankYou
               selectedSlot={selectedSlot}
                   onDone={handleDone}

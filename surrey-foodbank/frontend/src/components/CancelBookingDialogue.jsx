@@ -53,7 +53,6 @@ function CancelBookingDialogue({
         }
       }
       onClose();
-      navigate("/applicant/book-appointment");
     }
   };
 
