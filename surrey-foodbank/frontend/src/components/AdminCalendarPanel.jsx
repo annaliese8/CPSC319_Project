@@ -1,142 +1,16 @@
 import React, {useState} from "react";
 import "./AdminCalendar.css";
 import {
-  Typography,
-  Box,
-  Button,
-  Paper,
-  Stack,
-  Chip,
-  Divider,
+    Typography,
+    Box,
+    Button,
+    Paper,
+    Stack,
+    Divider,
 } from "@mui/material";
-import AppointmentInfoDialog from "./ApplicantInfoCard.jsx";
-import StaffBookingPanel from "./StaffBookingPanel.jsx";
+import AdminCalendar from "./AdminCalendar.jsx";
 
-const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-
-// generate time slots from 9am – 5pm (30 min slots for now)
-const generateTimeSlots = () => {
-    const slots = [];
-    for (let hour = 0; hour < 24; hour++) {
-        slots.push(`${hour}:00`);
-        slots.push(`${hour}:15`);
-    }
-    return slots;
-};
-
-
-const generateInitBlockedSlots = () => {
-    const blockedSlots = [];
-    days.forEach((day) => {
-        for (let hour = 0; hour < 9; hour++) {
-            blockedSlots.push([day,`${hour}:00`]);
-            blockedSlots.push([day,`${hour}:15`]);
-        }
-        for (let hour = 15; hour < 24; hour++) {
-            blockedSlots.push([day,`${hour}:00`]);
-            blockedSlots.push([day,`${hour}:15`]);
-        }
-    })
-    return blockedSlots;
-};
-
-const timeSlots = generateTimeSlots();
-
-
-function AdminCalendarPanel() {
-    const [appointmentData, setAppointmentData] = React.useState(null);
-    const [appointments, setAppointments] = React.useState([]);
-    const [selectedSlot, setSelectedSlot] = React.useState(null);
-    const [showBookingPanel, setShowBookingPanel] = React.useState(false);
-
-    // Load all appointments from localStorage
-    React.useEffect(() => {
-        const loadedAppointments = [];
-        for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            if (key.startsWith('applicant_')) {
-                try {
-                    const data = JSON.parse(localStorage.getItem(key));
-                    if (data.day && data.startTime) {
-                        loadedAppointments.push({
-                            email: key.replace('applicant_', ''),
-                            ...data
-                        });
-                    }
-                } catch (e) {
-                    console.error('Error loading appointment:', e);
-                }
-            }
-        }
-        setAppointments(loadedAppointments);
-    }, []);
-
-    React.useEffect(() => {
-        // Get demo user's appointment data (harnoor@example.com from InitDemoData)
-        const demoEmail = localStorage.getItem("activeUser") ? JSON.parse(localStorage.getItem("activeUser")).email : "harnoor@exmaple.com";
-        const storedData = localStorage.getItem(`applicant_${demoEmail}`);
-
-        if (storedData) {
-            setAppointmentData(JSON.parse(storedData));
-        } else {
-            // Fallback to sample data if no stored data exists
-            setAppointmentData({
-                name: "Joshua Pemberton",
-                address: "123 Main Street, Surrey BC V3T 1A2",
-                statusInCanada: "Permanent Resident",
-                applyingToTinyBundles: "yes",
-                householdMembers: "2",
-                dateLabel: "Monday March 26, 2026",
-                timeLabel: "3:30pm – 3:45pm",
-            });
-        }
-    }, []);
-
-
-    const [savedBlockedSlots, setsavedBlockedSlots] = useState(generateInitBlockedSlots);
-    const [blockedSlots, setBlockedSlots] = useState(savedBlockedSlots);
-    const addBlockedSlot = (slot) => {
-        setBlockedSlots((prevSlots) => [...prevSlots, slot]);
-    }
-
-    const removeBlockedSlot = (slot) => {
-        setBlockedSlots((prevSlots) => prevSlots.filter(s => s[0] !== slot[0] || s[1] !== slot[1]));
-    }
-
-    const [editing, setEditing] = useState(false);
-    const [isBlocking, setIsBlocking] = useState(false);
-    const [isUnblocking, setIsUnblocking] = useState(false);
-
-    const handleSave = () => {
-        setsavedBlockedSlots(blockedSlots);
-        setEditing(false);
-        clearMouseTrackers();
-    };
-    const handleCancel = () => {
-        setBlockedSlots(savedBlockedSlots);
-        setEditing(false);
-        clearMouseTrackers();
-    };
-
-    const clearMouseTrackers = () => {
-        setIsBlocking(false);
-        setIsUnblocking(false);
-    }
-
-    const handleEditMode = () => {
-        setEditing(true);
-    };
-
-    const isBlocked = (day,time) => {
-        if(editing) {
-            return blockedSlots.some(arr =>
-                arr.every((val, index) => val === [day,time][index])
-            );
-        }
-        return savedBlockedSlots.some(arr =>
-            arr.every((val, index) => val === [day,time][index])
-        );
-    }
+function AdminCalendarPanel({isEditing, saveChanges, discardChanges, toggleBookingPanel}) {
 
     const today = new Date();
     const startOfWeek = new Date(today);
@@ -144,277 +18,130 @@ function AdminCalendarPanel() {
 
     const [weekStart, setWeekStart] = useState(startOfWeek);
 
-    const goToNextWeek = () => { const next = new Date(weekStart);
+    const formatDateShort = (date) => {
+        return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    }
+
+    const goToNextWeek = () => {
+        const next = new Date(weekStart);
         next.setDate(next.getDate() + 7);
         setWeekStart(next);
     };
 
     const goToPrevWeek = () => {
-        const prev = new Date(weekStart); prev.setDate(prev.getDate() - 7);
+        const prev = new Date(weekStart);
+        prev.setDate(prev.getDate() - 7);
         setWeekStart(prev);
     };
 
-
-    const [openInfoDialog, setOpenInfoDialog] = React.useState(false);
-
-    // Handle clicking on an available slot to book
-    const handleSlotClick = (day, time) => {
-        if (!editing && !isBlocked(day, time) && !isSlotBooked(day, time)) {
-            setSelectedSlot({ day, time, weekStart });
-            setShowBookingPanel(true);
-        } else if (!editing && isSlotBooked(day, time)) {
-            // Show appointment info if slot is booked
-            const appointment = appointments.find(apt => apt.day === day && apt.startTime === time);
-            if (appointment) {
-                setAppointmentData(appointment);
-                setOpenInfoDialog(true);
-            }
-        }
-    };
-
-    // Check if a slot is booked
-    const isSlotBooked = (day, time) => {
-        return appointments.some(apt => {
-            if (apt.day !== day) return false;
-            
-            // Check if this time falls within the appointment duration
-            const [aptHour, aptMinute] = apt.startTime.split(':').map(Number);
-            const [slotHour, slotMinute] = time.split(':').map(Number);
-            
-            const aptStartMinutes = aptHour * 60 + aptMinute;
-            const slotMinutes = slotHour * 60 + slotMinute;
-            const aptEndMinutes = aptStartMinutes + apt.duration;
-            
-            return slotMinutes >= aptStartMinutes && slotMinutes < aptEndMinutes;
-        });
-    };
-
-    // Handle confirming a booking
-    const handleConfirmBooking = (appointmentData) => {
-        // Save to localStorage
-        const key = `applicant_${appointmentData.email}`;
-        localStorage.setItem(key, JSON.stringify(appointmentData));
-        
-        // Update appointments list
-        setAppointments(prev => [...prev, appointmentData]);
-        
-        // Close booking panel
-        setShowBookingPanel(false);
-        setSelectedSlot(null);
-    };
+    const getWeekEnd = (start) => {
+        const end = new Date(start)
+        end.setDate(end.getDate() + 6);
+        return end;
+    }
 
     // const goToToday = () => { setWeekStart(startOfWeek); };
     // const isCurrentWeek = weekStart.toDateString() === startOfWeek.toDateString();
 
-  return (
-    <Paper sx={{ padding: { xs: 2, md: 3 }, borderRadius: 2 }} elevation={1}>
-      {/* Week header row to show current date */}
-      <Box
-        sx={{
-          display: "grid",
-          gridTemplateColumns: "auto 1fr auto",
-          alignItems: "center",
-          gap: 2,
-        }}
-      >
-        <Button
-          variant="outlined"
-          onClick={goToPrevWeek}
-          size="small"
-        >
-          Previous 7 Days
-        </Button>
+    return (
+        <Paper sx={{padding: {xs: 2, md: 3}, borderRadius: 2}} elevation={1}>
+            {/* Week header row to show current date */}
+            <Box
+                sx={{
+                    display: "grid",
+                    gridTemplateColumns: "auto 1fr auto",
+                    alignItems: "center",
+                    gap: 2,
+                }}
+            >
+                <Button
+                    variant="outlined"
+                    onClick={goToPrevWeek}
+                    size="small"
+                >
+                    Previous 7 Days
+                </Button>
 
-        <Box sx={{ textAlign: "center" }}>
-          <Typography variant="h6" sx={{ fontWeight: 700 }}>
-            Mon Feb 23 - Sun Mar 1
-          </Typography>
-          <Typography variant="caption" color="text.secondary">
-            Vancouver - America (GMT -08:00)
-          </Typography>
-        </Box>
-        
+                <Box sx={{textAlign: "center"}}>
+                    <Typography variant="h5" sx={{fontWeight: 700}}>
+                        Sun {formatDateShort(weekStart)} - Sat {formatDateShort(getWeekEnd(weekStart))}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                        Vancouver - America (GMT -08:00)
+                    </Typography>
+                </Box>
 
-        <Button
-          variant="outlined"
-          onClick={goToNextWeek}
-          size="small"
-        >
-          Next 7 Days
-        </Button>
-      </Box>
+                <Button
+                    variant="outlined"
+                    onClick={goToNextWeek}
+                    size="small"
+                >
+                    Next 7 Days
+                </Button>
+            </Box>
 
-      <Divider sx={{ my: 1 }} />
+            <Divider sx={{my: 1}}/>
 
-      {/* Legend */}
-        <Stack direction="row" spacing={1.5} sx={{ mb: 1, justifyContent: "center" }}>
-          <LegendChip label="Available" sx={{ bgcolor: "grey.300" }} />
-          <LegendChip label="Booked" sx={{ bgcolor: "secondary.main" }} />
-          <LegendChip
-            label="Staff Booked"
-            sx={{ bgcolor: "primary.main", color: "common.white" }}
-          />
-          <LegendChip
-            label="Blocked"
-            sx={{ bgcolor: "warning.main", color: "common.white" }}
-          />
-        </Stack>
+            {/* Legend */}
+            <Stack direction="row" spacing={1.5} sx={{mb: 1, justifyContent: "center"}}>
+                <LegendChip label="Available" sx={{bgcolor: "secondary.main"}}/>
+                <LegendChip
+                    label="Booked"
+                    sx={{bgcolor: "primary.main", color: "common.white"}}
+                />
+                {isEditing? (
+                    <LegendChip
+                    label="Blocked"
+                    sx={{bgcolor: "warning.main", color: "common.white"}}/>
+                ) : ""}
 
-      {/* Calendar placeholder + legend */}
-      <Box
-        sx={{
-          display: "grid",
-          gridTemplateColumns: { xs: "0.75fr", md: "1fr 130px" },
-          gap: 2,
-          alignItems: "start",
-        }}
-      >
-        {/* Calendar Placeholder */}
-        <Box
-          sx={{
-            height: { xs: 420, md: 560 },
-            border: "1px solid",
-            borderColor: "grey.300",
-            borderRadius: 2,
-            bgcolor: "common.white",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: "text.secondary",
-          }}
-        >
-                <div className="calendar-area">
-                    <div className="calendar-header-wrapper">
-                        <div className="calendar-header">
-                            <div className="time-column"></div>
-                            {days.map((day, index) => {
-                                const date = new Date(weekStart);
-                                date.setDate(weekStart.getDate() + index);
+            </Stack>
 
-                                const formatted = date.toLocaleDateString("en-US", {
-                                    month: "short",
-                                    day: "numeric",
-                                });
-
-                                return (
-                                    <div key={day} className="day-header">
-                                        {day}, {formatted}
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </div>
-
-                    {/* Calendar */}
-                    <div className="calendar">
-                        {timeSlots.map((time) => (
-                            <div key={time} className="admin-calendar-row">
-                                <div className="admin-time-label">{time}</div>
-                                {days.map((day) => {
-                                    const slotBooked = isSlotBooked(day, time);
-                                    if(editing) {
-                                        return (
-                                            <div
-                                                key={day + time}
-                                                className={`slot ${isBlocked(day,time)? "unavailable-vis" : slotBooked? "admin-booked": "admin-available"}`}
-                                                onMouseDown={() => {
-                                                    if (!isBlocked(day,time)) setIsBlocking(true)
-                                                    else setIsUnblocking(true)
-                                                }
-                                                }
-                                                onMouseUp={() => {
-                                                    clearMouseTrackers()
-                                                }
-                                                }
-                                                onMouseOver={() => {
-                                                    if (isBlocking && !isBlocked(day,time)) addBlockedSlot([day,time])
-                                                    if (isUnblocking && isBlocked(day,time)) removeBlockedSlot([day,time])
-                                                }
-                                                }
-                                                onClick={() =>
-                                                    !isBlocked(day,time)? addBlockedSlot([day,time]) : removeBlockedSlot([day,time])
-                                                }
-                                            ></div>
-                                        );
-                                    } else {
-                                        return (
-                                            <div
-                                                key={day + time}
-                                                className={`slot ${isBlocked(day,time)? "unavailable-invis" : slotBooked? "admin-booked": "admin-available"}`}
-                                                onClick={() => handleSlotClick(day, time)}
-                                            >
-                                            </div>
-                                        );
-                                    }
-                                })}
-                            </div>
-                        ))}
-                    </div>
-                </div>
-        </Box>
-
-      </Box>
-
-      {/* Edit slots should take you to edit slot window using the function we pass on here*/}
-      <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 3 }}>
-          {editing ? (
-              <>
-                  <Button variant="contained" color="greyDark" onClick={handleCancel} sx={{ fontWeight: "bold", color: "common.white"}}>
-                      Discard Changes
-                  </Button>
-                  <Button variant="contained" color="secondary" onClick={handleSave} sx={{ fontWeight: "bold", color: "common.white"}}>
-                      Confirm Changes
-                  </Button>
-              </>
-
-
-          ) : (
-              <Button variant="contained" color="secondary" onClick={handleEditMode} sx={{ fontWeight: "bold", color: "common.white"}}>
-                  Edit Available Slots
-              </Button>
-          )}
-          <AppointmentInfoDialog open={openInfoDialog} onClose={() => setOpenInfoDialog(false)} appointment={appointmentData} onDelete={() => {}} />
-      </Box>
-
-      {/* Staff Booking Panel */}
-      {showBookingPanel && (
-        <StaffBookingPanel
-          selectedSlot={selectedSlot}
-          onClose={() => {
-            setShowBookingPanel(false);
-            setSelectedSlot(null);
-          }}
-          onConfirmBooking={handleConfirmBooking}
-          existingAppointments={appointments}
-        />
-      )}
-    </Paper>
-  );
+            {/* Calendar placeholder + legend */}
+            <Box
+                sx={{
+                    display: "grid",
+                    gridTemplateColumns: {xs: "0.75fr", md: "1fr 130px"},
+                    alignContent: "center",
+                    alignItems: "center",
+                }}
+            >
+                {/* Calendar Placeholder */}
+                    {/* Calendar NEW*/}
+                    <AdminCalendar isEditing={isEditing}
+                                   saveChanges={saveChanges}
+                                   discardChanges={discardChanges}
+                                   weekStart={weekStart}
+                                   isBookingPanel={toggleBookingPanel}
+                    />
+            </Box>
+        </Paper>
+    );
 }
 
-function LegendChip({ label, sx }) {
-  return (
-    <Stack 
-      direction="row" 
-      spacing={1} 
-      alignItems="center"
-      sx={{
-        p: 0.5
-      }}
-    >
-      <Box
-        sx={{
-          width: 20,
-          height: 20,
-          borderRadius: 0.5,
-          ...sx,
-        }}
-      />
-      <Typography variant="body2" sx={{ fontWeight: 600 }}>
-        {label}
-      </Typography>
-    </Stack>
-  );
+function LegendChip({label, sx}) {
+    return (
+        <Stack
+            direction="row"
+            spacing={1}
+            alignItems="center"
+            sx={{
+                p: 0.5
+            }}
+        >
+            <Box
+                sx={{
+                    width: 20,
+                    height: 20,
+                    borderRadius: 0.5,
+                    ...sx,
+                }}
+            />
+            <Typography variant="body2" sx={{fontWeight: 600}}>
+                {label}
+            </Typography>
+        </Stack>
+    );
 }
 
 export default AdminCalendarPanel;

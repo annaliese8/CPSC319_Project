@@ -89,7 +89,7 @@ function ApplicantDatabase() {
 
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
-      <StaffTopBar onLogout={handleLogout} label="Admin Page" />
+      <StaffTopBar onLogout={handleLogout}/>
 
       <Box sx={{ p: { xs: 2, md: 4 } }}>
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>

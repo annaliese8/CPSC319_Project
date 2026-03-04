@@ -9,7 +9,7 @@ import {
 } from "@mui/material";
 
 export default function StaffBookingPanel({ 
-  selectedSlot, 
+  selectedSlot,
   onClose, 
   onConfirmBooking,
   existingAppointments = []
