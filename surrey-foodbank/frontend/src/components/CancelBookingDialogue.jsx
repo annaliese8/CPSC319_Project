@@ -29,8 +29,10 @@ function CancelBookingDialogue({
         if (storedData) {
           const data = JSON.parse(storedData);
           // Clear only the booking info, keep personal info
-          data.dateLabel = "";
-          data.timeLabel = "";
+          data.day= "";
+          data.startTime= "";
+          data.dateLabel= "";
+          data.timeLabel= "";
           localStorage.setItem(`applicant_${applicantEmail}`, JSON.stringify(data));
         }
       }
@@ -47,9 +49,12 @@ function CancelBookingDialogue({
         if (storedData) {
           const data = JSON.parse(storedData);
           // Clear booking info
-          data.dateLabel = "";
-          data.timeLabel = "";
+          data.day= "";
+          data.startTime= "";
+          data.dateLabel= "";
+          data.timeLabel= "";
           localStorage.setItem(`applicant_${activeUser.email}`, JSON.stringify(data));
+          if (onCancelComplete) onCancelComplete(data);
         }
       }
       onClose();
