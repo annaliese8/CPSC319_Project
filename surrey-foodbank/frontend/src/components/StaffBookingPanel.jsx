@@ -9,7 +9,7 @@ import {
 } from "@mui/material";
 
 export default function StaffBookingPanel({ 
-  selectedSlot, 
+  selectedSlot,
   onClose, 
   onConfirmBooking,
   existingAppointments = []
@@ -40,9 +40,9 @@ export default function StaffBookingPanel({
   // Initialize editable date/time when slot changes
   React.useEffect(() => {
     if (selectedSlot) {
-      const dayIndex = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"].indexOf(selectedSlot.day);
+      const dayIndex = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(selectedSlot.day);
       const date = new Date(selectedSlot.weekStart);
-      date.setDate(date.getDate() + dayIndex);
+      date.setDate(date.getDate() + dayIndex - 1);
       setEditableDate(date.toISOString().split('T')[0]);
       setStartTime(selectedSlot.time);
       setEndTime(addMinutesToTime(selectedSlot.time, 15));
