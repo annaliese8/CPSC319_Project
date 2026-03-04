@@ -1,17 +1,19 @@
 import {
   AppBar,
-  Toolbar,
-  IconButton,
-  Typography,
   Box,
+  Divider,
+  IconButton,
   Paper,
+  Stack,
+  Toolbar,
+  Typography,
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import BookingInfo from "../../components/BookingInfo";
-import ApplicantPersonalInfo from "../../components/AppointmentPersonalInfo";
 import CancelBookingDialogue from "../../components/CancelBookingDialogue";
+import RegistrationFormInfo from "../../components/RegistrationFormInfo";
 
 export default function ApplicantInfoPage() {
   const navigate = useNavigate();
@@ -22,16 +24,30 @@ export default function ApplicantInfoPage() {
 
   // Load fresh data from localStorage when component mounts or when applicantEmail changes
   useEffect(() => {
-    const applicantEmail = location.state?.appointment?.applicantEmail;
+    const applicantEmail = location.state?.appointment?.email;
     if (applicantEmail) {
       const storedData = localStorage.getItem(`applicant_${applicantEmail}`);
       if (storedData) {
         const data = JSON.parse(storedData);
-        setAppointment({ ...data, applicantEmail }); // Preserve the applicantEmail
+        setAppointment(data);
       }
     }
-  }, [location.state?.appointment?.applicantEmail]);
+  }, [location.state?.appointment?.email]);
 
+  // Listens for local storage changes from other tabs
+  useEffect(() => {
+    const handleStorageChange = (e) => {
+      if (e.key?.startsWith("applicant_")) {
+        const updatedData = JSON.parse(e.newValue);
+        if (updatedData.email === appointment?.email) {
+          setAppointment(updatedData);
+        }
+      }
+    };
+    window.addEventListener("storage", handleStorageChange);
+
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, [appointment]);
 
   const onCancelBooking = () => {
     setShowCancelDialog(true);
@@ -42,20 +58,25 @@ export default function ApplicantInfoPage() {
     if (appointment) {
       setAppointment({
         ...appointment,
+        day: "",
+        startTime: "",
         dateLabel: "",
         timeLabel: "",
       });
     }
   };
   const onChangeBooking = () => console.log("Change booking clicked");
-  
+
   const handleSavePersonalInfo = (updatedData) => {
     // Save to the APPLICANT's localStorage, not the staff's
-    const applicantEmail = appointment?.applicantEmail;
+    const applicantEmail = appointment?.email;
     if (applicantEmail) {
       // Preserve the applicantEmail in the updated data
       const dataToSave = { ...updatedData, applicantEmail };
-      localStorage.setItem(`applicant_${applicantEmail}`, JSON.stringify(dataToSave));
+      localStorage.setItem(
+        `applicant_${applicantEmail}`,
+        JSON.stringify(dataToSave),
+      );
       // Update local state
       setAppointment(dataToSave);
       console.log("Data saved to localStorage for", applicantEmail, dataToSave);
@@ -66,9 +87,23 @@ export default function ApplicantInfoPage() {
 
   return (
     <Box sx={{ minHeight: "100vh" }}>
-      <AppBar position="static" sx={{ bgcolor: "primary.main", borderBottomLeftRadius: 20, borderBottomRightRadius: 20, borderTopLeftRadius: 20, borderTopRightRadius: 20}}>  
+      <AppBar
+        position="static"
+        sx={{
+          bgcolor: "primary.main",
+          borderBottomLeftRadius: 20,
+          borderBottomRightRadius: 20,
+          borderTopLeftRadius: 20,
+          borderTopRightRadius: 20,
+        }}
+      >
         <Toolbar>
-          <IconButton edge="start" color="inherit" onClick={handleBack} aria-label="Back">
+          <IconButton
+            edge="start"
+            color="inherit"
+            onClick={handleBack}
+            aria-label="Back"
+          >
             <ArrowBackIcon />
           </IconButton>
           <Typography variant="h6" sx={{ fontWeight: 800 }}>
@@ -79,24 +114,42 @@ export default function ApplicantInfoPage() {
 
       <Box sx={{ p: { xs: 2, md: 4 } }}>
         <Paper sx={{ p: { xs: 2, md: 3 }, borderRadius: 2 }} elevation={1}>
-          <Box
+          <Stack
+            direction={{ xs: "column", md: "row" }}
+            spacing={3}
+            divider={<Divider orientation="vertical" flexItem />}
             sx={{
-              display: "grid",
-              gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
-              gap: { xs: 2, md: 4 },
-              alignItems: "start",
+              justifyContent: "center",
+              alignItems: "stretch",
             }}
           >
-            <ApplicantPersonalInfo 
-              appointment={appointment || null}
-              onSave={handleSavePersonalInfo}
-            />
-            <BookingInfo 
-              appointment={appointment}
-              onCancelBooking={onCancelBooking}
-              onChangeBooking={onChangeBooking}
-            />
-          </Box>
+            <Box sx={{ flex: 1 }}>
+              <Typography
+                variant="h4"
+                sx={{ fontWeight: 800, color: "primary.main", mb: 2 }}
+              >
+                Registration Form Responses
+              </Typography>
+              <RegistrationFormInfo
+                appointment={appointment || null}
+                onSave={handleSavePersonalInfo}
+              />
+            </Box>
+
+            <Box sx={{ flex: 1 }}>
+              <Typography
+                variant="h4"
+                sx={{ fontWeight: 800, color: "primary.main", mb: 2 }}
+              >
+                Booking Information
+              </Typography>
+              <BookingInfo
+                appointment={appointment}
+                onCancelBooking={onCancelBooking}
+                onChangeBooking={onChangeBooking}
+              />
+            </Box>
+          </Stack>
         </Paper>
       </Box>
 
@@ -105,11 +158,11 @@ export default function ApplicantInfoPage() {
         onClose={() => setShowCancelDialog(false)}
         appointment={appointment}
         isStaff={true}
-        applicantEmail={appointment?.applicantEmail || null}
+        applicantEmail={appointment?.email || null}
         onCancelComplete={handleCancelComplete}
       />
     </Box>
   );
 }
 
-// GitHub Copilot was used to debug the code above and help with localStorage logic
+// GitHub Copilot and ChatGPT was used to debug the code above and help with localStorage logic

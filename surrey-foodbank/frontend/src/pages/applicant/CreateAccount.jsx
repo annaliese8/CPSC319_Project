@@ -71,6 +71,7 @@ function CreateAccount() {
         localStorage.setItem(
           applicantKey,
           JSON.stringify({
+            email: emailField.value,
             name: "",
             phone: "",
             address: "",
@@ -90,7 +91,7 @@ function CreateAccount() {
         "activeUser",
         JSON.stringify({ email: emailField.value }),
       );
-      navigate("/applicant/book-appointment");
+      navigate("/applicant/register");
     }
   };
 

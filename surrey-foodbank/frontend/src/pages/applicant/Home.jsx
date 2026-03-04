@@ -1,11 +1,13 @@
 import AppBar from "@mui/material/AppBar";
 import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
 import Divider from "@mui/material/Divider";
 import Link from "@mui/material/Link";
 import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
+import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
@@ -69,6 +71,55 @@ function Home() {
         <Typography variant="h5" align="center">
           Just follow the steps below to complete your registration.
         </Typography>
+        {/* Account buttons */}
+        <Paper
+          variant="outlined"
+          sx={{
+            mt: { xs: 2.5, sm: 3 },
+            mb: { xs: 1, sm: 2 },
+            px: { xs: 2.5, sm: 4 },
+            py: { xs: 2, sm: 2.5 },
+            width: "100%",
+            maxWidth: 700,
+            display: "flex",
+            flexDirection: { xs: "column", sm: "row" },
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 2,
+            borderColor: "warning.main",
+            borderRadius: 2,
+            backgroundColor: "warning.50",
+          }}
+        >
+          <Box>
+            <Typography fontWeight="bold" sx={{ fontSize: "clamp(0.95rem, 1.6vw, 1.1rem)" }}>
+              New here?
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Start by creating an account.
+            </Typography>
+          </Box>
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} sx={{ flexShrink: 0 }}>
+            <Button
+              variant="contained"
+              color="primary"
+              href="/applicant/create-account"
+              size="medium"
+              sx={{ whiteSpace: "nowrap", fontWeight: "bold" }}
+            >
+              Create Account
+            </Button>
+            <Button
+              variant="outlined"
+              color="primary"
+              href="/applicant/login"
+              size="medium"
+              sx={{ whiteSpace: "nowrap" }}
+            >
+              Log In
+            </Button>
+          </Stack>
+        </Paper>
         <List sx={{ width: "100%", maxWidth: 700, mx: "auto" }}>
           {/* Step 1 */}
           <ListItem alignItems="flex-start">
