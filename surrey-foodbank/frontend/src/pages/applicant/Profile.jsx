@@ -55,7 +55,16 @@ function Profile() {
 
     const storageKey = `applicant_${activeUser.email}`;
 
-    // Load from localStorage
+    // Prioritize location.state (just completed booking) over stored data
+    if (location.state) {
+      setAppointment((prev) => ({ ...prev, ...location.state }));
+      localStorage.setItem(storageKey, JSON.stringify({ ...JSON.parse(localStorage.getItem(storageKey) || "{}"), ...location.state }));
+  // Clear location.state so refresh doesn't re-apply it
+      window.history.replaceState({}, "");
+      return;
+}
+
+    // Otherwise load from localStorage
     const storedData = JSON.parse(localStorage.getItem(storageKey) || "null");
     if (storedData) {
       setAppointment((prev) => ({ ...prev, ...storedData }));
@@ -67,7 +76,7 @@ function Profile() {
       ...prev,
       name: activeUser.email.split("@")[0] || "",
     }));
-  }, [navigate, location.state]);
+  }, [navigate]);
 
   // Listen for updates to localStorage from other tabs
   useEffect(() => {
@@ -109,17 +118,18 @@ function Profile() {
 
   const handleCancelComplete = () => {
     // Update the local state to reflect the cancelled booking
-    if (appointment) {
-      setAppointment({
-        ...appointment,
-        day: "",
-        startTime: "",
-        dateLabel: "",
-        timeLabel: "",
-      });
-    }
-    
-  };
+     if (appointment) {
+    setAppointment({
+      ...appointment,
+      day: "",
+      startTime: "",
+      date: "",
+      duration: 0,
+      dateLabel: "",
+      timeLabel: "",
+    });
+  }
+};
 
   return (
     <>
@@ -180,8 +190,9 @@ function Profile() {
               open={showCancelDialog}
               onClose={() => setShowCancelDialog(false)}
               appointment={appointment}
-              isStaff={false}
-              applicantEmail={appointment?.applicantEmail || null}
+              isStaff={true}
+              applicantEmail={appointment?.email || appointment?.applicantEmail || null}
+
               onCancelComplete={handleCancelComplete}
             />
           </Box>

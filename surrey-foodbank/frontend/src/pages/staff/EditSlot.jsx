@@ -31,8 +31,14 @@ const generateInitBlockedSlots = () => {
 const timeSlots = generateTimeSlots();
 
 function EditSlot() {
-    const [savedBlockedSlots, setsavedBlockedSlots] = useState(generateInitBlockedSlots);
-    const [blockedSlots, setBlockedSlots] = useState(savedBlockedSlots);
+    const [savedBlockedSlots, setsavedBlockedSlots] = useState(() => {
+  const stored = localStorage.getItem("staffBlockedSlots");
+  return stored ? JSON.parse(stored) : generateInitBlockedSlots();
+});
+const [blockedSlots, setBlockedSlots] = useState(() => {
+  const stored = localStorage.getItem("staffBlockedSlots");
+  return stored ? JSON.parse(stored) : generateInitBlockedSlots();
+});
     const addBlockedSlot = (slot) => {
         setBlockedSlots((prevSlots) => [...prevSlots, slot]);
     }
@@ -47,10 +53,13 @@ function EditSlot() {
     const [isUnblocking, setIsUnblocking] = useState(false);
 
   const handleSave = () => {
-      setsavedBlockedSlots(blockedSlots);
-      setEditing(false);
-      clearMouseTrackers();
-  };
+  console.log("saving:", blockedSlots);
+  setsavedBlockedSlots(blockedSlots);
+  localStorage.setItem("staffBlockedSlots", JSON.stringify(blockedSlots));
+  console.log("saved to localStorage:", localStorage.getItem("staffBlockedSlots"));
+  setEditing(false);
+  clearMouseTrackers();
+};
   const handleCancel = () => {
       setBlockedSlots(savedBlockedSlots);
       setEditing(false);
@@ -66,16 +75,10 @@ function EditSlot() {
       setEditing(true);
   };
 
-    const isBlocked = (day,time) => {
-        if(editing) {
-            return blockedSlots.some(arr =>
-                arr.every((val, index) => val === [day,time][index])
-            );
-        }
-        return savedBlockedSlots.some(arr =>
-           arr.every((val, index) => val === [day,time][index])
-        );
-    }
+    const isBlocked = (day, time) => {
+  const slots = editing ? blockedSlots : savedBlockedSlots;
+  return slots.some(([d, t]) => d === day && t === time);
+};
 
   return (
     <div className="booking-container">
