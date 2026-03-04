@@ -19,15 +19,6 @@ export const LANGUAGES = [
 export const DAYS_FULL  = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 export const DAYS_SHORT = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-// export const DEFAULT_MEMBERS = [
-//   { id: 1, name: "Joshua Smith",    role: "Roommate", checked: true  },
-//   { id: 2, name: "Carolyne Smith",  role: "Roommate", checked: true  },
-//   { id: 3, name: "Ricky Smith",     role: "Roommate", checked: true  },
-//   { id: 4, name: "Chloe Barrymore", role: "Spouse",   checked: true  },
-//   { id: 5, name: "Leah Barrymore",  role: "Child",    checked: false },
-//   { id: 6, name: "Carl Barrymore",  role: "Child",    checked: false },
-// ];
-
 const generateAllSlots = () => {
   const slots = [];
   for (let h = 9; h < 17; h++)
@@ -156,12 +147,12 @@ export function StepPersonalInfo({ form, errors, onChange, onNext }) {
 
           <div className="ba-field full">
             <label className="ba-label">Status in Canada<span className="req">*</span></label>
-            <select className="ba-select" value={form.status}
-              onChange={(e) => onChange("status", e.target.value)}>
+            <select className="ba-select" value={form.statusInCanada}
+              onChange={(e) => onChange("statusInCanada", e.target.value)}>
               <option value="">Select status…</option>
               {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
             </select>
-            {errors.status && <p className="ba-error">{errors.status}</p>}
+            {errors.statusInCanada && <p className="ba-error">{errors.statusInCanada}</p>}
           </div>
 
           <div className="ba-field full">
@@ -171,13 +162,13 @@ export function StepPersonalInfo({ form, errors, onChange, onNext }) {
               type="number"
               min="1"
               max="20"
-              value={form.householdSize}
+              value={form.householdMembers}
               placeholder="Number of people"
-              onChange={(e) => onChange("householdSize", e.target.value)}
+              onChange={(e) => onChange("householdMembers", e.target.value)}
               style={{ maxWidth: 180 }}
             />
-            {errors.householdSize && <p className="ba-error">{errors.householdSize}</p>}
-            {Number(form.householdSize) >= 5 && (
+            {errors.householdMembers && <p className="ba-error">{errors.householdMembers}</p>}
+            {Number(form.householdMembers) >= 5 && (
               <p style={{ fontSize: 12, color: "var(--teal)", marginTop: 4 }}>
                 Households of 5 or more are booked in 30-minute slots.
               </p>
@@ -200,14 +191,14 @@ export function StepPersonalInfo({ form, errors, onChange, onNext }) {
             <div className="ba-tiny-radio">
               {["no", "yes"].map((val) => (
                 <label key={val} className="ba-radio-label">
-                  <input type="radio" name="tinyBundles" value={val}
-                    checked={form.tinyBundles === val}
-                    onChange={() => onChange("tinyBundles", val)} />
+                  <input type="radio" name="applyingToTinyBundles" value={val}
+                    checked={form.applyingToTinyBundles === val}
+                    onChange={() => onChange("applyingToTinyBundles", val)} />
                   {val === "no" ? "No" : "Yes"}
                 </label>
               ))}
             </div>
-            {form.tinyBundles === "yes" && (
+            {form.applyingToTinyBundles === "yes" && (
               <p style={{ fontSize: 12, color: "var(--teal)", marginTop: 4 }}>
                 Tiny Bundles appointments are available on Wednesdays only.
               </p>
@@ -231,39 +222,6 @@ export function StepPersonalInfo({ form, errors, onChange, onNext }) {
     </>
   );
 }
-
-// export function StepHousehold({ members, onToggle, onDelete, onAdd, onBack, onNext }) {
-//   return (
-//     <>
-//       <div className="ba-body">
-//         <h2>Please check off which household members<br />you are including in your application</h2>
-//         <div className="ba-members-list">
-//           {members.map((m) => (
-//             <div key={m.id} className={`ba-member-row ${m.checked ? "checked" : ""}`}
-//               onClick={() => onToggle(m.id)}>
-//               <div className="ba-member-check">
-//                 {m.checked && <span className="ba-member-check-icon">✓</span>}
-//               </div>
-//               <div className="ba-member-info">
-//                 <div className="ba-member-name">{m.name}</div>
-//                 <div className="ba-member-role">{m.role}</div>
-//               </div>
-//               <div className="ba-member-actions" onClick={(e) => e.stopPropagation()}>
-//                 <button className="ba-member-edit">EDIT</button>
-//                 <button className="ba-member-delete" onClick={() => onDelete(m.id)}>DELETE</button>
-//               </div>
-//             </div>
-//           ))}
-//         </div>
-//         <button className="ba-add-member-btn" onClick={onAdd}>+ Add Member</button>
-//       </div>
-//       <div className="ba-footer">
-//         <button className="ba-btn ba-btn-secondary" onClick={onBack}>← Back</button>
-//         <button className="ba-btn ba-btn-primary" onClick={onNext}>Next →</button>
-//       </div>
-//     </>
-//   );
-// }
 
 const TIMER_SECONDS = 5 * 60;
 
@@ -306,9 +264,9 @@ const availability = weekAvailability;
   const weekDates     = getWeekDates(weekStart);
   const isCurrentWeek = weekStart.getTime() === todayStart.getTime();
 
-  const householdSize = Number(form.householdSize) || 1;
+  const householdSize = Number(form.householdMembers) || 1;
   const interval      = householdSize >= 5 ? 30 : 15;
-  const tinyBundles   = form.tinyBundles === "yes";
+  const tinyBundles   = form.applyingToTinyBundles === "yes";
 
   // For tiny bundles: dim all columns except Wednesday
   const isDimmed = (day) => tinyBundles && day !== "Wednesday";
@@ -466,15 +424,15 @@ const availability = weekAvailability;
 
 
 export function StepReview({ form, selectedSlot, onBack, onConfirm }) {
-  const householdSize = Number(form.householdSize) || 1;
+  const householdSize = Number(form.householdMembers) || 1;
   const interval      = householdSize >= 5 ? 30 : 15;
 
   const rows = [
     { label: "Name",             value: form.name },
     { label: "Address",          value: form.address },
-    { label: "Status in Canada", value: form.status },
-    { label: "Household Size",   value: form.householdSize },
-    { label: "Tiny Bundles?",    value: form.tinyBundles === "yes" ? "Yes" : "No" },
+    { label: "Status in Canada", value: form.statusInCanada },
+    { label: "Household Size",   value: form.householdMembers },
+    { label: "Tiny Bundles?",    value: form.applyingToTinyBundles === "yes" ? "Yes" : "No" },
     { label: "Appointment",      value: formatApptString(selectedSlot, interval) },
   ];
 

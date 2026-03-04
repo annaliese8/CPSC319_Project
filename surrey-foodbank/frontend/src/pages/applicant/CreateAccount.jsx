@@ -91,7 +91,7 @@ function CreateAccount() {
         "activeUser",
         JSON.stringify({ email: emailField.value }),
       );
-      navigate("/applicant/book-appointment");
+      navigate("/applicant/register");
     }
   };
 
