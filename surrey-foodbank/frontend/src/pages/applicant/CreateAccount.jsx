@@ -71,6 +71,7 @@ function CreateAccount() {
         localStorage.setItem(
           applicantKey,
           JSON.stringify({
+            email: emailField.value,
             name: "",
             phone: "",
             address: "",
