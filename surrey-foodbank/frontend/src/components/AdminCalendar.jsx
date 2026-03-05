@@ -58,8 +58,14 @@ function AdminCalendar({isEditing, saveChanges, discardChanges, weekStart, isBoo
     const [appointments, setAppointments] = React.useState([]);
     const [selectedSlot, setSelectedSlot] = React.useState(null);
     const [showBookingPanel, setShowBookingPanel] = React.useState(false);
-    const [savedBlockedSlots, setsavedBlockedSlots] = useState(generateInitBlockedSlots);
-    const [blockedSlots, setBlockedSlots] = useState(savedBlockedSlots);
+    const [savedBlockedSlots, setsavedBlockedSlots] = useState(() => {
+    const stored = localStorage.getItem("staffBlockedSlots");
+    return stored ? JSON.parse(stored) : generateInitBlockedSlots();
+    });
+    const [blockedSlots, setBlockedSlots] = useState(() => {
+    const stored = localStorage.getItem("staffBlockedSlots");
+    return stored ? JSON.parse(stored) : generateInitBlockedSlots();
+    });
     const [isBlocking, setIsBlocking] = useState(false);
     const [isUnblocking, setIsUnblocking] = useState(false);
 
@@ -71,7 +77,7 @@ function AdminCalendar({isEditing, saveChanges, discardChanges, weekStart, isBoo
             if (key.startsWith('applicant_')) {
                 try {
                     const data = JSON.parse(localStorage.getItem(key));
-                    if (data.day && data.startTime) {
+                    if (data.day && data.startTime && data.duration) {
                         loadedAppointments.push({
                             email: key.replace('applicant_', ''),
                             ...data
@@ -148,7 +154,8 @@ function AdminCalendar({isEditing, saveChanges, discardChanges, weekStart, isBoo
 
     const handleSave = () => {
         setsavedBlockedSlots(blockedSlots);
-        clearMouseTrackers();
+  localStorage.setItem("staffBlockedSlots", JSON.stringify(blockedSlots)); // add this
+  clearMouseTrackers();
     };
     const handleCancel = () => {
         setBlockedSlots(savedBlockedSlots);
@@ -166,15 +173,9 @@ function AdminCalendar({isEditing, saveChanges, discardChanges, weekStart, isBoo
     }
 
     const isBlocked = (day, time) => {
-        if (isEditing) {
-            return blockedSlots.some(arr =>
-                arr.every((val, index) => val === [day, time][index])
-            );
-        }
-        return savedBlockedSlots.some(arr =>
-            arr.every((val, index) => val === [day, time][index])
-        );
-    }
+    const slots = isEditing ? blockedSlots : savedBlockedSlots;
+    return slots.some(([d, t]) => d === day && t === time);
+};
 
     const today = new Date();
     const startOfWeek = new Date(today);
@@ -197,21 +198,28 @@ function AdminCalendar({isEditing, saveChanges, discardChanges, weekStart, isBoo
     };
 
     // Check if a slot is booked
-    const isSlotBooked = (day, time) => {
-        return appointments.some(apt => {
-            if (apt.day !== day) return false;
-
-            // Check if this time falls within the appointment duration
-            const [aptHour, aptMinute] = apt.startTime.split(':').map(Number);
-            const [slotHour, slotMinute] = time.split(':').map(Number);
-
-            const aptStartMinutes = aptHour * 60 + aptMinute;
-            const slotMinutes = slotHour * 60 + slotMinute;
-            const aptEndMinutes = aptStartMinutes + apt.duration;
-
-            return slotMinutes >= aptStartMinutes && slotMinutes < aptEndMinutes;
+const isSlotBooked = (day, time) => {
+    return appointments.some(apt => {
+        if (apt.day !== day) return false;
+        if (apt.date) {
+        const bookedDate = new Date(apt.date).toDateString();
+        const weekDates = days.map((_, i) => {
+        const d = new Date(weekStart);
+        d.setDate(weekStart.getDate() + i);
+        return d.toDateString();
         });
-    };
+        if (!weekDates.includes(bookedDate)) return false;
+        }
+
+        const [aptHour, aptMinute] = apt.startTime.split(':').map(Number);
+        const [slotHour, slotMinute] = time.split(':').map(Number);
+        const aptStartMinutes = aptHour * 60 + aptMinute;
+        const slotMinutes = slotHour * 60 + slotMinute;
+        const aptEndMinutes = aptStartMinutes + apt.duration;
+
+        return slotMinutes >= aptStartMinutes && slotMinutes < aptEndMinutes;
+    });
+};
 
     // Handle confirming a booking
     const handleConfirmBooking = (appointmentData) => {
@@ -320,7 +328,31 @@ function AdminCalendar({isEditing, saveChanges, discardChanges, weekStart, isBoo
                     </div>
                 ))}
             </div>
-                <AppointmentInfoDialog open={openInfoDialog} onClose={() => setOpenInfoDialog(false)} appointment={appointmentData} onDelete={() => {}} />
+                <AppointmentInfoDialog
+  open={openInfoDialog}
+  onClose={() => setOpenInfoDialog(false)}
+  appointment={appointmentData}
+  onDelete={(apt) => {
+    const email = apt?.email || apt?.applicantEmail;
+    if (email) {
+      const key = `applicant_${email}`;
+      const stored = localStorage.getItem(key);
+      if (stored) {
+        const data = JSON.parse(stored);
+        data.day = "";
+        data.startTime = "";
+        data.date = "";
+        data.duration = 0;
+        data.dateLabel = "";
+        data.timeLabel = "";
+        localStorage.setItem(key, JSON.stringify(data));
+      }
+      // Remove from local appointments state so calendar updates immediately
+      setAppointments((prev) => prev.filter((a) => a.email !== email));
+    }
+    setOpenInfoDialog(false);
+  }}
+/>
                 {/* Staff Booking Panel */}
                 {showBookingPanel && (
                     <StaffBookingPanel
