@@ -40,8 +40,8 @@ function AdminCalendarPanel({isEditing, saveChanges, discardChanges, toggleBooki
         return end;
     }
 
-    // const goToToday = () => { setWeekStart(startOfWeek); };
-    // const isCurrentWeek = weekStart.toDateString() === startOfWeek.toDateString();
+     const goToToday = () => { setWeekStart(startOfWeek); };
+     const isCurrentWeek = weekStart.toDateString() === startOfWeek.toDateString();
 
     return (
         <Paper sx={{padding: {xs: 2, md: 3}, borderRadius: 2}} elevation={1}>
