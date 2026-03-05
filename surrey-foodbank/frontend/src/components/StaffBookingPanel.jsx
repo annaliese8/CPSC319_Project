@@ -43,7 +43,7 @@ export default function StaffBookingPanel({
       const dayIndex = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"].indexOf(selectedSlot.day);
       const date = new Date(selectedSlot.weekStart);
       date.setDate(date.getDate() + dayIndex);
-      setEditableDate(date.toISOString().split('T')[0]);
+      setEditableDate(date.toLocaleDateString().split('T')[0]);
       setStartTime(selectedSlot.time);
       setEndTime(addMinutesToTime(selectedSlot.time, 15));
     }
