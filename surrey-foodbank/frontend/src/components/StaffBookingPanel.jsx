@@ -198,7 +198,7 @@ export default function StaffBookingPanel({
     }
 
     // Get day name from edited date for availability check
-    const dateObj = new Date(editableDate);
+    const dateObj = new Date(editableDate + 'T00:00:00');
     const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
     const dayName = dayNames[dateObj.getDay()];
     const duration = getDuration();
