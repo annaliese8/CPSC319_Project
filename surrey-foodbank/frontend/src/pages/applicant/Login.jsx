@@ -1,14 +1,13 @@
 // Copilot was used to help create the form validation functions
-
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import EmailField from "../../components/EmailField";
-import Link from "@mui/material/Link";
+import MuiLink from "@mui/material/Link";
 import PasswordField from "../../components/PasswordField";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import Window from "../../components/Window";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import useTextField from "../../hooks/useTextField";
 
 function Login() {
@@ -23,7 +22,6 @@ function Login() {
     },
     false,
   );
-
   // Password much match the one accossiated with the given email
   const passwordField = useTextField(
     "",
@@ -35,14 +33,12 @@ function Login() {
     },
     false,
   );
-
   // When the form is submitted, validate the fields.
   // If no errors exist, set active user,
   // and navigate to applicant's profile page
   const navigate = useNavigate();
   const handleSubmit = (e) => {
     e.preventDefault();
-
     const emailError = emailField.validate();
     const passwordError = passwordField.validate();
     const hasErrors = Boolean(emailError) || Boolean(passwordError);
@@ -50,7 +46,6 @@ function Login() {
     if (hasErrors || hasEmptyFields) {
       return;
     }
-
     localStorage.setItem(
       "activeUser",
       JSON.stringify({ email: emailField.value }),
@@ -89,9 +84,9 @@ function Login() {
               padding: 2,
             }}
           >
-            <Link href="/applicant/create-account" underline="hover">
+            <MuiLink component={Link} to="/applicant/create-account" underline="hover">
               <Typography>Don't have an account?</Typography>
-            </Link>
+            </MuiLink>
             <Button
               type="submit"
               variant="contained"
