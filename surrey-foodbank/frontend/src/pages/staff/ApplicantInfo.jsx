@@ -72,22 +72,16 @@ export default function ApplicantInfoPage() {
   const onChangeBooking = () => console.log("Change booking clicked");
 
   const handleSavePersonalInfo = (updatedData) => {
-    // Save to the APPLICANT's localStorage, not the staff's
-    const applicantEmail = appointment?.email;
+    const applicantEmail = appointment?.email || appointment?.applicantEmail;
     if (applicantEmail) {
-      // Preserve the applicantEmail in the updated data
-      const dataToSave = { ...updatedData, applicantEmail };
-      localStorage.setItem(
-        `applicant_${applicantEmail}`,
-        JSON.stringify(dataToSave),
-      );
-      // Update local state
+      const existing = JSON.parse(localStorage.getItem(`applicant_${applicantEmail}`) || "{}");
+      const dataToSave = { ...existing, ...updatedData, applicantEmail };
+      localStorage.setItem(`applicant_${applicantEmail}`, JSON.stringify(dataToSave));
       setAppointment(dataToSave);
-      console.log("Data saved to localStorage for", applicantEmail, dataToSave);
     } else {
       console.error("No applicant email found in appointment data");
     }
-  };
+};
 
   return (
     <Box sx={{ minHeight: "100vh" }}>
