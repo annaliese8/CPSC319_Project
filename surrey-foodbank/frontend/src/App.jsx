@@ -1,7 +1,7 @@
 import { ThemeProvider } from "@mui/material/styles";
 import theme from "./styles/theme";
 
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import StaffLogin from "./pages/staff/Login";
 import StaffHome from "./pages/staff/Home";
 import StaffApplicantInfo from "./pages/staff/ApplicantInfo";
@@ -21,14 +21,16 @@ function App() {
     <>
       <ThemeProvider theme={theme}>
         <Routes>
+
+          <Route path="/" element={<Navigate to="/applicant/home" replace />} />
           {/* Staff routes */}
 
           {/* Secret staff admin */}
           <Route path={`/${staffBase}/login`} element={<StaffLogin />} />
           
-          <Route path="staff/home" element={<StaffHome />} />
-          <Route path="staff/applicant-info" element={<StaffApplicantInfo />} />
-          <Route path="staff/applicant-database" element={<StaffApplicantDatabase />} />
+          <Route path="/staff/home" element={<StaffHome />} />
+          <Route path="/staff/applicant-info" element={<StaffApplicantInfo />} />
+          <Route path="/staff/applicant-database" element={<StaffApplicantDatabase />} />
          
           {/* Applicant routes */}
           <Route path="/applicant/login" element={<ApplicantLogin />} />
