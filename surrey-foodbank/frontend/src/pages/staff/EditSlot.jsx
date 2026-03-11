@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import "./EditSlot.css";
 
 const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -9,6 +9,8 @@ const generateTimeSlots = () => {
   for (let hour = 0; hour < 24; hour++) {
     slots.push(`${hour}:00`);
     slots.push(`${hour}:15`);
+    slots.push(`${hour}:30`);
+    slots.push(`${hour}:45`);
   }
   return slots;
 };
@@ -19,10 +21,14 @@ const generateInitBlockedSlots = () => {
         for (let hour = 0; hour < 9; hour++) {
             blockedSlots.push([day,`${hour}:00`]);
             blockedSlots.push([day,`${hour}:15`]);
+            blockedSlots.push([day,`${hour}:30`]);
+            blockedSlots.push([day,`${hour}:45`]);
         }
         for (let hour = 15; hour < 24; hour++) {
             blockedSlots.push([day,`${hour}:00`]);
             blockedSlots.push([day,`${hour}:15`]);
+            blockedSlots.push([day,`${hour}:30`]);
+            blockedSlots.push([day,`${hour}:45`]);
         }
     })
     return blockedSlots;
@@ -30,58 +36,173 @@ const generateInitBlockedSlots = () => {
 
 const timeSlots = generateTimeSlots();
 
+const getBookedSlots = () => {
+  const booked = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (!key.startsWith("applicant_")) continue;
+    try {
+      const data = JSON.parse(localStorage.getItem(key));
+      if (data?.day && data?.startTime) {
+        booked.push({
+          day: data.day,
+          time: data.startTime,
+          name: data.name,
+          email: data.email,
+          timeLabel: data.timeLabel,
+          key,
+        });
+      }
+    } catch {
+      // malformed entry, skip
+    }
+  }
+  return booked;
+};
+
+const cancelAppointment = (email) => {
+  const key = `applicant_${email}`;
+  try {
+    const existing = JSON.parse(localStorage.getItem(key) || "{}");
+    const { day, date, startTime, duration, dateLabel, timeLabel, ...registrationData } = existing;
+    localStorage.setItem(key, JSON.stringify(registrationData));
+  } catch {
+    // malformed entry, skip
+  }
+};
+
+function ConflictModal({ conflicts, onConfirm, onCancel }) {
+  return (
+    <div className="modal-overlay">
+      <div className="modal">
+        <div className="modal-icon">⚠️</div>
+        <h2 className="modal-title">Cancel Existing Appointments?</h2>
+        <p className="modal-body">
+          Your changes will cancel{" "}
+          <strong>{conflicts.length}</strong> existing appointment
+          {conflicts.length > 1 ? "s" : ""}:
+        </p>
+        <ul className="modal-conflict-list">
+          {conflicts.map((appt, i) => (
+            <li key={i}>
+              <strong>{appt.name}</strong> — {appt.day} at {appt.timeLabel ?? appt.time}
+            </li>
+          ))}
+        </ul>
+        <p className="modal-warning">
+          Affected clients will need to be notified manually.
+        </p>
+        <div className="modal-actions">
+          <button className="modal-btn modal-btn-cancel" onClick={onCancel}>
+            Go Back
+          </button>
+          <button className="modal-btn modal-btn-confirm" onClick={onConfirm}>
+            Confirm &amp; Cancel Appointments
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function EditSlot() {
-    const [savedBlockedSlots, setsavedBlockedSlots] = useState(() => {
-  const stored = localStorage.getItem("staffBlockedSlots");
-  return stored ? JSON.parse(stored) : generateInitBlockedSlots();
-});
-const [blockedSlots, setBlockedSlots] = useState(() => {
-  const stored = localStorage.getItem("staffBlockedSlots");
-  return stored ? JSON.parse(stored) : generateInitBlockedSlots();
-});
-    const addBlockedSlot = (slot) => {
-        setBlockedSlots((prevSlots) => [...prevSlots, slot]);
-    }
-
-    const removeBlockedSlot = (slot) => {
-        setBlockedSlots((prevSlots) => prevSlots.filter(s => s[0] !== slot[0] || s[1] !== slot[1]));
-    }
-
-
+    const [savedBlockedSlots, setSavedBlockedSlots] = useState(() => {
+    const stored = localStorage.getItem("staffBlockedSlots");
+    return stored ? JSON.parse(stored) : generateInitBlockedSlots();
+  });
+  const [blockedSlots, setBlockedSlots] = useState(() => {
+    const stored = localStorage.getItem("staffBlockedSlots");
+    return stored ? JSON.parse(stored) : generateInitBlockedSlots();
+    });
+  
   const [editing, setEditing] = useState(false);
-    const [isBlocking, setIsBlocking] = useState(false);
-    const [isUnblocking, setIsUnblocking] = useState(false);
+  const [isBlocking, setIsBlocking] = useState(false);
+  const [isUnblocking, setIsUnblocking] = useState(false);
+  const [pendingConflicts, setPendingConflicts] = useState(null);
+
+  const isBlocked = useCallback((day, time) => {
+    const slots = editing ? blockedSlots : savedBlockedSlots;
+    return slots.some(([d, t]) => d === day && t === time);
+  }, [editing, blockedSlots, savedBlockedSlots]);
+
+  const isBooked = useCallback((day, time) => {
+    return getBookedSlots().some((appt) => appt.day === day && appt.time === time);
+  }, []);
+
+  const addBlockedSlot = (slot) => {
+    setBlockedSlots((prev) => [...prev, slot]);
+  };
+
+  const removeBlockedSlot = (slot) => {
+    setBlockedSlots((prev) =>
+      prev.filter((s) => s[0] !== slot[0] || s[1] !== slot[1])
+    );
+  };
+
+  const clearMouseTrackers = () => {
+    setIsBlocking(false);
+    setIsUnblocking(false);
+  };
 
   const handleSave = () => {
-  console.log("saving:", blockedSlots);
-  setsavedBlockedSlots(blockedSlots);
-  localStorage.setItem("staffBlockedSlots", JSON.stringify(blockedSlots));
-  console.log("saved to localStorage:", localStorage.getItem("staffBlockedSlots"));
-  setEditing(false);
-  clearMouseTrackers();
+  const allBooked = getBookedSlots();
+  console.log("allBooked:", JSON.stringify(allBooked));
+  console.log("savedBlockedSlots:", JSON.stringify(savedBlockedSlots));
+  console.log("blockedSlots:", JSON.stringify(blockedSlots));
+
+  const newlyBlocked = blockedSlots.filter(
+    ([day, time]) => !savedBlockedSlots.some(([d, t]) => d === day && t === time)
+  );
+  console.log("newlyBlocked:", JSON.stringify(newlyBlocked));
+
+  const conflicts = allBooked.filter((appt) =>
+    newlyBlocked.some(([day, time]) => appt.day === day && appt.time === time)
+  );
+  console.log("conflicts:", JSON.stringify(conflicts));
+
+  if (conflicts.length > 0) {
+    console.log("SHOWING MODAL");
+    setPendingConflicts(conflicts);
+  } else {
+    console.log("NO CONFLICTS — saving directly");
+    commitSave();
+  }
 };
+
+  const commitSave = () => {
+    setSavedBlockedSlots(blockedSlots);
+    localStorage.setItem("staffBlockedSlots", JSON.stringify(blockedSlots));
+    setEditing(false);
+    clearMouseTrackers();
+  };
+
+  const handleModalConfirm = () => {
+    pendingConflicts.forEach((appt) => cancelAppointment(appt.email));
+    setPendingConflicts(null);
+    commitSave();
+  };
+
+  const handleModalCancel = () => {
+    setPendingConflicts(null);
+  };
+
   const handleCancel = () => {
       setBlockedSlots(savedBlockedSlots);
       setEditing(false);
       clearMouseTrackers();
   };
 
-  const clearMouseTrackers = () => {
-      setIsBlocking(false);
-      setIsUnblocking(false);
-  }
-
-  const handleEditMode = () => {
-      setEditing(true);
-  };
-
-    const isBlocked = (day, time) => {
-  const slots = editing ? blockedSlots : savedBlockedSlots;
-  return slots.some(([d, t]) => d === day && t === time);
-};
+  const handleEditMode = () => setEditing(true);
 
   return (
     <div className="booking-container">
+      {pendingConflicts && pendingConflicts.length > 0 && (
+        <ConflictModal
+          conflicts={pendingConflicts}
+          onConfirm={handleModalConfirm}
+          onCancel={handleModalCancel}
+        />
+      )}
       {/* Calendar */}
       <div className="calendar">
         <div className="calendar-header">
@@ -97,38 +218,36 @@ const [blockedSlots, setBlockedSlots] = useState(() => {
               <div key={time} className="calendar-row">
                   <div className="time-label">{time}</div>
                   {days.map((day) => {
-                      const isAvailable = Math.random() > 0.4; // random availability
+                      const blocked = isBlocked(day, time);
+                      const booked = isBooked(day, time);
+                      
                       if(editing) {
                           return (
                               <div
                                   key={day + time}
-                                  className={`slot ${isBlocked(day,time)? "unavailable-vis" : isAvailable? "available": "booked"}`}
+                                  className={`slot ${blocked ? "unavailable-vis" : booked ? "booked" : "available"}`}
                                   onMouseDown={() => {
                                       if (!isBlocked(day,time)) setIsBlocking(true)
                                       else setIsUnblocking(true)
                                     }
                                   }
-                                  onMouseUp={() => {
-                                      clearMouseTrackers()
-                                    }
-                                  }
+                                  onMouseUp={clearMouseTrackers}
                                   onMouseOver={() => {
-                                      if (isBlocking && !isBlocked(day,time)) addBlockedSlot([day,time])
-                                      if (isUnblocking && isBlocked(day,time)) removeBlockedSlot([day,time])
-                                    }
-                                  }
-                                  onClick={() =>
-                                      !isBlocked(day,time)? addBlockedSlot([day,time]) : removeBlockedSlot([day,time])
-                                  }
-                              ></div>
+                                      if (isBlocking && !blocked) addBlockedSlot([day,time])
+                                      if (isUnblocking && blocked) removeBlockedSlot([day,time])
+                                    }}
+                                  onClick={() => {
+                                    if (!blocked) addBlockedSlot([day, time]);
+                                    else removeBlockedSlot([day, time]);
+                                  }}
+                              />
                           );
                       } else {
                           return (
                               <div
                                   key={day + time}
-                                  className={`slot ${isBlocked(day,time)? "unavailable-invis" : isAvailable? "available": "booked"}`}
-                              >
-                              </div>
+                                  className={`slot ${blocked ? "unavailable-invis" : booked ? "booked" : "available"}`}
+                              />
                           );
                       }
                   })}
