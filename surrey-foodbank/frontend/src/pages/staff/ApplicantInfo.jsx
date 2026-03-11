@@ -24,15 +24,19 @@ export default function ApplicantInfoPage() {
 
   // Load fresh data from localStorage when component mounts or when applicantEmail changes
   useEffect(() => {
-    const applicantEmail = location.state?.appointment?.email;
+    const applicantEmail = location.state?.appointment?.email 
+        || location.state?.appointment?.applicantEmail;
     if (applicantEmail) {
-      const storedData = localStorage.getItem(`applicant_${applicantEmail}`);
-      if (storedData) {
-        const data = JSON.parse(storedData);
-        setAppointment(data);
-      }
+        const storedData = localStorage.getItem(`applicant_${applicantEmail}`);
+        if (storedData) {
+            const data = JSON.parse(storedData);
+            setAppointment({ ...data, email: applicantEmail, applicantEmail });
+        } else {
+            // fallback to location.state if nothing in localStorage yet
+            setAppointment(location.state.appointment);
+        }
     }
-  }, [location.state?.appointment?.email]);
+}, [location.state?.appointment?.email]);
 
   // Listens for local storage changes from other tabs
   useEffect(() => {

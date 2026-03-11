@@ -18,6 +18,7 @@ export default function StaffBookingPanel({
     name: "",
     email: "",
     phone: "",
+    address: "",
     householdMembers: "",
   });
 
@@ -40,14 +41,20 @@ export default function StaffBookingPanel({
   // Initialize editable date/time when slot changes
   React.useEffect(() => {
     if (selectedSlot) {
-      const dayIndex = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"].indexOf(selectedSlot.day);
-      const date = new Date(selectedSlot.weekStart);
-      date.setDate(date.getDate() + dayIndex);
-      setEditableDate(date.toLocaleDateString().split('T')[0]);
-      setStartTime(selectedSlot.time);
-      setEndTime(addMinutesToTime(selectedSlot.time, 15));
+        // Use selectedSlot.date directly if available, otherwise derive from weekStart
+        const date = selectedSlot.date
+            ? new Date(selectedSlot.date)
+            : (() => {
+                const dayIndex = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"].indexOf(selectedSlot.day);
+                const d = new Date(selectedSlot.weekStart);
+                d.setDate(d.getDate() + dayIndex);
+                return d;
+            })();
+        setEditableDate(date.toISOString().split('T')[0]);  // yields "2026-03-09" ✓
+        setStartTime(selectedSlot.time);
+        setEndTime(addMinutesToTime(selectedSlot.time, 15));
     }
-  }, [selectedSlot]);
+}, [selectedSlot]);
 
   const onChange = (key) => (e) => {
     setForm((prev) => ({ ...prev, [key]: e.target.value }));
@@ -133,16 +140,12 @@ export default function StaffBookingPanel({
     return `${startFormatted} – ${endFormatted}`;
   };
 
-  const formatDateLabel = (day, weekStart) => {
-    const dayIndex = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"].indexOf(day);
-    const date = new Date(weekStart);
-    date.setDate(date.getDate() + dayIndex);
-    
+  const formatDateLabel = (day, date) => {
     const monthNames = ["January", "February", "March", "April", "May", "June",
-      "July", "August", "September", "October", "November", "December"];
-    
-    return `${day} ${monthNames[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
-  };
+        "July", "August", "September", "October", "November", "December"];
+    const d = new Date(date + 'T00:00:00');
+    return `${day} ${monthNames[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+};
 
   const handleConfirm = () => {
     // Validation
@@ -165,6 +168,11 @@ export default function StaffBookingPanel({
       setError("Please enter a valid phone number (at least 10 digits)");
       return;
     }
+
+    if (!form.address.trim()) {
+    setError("Please enter the applicant's address");
+    return;
+}
     
     if (!form.householdMembers || Number(form.householdMembers) < 1) {
       setError("Please enter a valid household size (1 or more)");
@@ -197,30 +205,29 @@ export default function StaffBookingPanel({
       return;
     }
 
-    // Get day name from edited date for availability check
     const dateObj = new Date(editableDate + 'T00:00:00');
-    const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    const dayNames = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
     const dayName = dayNames[dateObj.getDay()];
     const duration = getDuration();
 
-    // Check slot availability for the edited date/time
     if (!checkSlotAvailability(dayName, startTime, duration)) {
-      setError("The selected time slot is not available for the requested duration. Please choose another time.");
-      return;
+        setError("The selected time slot is not available. Please choose another time.");
+        return;
     }
     
     const appointmentData = {
       name: form.name,
       email: form.email,
       phone: form.phone,
+      address: form.address,        
       householdMembers: form.householdMembers,
-      address: null,
       statusInCanada: null,
       applyingToTinyBundles: null,
       day: dayName,
       startTime: startTime,
       duration: duration,
-      dateLabel: formatDateLabel(dayName, selectedSlot.weekStart),
+      date: dateObj.toISOString(),          
+      dateLabel: formatDateLabel(dayName, editableDate),
       timeLabel: formatTimeLabel(startTime, duration),
     };
 
@@ -323,6 +330,15 @@ export default function StaffBookingPanel({
           error={phoneInvalid}
           helperText={phoneInvalid ? "Must be at least 10 digits" : ""}
         />
+
+        <TextField
+    label="Address*"
+    value={form.address}
+    onChange={onChange("address")}
+    fullWidth
+    size="small"
+    placeholder="123 Main St, Surrey, BC V3T 0A1"
+/>
 
         <TextField
           label="Household Members*"

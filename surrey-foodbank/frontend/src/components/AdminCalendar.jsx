@@ -163,9 +163,12 @@ function AdminCalendar({isEditing, saveChanges, discardChanges, weekStart, isBoo
     };
 
     const handleBookingPanel = (day, time) => {
-        setSelectedSlot({day, time, weekStart});
-        setShowBookingPanel(true);
-    }
+    const dayIndex = days.indexOf(day);
+    const date = new Date(weekStart);
+    date.setDate(weekStart.getDate() + dayIndex);
+    setSelectedSlot({ day, time, weekStart, date });
+    setShowBookingPanel(true);
+};
 
     const clearMouseTrackers = () => {
         setIsBlocking(false);
@@ -185,31 +188,43 @@ function AdminCalendar({isEditing, saveChanges, discardChanges, weekStart, isBoo
 
     // Handle clicking on an available slot to book
     const handleSlotClick = (day, time) => {
-        if (!isEditing && !isBlocked(day, time) && !isSlotBooked(day, time)) {
-            handleBookingPanel(day,time);
-        } else if (!isEditing && isSlotBooked(day, time)) {
-            // Show appointment info if slot is booked
-            const appointment = appointments.find(apt => apt.day === day && apt.startTime === time);
-            if (appointment) {
-                setAppointmentData(appointment);
-                setOpenInfoDialog(true);
-            }
+    if (!isEditing && !isBlocked(day, time) && !isSlotBooked(day, time)) {
+        handleBookingPanel(day, time);
+    } else if (!isEditing && isSlotBooked(day, time)) {
+        const weekDates = days.map((_, i) => {
+            const d = new Date(weekStart);
+            d.setDate(weekStart.getDate() + i);
+            return d.toDateString();
+        });
+        const appointment = appointments.find(apt => {
+            if (apt.day !== day || !apt.date) return false;
+            if (!weekDates.includes(new Date(apt.date).toDateString())) return false;
+            const [aptHour, aptMinute] = apt.startTime.split(':').map(Number);
+            const [slotHour, slotMinute] = time.split(':').map(Number);
+            const aptStart = aptHour * 60 + aptMinute;
+            const slotMins = slotHour * 60 + slotMinute;
+            return slotMins >= aptStart && slotMins < aptStart + apt.duration;
+        });
+        if (appointment) {
+            setAppointmentData(appointment);
+            setOpenInfoDialog(true);
         }
-    };
+    }
+};
 
     // Check if a slot is booked
 const isSlotBooked = (day, time) => {
     return appointments.some(apt => {
         if (apt.day !== day) return false;
-        if (apt.date) {
+        if (!apt.date) return false; // always require a date
+
         const bookedDate = new Date(apt.date).toDateString();
         const weekDates = days.map((_, i) => {
-        const d = new Date(weekStart);
-        d.setDate(weekStart.getDate() + i);
-        return d.toDateString();
+            const d = new Date(weekStart);
+            d.setDate(weekStart.getDate() + i);
+            return d.toDateString();
         });
         if (!weekDates.includes(bookedDate)) return false;
-        }
 
         const [aptHour, aptMinute] = apt.startTime.split(':').map(Number);
         const [slotHour, slotMinute] = time.split(':').map(Number);
