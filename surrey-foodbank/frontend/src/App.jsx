@@ -1,7 +1,7 @@
 import { ThemeProvider } from "@mui/material/styles";
 import theme from "./styles/theme";
 
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate} from "react-router-dom";
 import StaffLogin from "./pages/staff/Login";
 import StaffHome from "./pages/staff/Home";
 import StaffApplicantInfo from "./pages/staff/ApplicantInfo";
