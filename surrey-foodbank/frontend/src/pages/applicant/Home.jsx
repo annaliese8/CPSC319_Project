@@ -2,7 +2,7 @@ import AppBar from "@mui/material/AppBar";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Divider from "@mui/material/Divider";
-import Link from "@mui/material/Link";
+import MuiLink from "@mui/material/Link";
 import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
 import ListItemIcon from "@mui/material/ListItemIcon";
@@ -11,6 +11,7 @@ import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
+import { Link } from "react-router-dom";
 import logo from "../../styles/full-logo.png";
 
 function Home() {
@@ -30,14 +31,14 @@ function Home() {
       {/* Simple navbar */}
       <AppBar position="sticky" color="transparent" elevation={1}>
         <Toolbar>
-          <Link href="https://surreyfoodbank.org/">
+          <MuiLink href="https://surreyfoodbank.org/">
             <Box
               component="img"
               src={logo}
               alt="Surrey Food Bank Logo"
               height={40}
             />
-          </Link>
+          </MuiLink>
         </Toolbar>
       </AppBar>
       {/* Webpage body */}
@@ -103,7 +104,8 @@ function Home() {
             <Button
               variant="contained"
               color="primary"
-              href="/applicant/create-account"
+              component={Link}
+              to="/applicant/create-account"
               size="medium"
               sx={{ whiteSpace: "nowrap", fontWeight: "bold" }}
             >
@@ -112,7 +114,8 @@ function Home() {
             <Button
               variant="outlined"
               color="primary"
-              href="/applicant/login"
+              component={Link}
+              to="/applicant/login"
               size="medium"
               sx={{ whiteSpace: "nowrap" }}
             >
@@ -130,17 +133,17 @@ function Home() {
               primary={
                 <>
                   Create an account in our registration system{" "}
-                  <Link href="/applicant/create-account" color="primary">
+                  <MuiLink component={Link} to="/applicant/create-account" color="primary">
                     here.
-                  </Link>
+                  </MuiLink>
                 </>
               }
               secondary={
                 <>
                   Already have an account? Log in{" "}
-                  <Link href="/applicant/login" color="primary">
+                  <MuiLink component={Link} to="/applicant/login" color="primary">
                     here.
-                  </Link>
+                  </MuiLink>
                 </>
               }
               slotProps={listItemTextStyle}
@@ -178,12 +181,12 @@ function Home() {
               primary={
                 <>
                   Attend your scheduled appointment at our{" "}
-                  <Link
+                  <MuiLink
                     href="https://maps.app.goo.gl/1H39wzvMBqmki2se6"
                     color="primary.main"
                   >
                     registration office.
-                  </Link>
+                  </MuiLink>
                 </>
               }
               secondary={
