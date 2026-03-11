@@ -9,8 +9,9 @@ import {
   formatTime,
   addMinutes,
 } from "../../components/BookingSteps";
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation } from "react-router-dom";
 import ApplicantTopBar from "../../components/ApplicantTopBar";
+import { Language } from "@mui/icons-material";
 
 /**
  * BookAppointment
@@ -28,7 +29,9 @@ export default function BookAppointment() {
   // Prefer localStorage data (saved via RegistrationFormInfo) over router state,
   // with router state as a fallback so the page never hard-crashes
   const activeUser = JSON.parse(localStorage.getItem("activeUser") || "null");
-  const applicantKey = activeUser?.email ? `applicant_${activeUser.email}` : null;
+  const applicantKey = activeUser?.email
+    ? `applicant_${activeUser.email}`
+    : null;
   const savedForm = applicantKey
     ? JSON.parse(localStorage.getItem(applicantKey) || "null")
     : null;
@@ -50,12 +53,18 @@ export default function BookAppointment() {
     const duration = Number(form.householdMembers) >= 5 ? 30 : 15;
     const payload = {
       email: activeUser?.email,
-      name: form.name,
+      firstName: form.firstNameame,
+      lastName: form.lastName,
+      name: `${form.firstName} ${form.lastName}`,
       phone: form.phone,
-      address: form.address,
+      streetAddress: form.streetAddress,
+      city: form.city,
+      postalCode: form.postalCode,
+      province: form.province,
       statusInCanada: form.statusInCanada,
       applyingToTinyBundles: form.applyingToTinyBundles,
       householdMembers: form.householdMembers,
+      language: form.language,
       day: selectedSlot.date.toLocaleDateString("en-US", { weekday: "long" }),
       date: selectedSlot.date.toISOString(),
       startTime: selectedSlot.time,
@@ -112,18 +121,15 @@ export default function BookAppointment() {
               selectedSlot={selectedSlot}
               onBack={prev}
               onConfirm={handleConfirm}
-              onTimerExpired={() => {        
-              setSelectedSlot(null);
-              setStep(0);                  
-            }}
-          />
+              onTimerExpired={() => {
+                setSelectedSlot(null);
+                setStep(0);
+              }}
+            />
           )}
 
           {step === 2 && (
-            <StepThankYou
-              selectedSlot={selectedSlot}
-                  onDone={handleDone}
-            />
+            <StepThankYou selectedSlot={selectedSlot} onDone={handleDone} />
           )}
         </div>
       </div>
