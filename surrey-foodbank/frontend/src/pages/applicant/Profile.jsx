@@ -112,9 +112,14 @@ function Profile() {
     const activeUser = JSON.parse(localStorage.getItem("activeUser") || "null");
     if (!activeUser?.email) return;
     const storageKey = `applicant_${activeUser.email}`;
-    setAppointment(updatedForm);
-    localStorage.setItem(storageKey, JSON.stringify(updatedForm));
-  };
+
+    // Merge with existing data to preserve booking fields
+    const existing = JSON.parse(localStorage.getItem(storageKey) || "{}");
+    const merged = { ...existing, ...updatedForm };
+
+    setAppointment(merged);
+    localStorage.setItem(storageKey, JSON.stringify(merged));
+};
 
   const handleCancelComplete = () => {
     // Update the local state to reflect the cancelled booking

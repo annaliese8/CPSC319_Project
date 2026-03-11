@@ -251,19 +251,16 @@ export default function ApplicantInfoPage() {
   };
 
   const handleSavePersonalInfo = (updatedData) => {
-    const applicantEmail = appointment?.email;
+    const applicantEmail = appointment?.email || appointment?.applicantEmail;
     if (applicantEmail) {
-      const dataToSave = { ...updatedData, applicantEmail };
-      localStorage.setItem(
-        `applicant_${applicantEmail}`,
-        JSON.stringify(dataToSave),
-      );
+      const existing = JSON.parse(localStorage.getItem(`applicant_${applicantEmail}`) || "{}");
+      const dataToSave = { ...existing, ...updatedData, applicantEmail };
+      localStorage.setItem(`applicant_${applicantEmail}`, JSON.stringify(dataToSave));
       setAppointment(dataToSave);
-      console.log("Data saved to localStorage for", applicantEmail, dataToSave);
     } else {
       console.error("No applicant email found in appointment data");
     }
-  };
+};
 
   return (
     <Box sx={{ minHeight: "100vh" }}>

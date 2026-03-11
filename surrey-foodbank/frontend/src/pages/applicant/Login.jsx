@@ -2,12 +2,12 @@
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import EmailField from "../../components/EmailField";
-import Link from "@mui/material/Link";
+import MuiLink from "@mui/material/Link";
 import PasswordField from "../../components/PasswordField";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import Window from "../../components/Window";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import useTextField from "../../hooks/useTextField";
 
 function Login() {
@@ -33,6 +33,8 @@ function Login() {
     },
     false,
   );
+
+
 
   const navigate = useNavigate();
 
@@ -92,7 +94,7 @@ function Login() {
               onClick={() => navigate("/applicant/create-account")}
             >
               <Typography>Don't have an account?</Typography>
-            </Link>
+            </MuiLink>
             <Button
               type="submit"
               variant="contained"
