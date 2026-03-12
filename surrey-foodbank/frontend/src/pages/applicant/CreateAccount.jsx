@@ -274,7 +274,7 @@ function CreateAccount() {
                   helperText={confirmPasswordField.errorMessage}
                 />
                 <Stack direction="row" spacing={2} sx={{ alignItems: "center", justifyContent: "space-between", mt: 2 }}>
-                  <Link href="/applicant/login" underline="hover">
+                  <Link href="/CPSC319_Project/#/applicant/login" underline="hover">
                     <Typography variant="body2">Already have an account?</Typography>
                   </Link>
                   <Button type="submit" variant="contained" size="large" sx={{ fontWeight: "bold" }}>
