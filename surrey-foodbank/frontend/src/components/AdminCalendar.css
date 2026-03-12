@@ -160,3 +160,16 @@ button.cancel-button:hover {
   -ms-user-select: none; /* IE 10 and IE 11 */
   user-select: none; /* Standard syntax */
 }
+
+.admin-selected {
+    background-color: #f24c62 !important; 
+    outline: 2px solid #f24c90;
+    outline-offset: -2px;
+    cursor: pointer;
+    animation: pulse-selected 1.2s ease-in-out infinite;
+}
+
+@keyframes pulse-selected {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.65; }
+}

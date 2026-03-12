@@ -22,7 +22,7 @@ function Login() {
     },
     false,
   );
-  // Password much match the one accossiated with the given email
+  // Password must match the one associated with the given email
   const passwordField = useTextField(
     "",
     (value) => {
@@ -33,10 +33,13 @@ function Login() {
     },
     false,
   );
-  // When the form is submitted, validate the fields.
-  // If no errors exist, set active user,
-  // and navigate to applicant's profile page
+
+
+
   const navigate = useNavigate();
+
+  // When the form is submitted, validate the fields.
+  // If no errors exist, set active user and navigate to applicant's profile page
   const handleSubmit = (e) => {
     e.preventDefault();
     const emailError = emailField.validate();
@@ -84,16 +87,19 @@ function Login() {
               padding: 2,
             }}
           >
-            <MuiLink component={Link} to="/applicant/create-account" underline="hover">
+            <Link
+              component="button"
+              type="button"
+              underline="hover"
+              onClick={() => navigate("/applicant/create-account")}
+            >
               <Typography>Don't have an account?</Typography>
-            </MuiLink>
+            </Link>
             <Button
               type="submit"
               variant="contained"
               size="large"
-              sx={{
-                fontWeight: "bold",
-              }}
+              sx={{ fontWeight: "bold" }}
             >
               Log In
             </Button>
