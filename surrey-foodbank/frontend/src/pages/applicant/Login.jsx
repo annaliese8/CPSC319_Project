@@ -94,7 +94,7 @@ function Login() {
               onClick={() => navigate("/applicant/create-account")}
             >
               <Typography>Don't have an account?</Typography>
-            </MuiLink>
+            </Link>
             <Button
               type="submit"
               variant="contained"
