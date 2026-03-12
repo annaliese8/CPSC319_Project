@@ -87,14 +87,14 @@ function Login() {
               padding: 2,
             }}
           >
-            <Link
+            <MuiLink
               component="button"
               type="button"
               underline="hover"
               onClick={() => navigate("/applicant/create-account")}
             >
               <Typography>Don't have an account?</Typography>
-            </Link>
+            </MuiLink>
             <Button
               type="submit"
               variant="contained"
