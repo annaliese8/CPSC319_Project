@@ -1,3 +1,8 @@
+/**
+ * Displays the applicant's registration form.
+ * Renders as read-only by default, with Edit/Save/Discard controls to update their information.
+ */
+
 import { Box, Button, Divider, Paper, Stack } from "@mui/material";
 import {
   Check as CheckIcon,
@@ -127,4 +132,5 @@ export default function RegistrationFormInfo({ appointment, onSave }) {
     </Box>
   );
 }
+
 // GitHub Copilot was used to debug the code above and help with localStorage logic

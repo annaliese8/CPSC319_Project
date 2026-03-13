@@ -1,6 +1,10 @@
+/**
+ * Form fields for the applicant registration form.
+ * Used in the applicant booking flow, the profile page, and the staff booking panel.
+ */
+
 import {
   Autocomplete,
-  Box,
   FormControl,
   FormControlLabel,
   FormHelperText,

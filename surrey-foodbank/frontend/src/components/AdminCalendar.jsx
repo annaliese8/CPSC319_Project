@@ -689,8 +689,15 @@ function AdminCalendar({
     React.useEffect(() => {
         if (changeBookingAppointment) {
             setRebookingAppointment(changeBookingAppointment);
-            // Open panel without a pre-selected slot — staff picks the new slot manually
-            setSelectedSlot({ day: days[0], time: "9:00", weekStart });
+            // When changing an appointment, the time slot fills with the applicant's existing appointment
+            setSelectedSlot({
+                day: changeBookingAppointment.day || days[0],
+                time: changeBookingAppointment.startTime || null,
+                weekStart,
+                date: changeBookingAppointment.date
+                    ? new Date(changeBookingAppointment.date)
+                    : new Date(weekStart)
+            });
             setShowBookingPanel(true);
         }
     }, [changeBookingAppointment]);
@@ -796,7 +803,7 @@ function AdminCalendar({
         const dayIndex = days.indexOf(day);
         const date = new Date(weekStart);
         date.setDate(weekStart.getDate() + dayIndex);
-        setSelectedSlot({ day, time, weekStart, date });
+        setSelectedSlot({ day, time: time.padStart(5, "0"), weekStart, date });
         setHighlightedSlot({ day, time });
         setRebookingAppointment(null); // normal booking, not a rebook
         setShowBookingPanel(true);
@@ -827,7 +834,7 @@ function AdminCalendar({
             const dayIndex = days.indexOf(day);
             const date = new Date(weekStart);
             date.setDate(weekStart.getDate() + dayIndex);
-            setSelectedSlot({ day, time, weekStart, date });
+            setSelectedSlot({ day, time: time.padStart(5, "0"), weekStart, date });
             setHighlightedSlot({ day, time });
             return;
         }
@@ -1009,7 +1016,7 @@ function AdminCalendar({
                         rebookingAppointment
                             ? appointments.filter(
                                 (a) => a.email !== (rebookingAppointment.email || rebookingAppointment.applicantEmail)
-                              )
+                            )
                             : appointments
                     }
                     rebookingAppointment={rebookingAppointment}

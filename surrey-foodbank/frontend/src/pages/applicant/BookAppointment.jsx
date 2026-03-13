@@ -7,11 +7,11 @@ import {
   StepReview,
   StepThankYou,
   formatTime,
-  addMinutes,
 } from "../../components/BookingSteps";
 import { useNavigate, useLocation } from "react-router-dom";
 import ApplicantTopBar from "../../components/ApplicantTopBar";
 import { Language } from "@mui/icons-material";
+import { addMinutesToTime } from "../../utils/TimeUtils";
 
 /**
  * BookAppointment
@@ -75,7 +75,7 @@ export default function BookAppointment() {
         day: "numeric",
         year: "numeric",
       }),
-      timeLabel: `${formatTime(selectedSlot.time)} – ${formatTime(addMinutes(selectedSlot.time, selectedSlot.interval ?? 15))}`,
+      timeLabel: `${formatTime(selectedSlot.time)} – ${formatTime(addMinutesToTime(selectedSlot.time, selectedSlot.interval ?? 15))}`,
     };
 
     if (applicantKey) {

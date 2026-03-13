@@ -10,6 +10,7 @@ import {
   Typography,
 } from "@mui/material";
 import RegistrationFields from "./RegistrationFields";
+import { addMinutesToTime } from "../utils/TimeUtils";
 
 // claude ai was used to write, debug and validate code for this entire page
 
@@ -27,18 +28,12 @@ const generateAllSlots = () => {
   const slots = [];
   for (let h = 9; h < 15; h++)
     for (let m = 0; m < 60; m += 15)
-      slots.push(`${h}:${m.toString().padStart(2, "0")}`);
+      slots.push(`${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`);
   return slots;
 };
 
 export const ALL_SLOTS = generateAllSlots();
 export const ROW_TIMES = ALL_SLOTS.filter((_, i) => i % 2 === 0);
-
-export const addMinutes = (time, mins) => {
-  const [h, m] = time.split(":").map(Number);
-  const total = h * 60 + m + mins;
-  return `${Math.floor(total / 60)}:${(total % 60).toString().padStart(2, "0")}`;
-};
 
 export const formatTime = (time) => {
   const [h, m] = time.split(":").map(Number);
@@ -59,7 +54,7 @@ export const formatApptString = (slot) => {
     day: "numeric",
     year: "numeric",
   });
-  return `${dateStr} · ${formatTime(slot.time)} – ${formatTime(addMinutes(slot.time, interval))}`;
+  return `${dateStr} · ${formatTime(slot.time)} – ${formatTime(addMinutesToTime(slot.time, interval))}`;
 };
 
 export const getWeekStart = (date) => {
@@ -115,7 +110,7 @@ export const generateAvailability = (weekDates = []) => {
 
       const numSlots = data.duration / 15;
       for (let s = 0; s < numSlots; s++) {
-        const blockedTime = addMinutes(data.startTime, s * 15);
+        const blockedTime = addMinutesToTime(data.startTime, s * 15);
         map[`${data.day}-${blockedTime}`] = false;
       }
     } catch {
@@ -152,11 +147,11 @@ export function TopNav({ onLogout }) {
 export const isSlotAvailable = (availability, day, time, interval = 15) =>
   interval === 30
     ? !!availability[`${day}-${time}`] &&
-      !!availability[`${day}-${addMinutes(time, 15)}`] &&
-      !!availability[`${day}-${addMinutes(time, 30)}`] &&
-      !!availability[`${day}-${addMinutes(time, 45)}`]
+    !!availability[`${day}-${addMinutesToTime(time, 15)}`] &&
+    !!availability[`${day}-${addMinutesToTime(time, 30)}`] &&
+    !!availability[`${day}-${addMinutesToTime(time, 45)}`]
     : !!availability[`${day}-${time}`] &&
-      !!availability[`${day}-${addMinutes(time, 15)}`];
+    !!availability[`${day}-${addMinutesToTime(time, 15)}`];
 
 export function Stepper({ currentStep }) {
   return (
@@ -270,7 +265,7 @@ export function StepChooseTime({
     if (isLargeHousehold) {
       if (
         !availability[`${day}-${time}`] ||
-        !availability[`${day}-${addMinutes(time, 15)}`]
+        !availability[`${day}-${addMinutesToTime(time, 15)}`]
       )
         return;
     } else {
@@ -287,7 +282,7 @@ export function StepChooseTime({
     if (!selectedSlot || selectedSlot.day !== day) return false;
     if (isLargeHousehold)
       return (
-        time === selectedSlot.time || time === addMinutes(selectedSlot.time, 15)
+        time === selectedSlot.time || time === addMinutesToTime(selectedSlot.time, 15)
       );
     return time === selectedSlot.time;
   };
@@ -437,7 +432,7 @@ export function StepChooseTime({
                 </div>
                 <div className="ba-pill-time">
                   {formatTime(selectedSlot.time)} –{" "}
-                  {formatTime(addMinutes(selectedSlot.time, bookingInterval))}
+                  {formatTime(addMinutesToTime(selectedSlot.time, bookingInterval))}
                   &nbsp;·&nbsp;
                   {selectedSlot.date.toLocaleDateString("en-US", {
                     weekday: "short",
@@ -502,8 +497,8 @@ export function StepReview({
 
   const fullAddress = form.streetAddress
     ? [form.streetAddress, form.city, form.province, form.postalCode]
-        .filter(Boolean)
-        .join(", ")
+      .filter(Boolean)
+      .join(", ")
     : form.address || "";
 
   const rows = [
