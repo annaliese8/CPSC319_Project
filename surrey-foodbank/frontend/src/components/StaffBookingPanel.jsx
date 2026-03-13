@@ -91,13 +91,13 @@
 //     if (duration === 15) {
 //       return !isSlotBooked(day, time);
 //     }
-    
+
 //     // For 30 min appointments, check both current and next slot
 //     const nextTime = getNextTimeSlot(time);
 //     if (!nextTime) {
 //       return false; // Can't book 30 min if there's no next slot
 //     }
-    
+
 //     return !isSlotBooked(day, time) && !isSlotBooked(day, nextTime);
 //   };
 
@@ -118,12 +118,12 @@
 
 //   const formatTimeLabel = (time, duration) => {
 //     const [hour, minute] = time.split(":").map(Number);
-    
+
 //     // Format start time in am/pm
 //     const startHour12 = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
 //     const startPeriod = hour >= 12 ? "pm" : "am";
 //     const startFormatted = `${startHour12}:${minute.toString().padStart(2, "0")}${startPeriod}`;
-    
+
 //     // Calculate end time with duration
 //     let endMinute = minute + duration;
 //     let endHour = hour;
@@ -131,12 +131,12 @@
 //       endMinute -= 60;
 //       endHour += 1;
 //     }
-     
+
 //     //format end time in am/pm
 //     const endHour12 = endHour === 0 ? 12 : endHour > 12 ? endHour - 12 : endHour;
 //     const endPeriod = endHour >= 12 ? "pm" : "am";
 //     const endFormatted = `${endHour12}:${endMinute.toString().padStart(2, "0")}${endPeriod}`;
-    
+
 //     return `${startFormatted} – ${endFormatted}`;
 //   };
 
@@ -153,17 +153,17 @@
 //       setError("Please enter the applicant's name");
 //       return;
 //     }
-    
+
 //     if (!form.email.trim()) {
 //       setError("Please enter the applicant's email");
 //       return;
 //     }
-    
+
 //     if (!form.phone.trim()) {
 //       setError("Please enter the applicant's phone number");
 //       return;
 //     }
-    
+
 //     if (!validatePhone(form.phone)) {
 //       setError("Please enter a valid phone number (at least 10 digits)");
 //       return;
@@ -173,7 +173,7 @@
 //     setError("Please enter the applicant's address");
 //     return;
 // }
-    
+
 //     if (!form.householdMembers || Number(form.householdMembers) < 1) {
 //       setError("Please enter a valid household size (1 or more)");
 //       return;
@@ -184,12 +184,12 @@
 //       setError("Please select a date");
 //       return;
 //     }
-    
+
 //     if (!startTime) {
 //       setError("Please enter a start time");
 //       return;
 //     }
-    
+
 //     if (!endTime) {
 //       setError("Please enter an end time");
 //       return;
@@ -199,7 +199,7 @@
 //     const existingAppointment = existingAppointments.find(apt => 
 //       apt.email === form.email.trim()
 //     );
-    
+
 //     if (existingAppointment) {
 //       setError("This applicant already has an appointment. Please cancel the existing one first.");
 //       return;
@@ -214,7 +214,7 @@
 //         setError("The selected time slot is not available. Please choose another time.");
 //         return;
 //     }
-    
+
 //     const appointmentData = {
 //       name: form.name,
 //       email: form.email,
@@ -279,7 +279,7 @@
 //           size="small"
 //           InputLabelProps={{ shrink: true }}
 //         />
-        
+
 //         <Box sx={{ display: "flex", gap: 1 }}>
 //           <TextField
 //             label="Start Time*"
@@ -399,6 +399,9 @@ import {
   Chip,
 } from "@mui/material";
 import LockIcon from "@mui/icons-material/Lock";
+import RegistrationFields from "../components/RegistrationFields";
+import { validateRegistrationForm } from "../utils/ValidateRegistrationForm";
+import { addMinutesToTime } from "../utils/TimeUtils";
 
 export default function StaffBookingPanel({
   selectedSlot,
@@ -410,51 +413,49 @@ export default function StaffBookingPanel({
   const isRebooking = !!rebookingAppointment;
 
   const [form, setForm] = React.useState({
-    name: rebookingAppointment?.name || "",
-    email: rebookingAppointment?.email || rebookingAppointment?.applicantEmail || "",
+    firstName: rebookingAppointment?.firstName || "",
+    lastName: rebookingAppointment?.lastName || "",
     phone: rebookingAppointment?.phone || "",
-    address: rebookingAppointment?.address || "",
+    streetAddress: rebookingAppointment?.streetAddress || "",
+    city: rebookingAppointment?.city || "",
+    province: rebookingAppointment?.province || "British Columbia",
+    postalCode: rebookingAppointment?.postalCode || "",
+    statusInCanada: rebookingAppointment?.statusInCanada || "",
     householdMembers: rebookingAppointment?.householdMembers || "",
+    applyingToTinyBundles: rebookingAppointment?.applyingToTinyBundles || "no",
+    language: rebookingAppointment?.language || "English",
+    email: rebookingAppointment?.email || rebookingAppointment?.applicantEmail || "",
   });
 
   const [error, setError] = React.useState("");
+  const [formErrors, setFormErrors] = React.useState({})
   const [editableDate, setEditableDate] = React.useState("");
   const [startTime, setStartTime] = React.useState("");
   const [endTime, setEndTime] = React.useState("");
 
-  // Update form if rebookingAppointment changes (e.g. on mount)
-  React.useEffect(() => {
-    if (rebookingAppointment) {
-      setForm({
-        name: rebookingAppointment.name || "",
-        email: rebookingAppointment.email || rebookingAppointment.applicantEmail || "",
-        phone: rebookingAppointment.phone || "",
-        address: rebookingAppointment.address || "",
-        householdMembers: rebookingAppointment.householdMembers || "",
-      });
-    }
-  }, [rebookingAppointment]);
-
-  const addMinutesToTime = (time, minutesToAdd) => {
-    if (!time || !time.includes(":")) return "";
-    const [hour, minute] = time.split(":").map(Number);
-    if (Number.isNaN(hour) || Number.isNaN(minute)) return "";
-    const totalMinutes = hour * 60 + minute + minutesToAdd;
-    const endHour = Math.floor(totalMinutes / 60);
-    const endMinute = totalMinutes % 60;
-    return `${endHour}:${endMinute.toString().padStart(2, "0")}`;
-  };
+  // // Update form if rebookingAppointment changes (e.g. on mount)
+  // React.useEffect(() => {
+  //   if (rebookingAppointment) {
+  //     setForm({
+  //       name: rebookingAppointment.name || "",
+  //       email: rebookingAppointment.email || rebookingAppointment.applicantEmail || "",
+  //       phone: rebookingAppointment.phone || "",
+  //       address: rebookingAppointment.address || "",
+  //       householdMembers: rebookingAppointment.householdMembers || "",
+  //     });
+  //   }
+  // }, [rebookingAppointment]);
 
   React.useEffect(() => {
     if (selectedSlot) {
       const date = selectedSlot.date
         ? new Date(selectedSlot.date)
         : (() => {
-            const dayIndex = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"].indexOf(selectedSlot.day);
-            const d = new Date(selectedSlot.weekStart);
-            d.setDate(d.getDate() + dayIndex);
-            return d;
-          })();
+          const dayIndex = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"].indexOf(selectedSlot.day);
+          const d = new Date(selectedSlot.weekStart);
+          d.setDate(d.getDate() + dayIndex);
+          return d;
+        })();
       setEditableDate(date.toISOString().split("T")[0]);
       setStartTime(selectedSlot.time);
       setEndTime(addMinutesToTime(selectedSlot.time, 15));
@@ -466,16 +467,6 @@ export default function StaffBookingPanel({
     setForm((prev) => ({ ...prev, [key]: e.target.value }));
     setError("");
   };
-
-  const householdSizeInvalid =
-    form.householdMembers !== "" && Number(form.householdMembers) < 1;
-
-  const validatePhone = (phone) => {
-    const digits = phone.replace(/\D/g, "");
-    return digits.length >= 10;
-  };
-
-  const phoneInvalid = form.phone !== "" && !validatePhone(form.phone);
 
   const getDuration = () => {
     const size = Number(form.householdMembers);
@@ -527,21 +518,17 @@ export default function StaffBookingPanel({
   };
 
   const formatDateLabel = (day, date) => {
-    const monthNames = ["January","February","March","April","May","June",
-      "July","August","September","October","November","December"];
+    const monthNames = ["January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December"];
     const d = new Date(date + "T00:00:00");
     return `${day} ${monthNames[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
   };
 
   const handleConfirm = () => {
-    if (!form.name.trim()) { setError("Please enter the applicant's name"); return; }
-    if (!form.email.trim()) { setError("Please enter the applicant's email"); return; }
-    if (!form.phone.trim()) { setError("Please enter the applicant's phone number"); return; }
-    if (!validatePhone(form.phone)) { setError("Please enter a valid phone number (at least 10 digits)"); return; }
-    if (!form.address.trim()) { setError("Please enter the applicant's address"); return; }
-    if (!form.householdMembers || Number(form.householdMembers) < 1) {
-      setError("Please enter a valid household size (1 or more)"); return;
-    }
+
+    const errors = validateRegistrationForm(form);
+    if (!form.email.trim()) errors.email = "Please enter the applicant's email";
+    if (Object.keys(errors).length) { setFormErrors(errors); return; }
     if (!editableDate) { setError("Please select a date"); return; }
     if (!startTime) { setError("Please enter a start time"); return; }
     if (!endTime) { setError("Please enter an end time"); return; }
@@ -559,7 +546,7 @@ export default function StaffBookingPanel({
     }
 
     const dateObj = new Date(editableDate + "T00:00:00");
-    const dayNames = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+    const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
     const dayName = dayNames[dateObj.getDay()];
     const duration = getDuration();
 
@@ -574,20 +561,27 @@ export default function StaffBookingPanel({
     }
 
     const appointmentData = {
-      name: form.name,
+      firstName: form.firstName,
+      lastName: form.lastName,
+      name: `${form.firstName} ${form.lastName}`,
       email: form.email,
       phone: form.phone,
-      address: form.address,
+      streetAddress: form.streetAddress,
+      city: form.city,
+      province: form.province,
+      postalCode: form.postalCode,
+      address: `${form.streetAddress}, ${form.city}, ${form.province}, ${form.postalCode}`,
       householdMembers: form.householdMembers,
-      statusInCanada: rebookingAppointment?.statusInCanada ?? null,
-      applyingToTinyBundles: rebookingAppointment?.applyingToTinyBundles ?? null,
+      statusInCanada: form.statusInCanada,
+      applyingToTinyBundles: form.applyingToTinyBundles,
+      language: form.language,
       day: dayName,
-      startTime: startTime,
+      startTime: startTime.padStart(5, "0"),
       duration: duration,
       date: dateObj.toISOString(),
       dateLabel: formatDateLabel(dayName, editableDate),
       timeLabel: formatTimeLabel(startTime, duration),
-    };
+    }
 
     onConfirmBooking(appointmentData);
   };
@@ -668,73 +662,28 @@ export default function StaffBookingPanel({
             helperText="Format: HH:MM"
           />
         </Box>
-
-        <TextField
-          label="Applicant Name*"
-          value={form.name}
-          onChange={onChange("name")}
-          fullWidth
-          size="small"
-          disabled={isRebooking}
-          InputProps={isRebooking ? { endAdornment: <LockIcon sx={{ fontSize: 16, color: "text.disabled" }} /> } : {}}
-        />
-
         <TextField
           label="Email*"
           type="email"
           value={form.email}
           onChange={onChange("email")}
+          error={!!formErrors.email}
+          helperText={formErrors.email || ""}
           fullWidth
           size="small"
           disabled={isRebooking}
           InputProps={isRebooking ? { endAdornment: <LockIcon sx={{ fontSize: 16, color: "text.disabled" }} /> } : {}}
         />
 
-        <TextField
-          label="Phone Number*"
-          type="tel"
-          value={form.phone}
-          onChange={onChange("phone")}
-          fullWidth
-          size="small"
-          placeholder="(123) 456-7890"
-          error={phoneInvalid}
-          helperText={phoneInvalid ? "Must be at least 10 digits" : ""}
-          disabled={isRebooking}
-          InputProps={isRebooking ? { endAdornment: <LockIcon sx={{ fontSize: 16, color: "text.disabled" }} /> } : {}}
-        />
-
-        <TextField
-          label="Address*"
-          value={form.address}
-          onChange={onChange("address")}
-          fullWidth
-          size="small"
-          placeholder="123 Main St, Surrey, BC V3T 0A1"
-          disabled={isRebooking}
-          InputProps={isRebooking ? { endAdornment: <LockIcon sx={{ fontSize: 16, color: "text.disabled" }} /> } : {}}
-        />
-
-        <TextField
-          label="Household Members*"
-          type="number"
-          value={form.householdMembers}
-          onChange={onChange("householdMembers")}
-          fullWidth
-          size="small"
-          inputProps={{ min: "1", step: "1" }}
-          error={householdSizeInvalid}
-          helperText={
-            householdSizeInvalid
-              ? "Must be 1 or more"
-              : Number(form.householdMembers) >= 5
-              ? "30 min appointment"
-              : Number(form.householdMembers) >= 1
-              ? "15 min appointment"
-              : ""
-          }
-          disabled={isRebooking}
-          InputProps={isRebooking ? { endAdornment: <LockIcon sx={{ fontSize: 16, color: "text.disabled" }} /> } : {}}
+        <RegistrationFields
+          form={form}
+          onChange={(key) => (e) => {
+            if (isRebooking) return;
+            setForm((prev) => ({ ...prev, [key]: e.target.value }));
+            setError("");
+          }}
+          errors={formErrors}
+          isDisabled={isRebooking}
         />
 
         <Stack direction="row" spacing={1.5} sx={{ mt: 2 }}>

@@ -1,26 +1,26 @@
 import { useState, useEffect } from "react";
 export const STEPS = ["Personal Info", "Choose Time", "Review", "Thank You"];
 import logo from "../styles/full-logo.png";
-import { Stack, Typography, Button } from "@mui/material";
+import {
+  Autocomplete,
+  Box,
+  Button,
+  Stack,
+  TextField,
+  Typography,
+} from "@mui/material";
+import RegistrationFields from "./RegistrationFields";
+import { addMinutesToTime } from "../utils/TimeUtils";
 
 // claude ai was used to write, debug and validate code for this entire page
-export const STATUS_OPTIONS = [
-  "Canadian Citizen",
-  "Permanent Resident",
-  "Refugee/Protected Person",
-  "Temporary Resident (6 months+)",
-];
 
-export const LANGUAGES = [
-  "English", "French", "Spanish", "Swahili",
-  "Rohingya", "Tigrinya", "Farsi", "Punjabi", "Arabic",
+export const DAYS_FULL = [
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
 ];
-
-export const CANADIAN_PROVINCES = [
-  "AB", "BC", "MB", "NB", "NL", "NS", "NT", "NU", "ON", "PE", "QC", "SK", "YT",
-];
-
-export const DAYS_FULL  = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
 export const DAYS_SHORT = ["Mon", "Tue", "Wed", "Thu", "Fri"];
 
 // Slots run 9:00 am – 3:00 pm in 15-minute increments
@@ -28,23 +28,17 @@ const generateAllSlots = () => {
   const slots = [];
   for (let h = 9; h < 15; h++)
     for (let m = 0; m < 60; m += 15)
-      slots.push(`${h}:${m.toString().padStart(2, "0")}`);
+      slots.push(`${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`);
   return slots;
 };
 
-export const ALL_SLOTS  = generateAllSlots();
-export const ROW_TIMES  = ALL_SLOTS.filter((_, i) => i % 2 === 0);
-
-export const addMinutes = (time, mins) => {
-  const [h, m] = time.split(":").map(Number);
-  const total  = h * 60 + m + mins;
-  return `${Math.floor(total / 60)}:${(total % 60).toString().padStart(2, "0")}`;
-};
+export const ALL_SLOTS = generateAllSlots();
+export const ROW_TIMES = ALL_SLOTS.filter((_, i) => i % 2 === 0);
 
 export const formatTime = (time) => {
   const [h, m] = time.split(":").map(Number);
-  const ampm   = h >= 12 ? "pm" : "am";
-  const h12    = h > 12 ? h - 12 : h === 0 ? 12 : h;
+  const ampm = h >= 12 ? "pm" : "am";
+  const h12 = h > 12 ? h - 12 : h === 0 ? 12 : h;
   return `${h12}:${m.toString().padStart(2, "0")}${ampm}`;
 };
 
@@ -55,13 +49,16 @@ export const formatApptString = (slot) => {
   if (!slot) return "";
   const interval = slot.interval ?? 15;
   const dateStr = slot.date.toLocaleDateString("en-US", {
-    weekday: "long", month: "long", day: "numeric", year: "numeric",
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
   });
-  return `${dateStr} · ${formatTime(slot.time)} – ${formatTime(addMinutes(slot.time, interval))}`;
+  return `${dateStr} · ${formatTime(slot.time)} – ${formatTime(addMinutesToTime(slot.time, interval))}`;
 };
 
 export const getWeekStart = (date) => {
-  const d   = new Date(date);
+  const d = new Date(date);
   const day = d.getDay();
   d.setDate(d.getDate() + (day === 0 ? -6 : 1 - day));
   d.setHours(0, 0, 0, 0);
@@ -79,16 +76,22 @@ export const generateAvailability = (weekDates = []) => {
 
   // Start with all slots available
   DAYS_FULL.forEach((day) =>
-    ALL_SLOTS.forEach((time) => { map[`${day}-${time}`] = true; })
+    ALL_SLOTS.forEach((time) => {
+      map[`${day}-${time}`] = true;
+    }),
   );
 
   // Block slots marked unavailable by staff
   try {
-    const staffBlocked = JSON.parse(localStorage.getItem("staffBlockedSlots") || "[]");
+    const staffBlocked = JSON.parse(
+      localStorage.getItem("staffBlockedSlots") || "[]",
+    );
     staffBlocked.forEach(([day, time]) => {
       if (map[`${day}-${time}`] !== undefined) map[`${day}-${time}`] = false;
     });
-  } catch { /* skip */ }
+  } catch {
+    /* skip */
+  }
 
   // Block slots already booked by applicants
   for (let i = 0; i < localStorage.length; i++) {
@@ -101,15 +104,18 @@ export const generateAvailability = (weekDates = []) => {
       // If date is present, only block for the matching week
       if (data.date) {
         const bookedDateStr = new Date(data.date).toDateString();
-        if (!weekDates.some((d) => d.toDateString() === bookedDateStr)) continue;
+        if (!weekDates.some((d) => d.toDateString() === bookedDateStr))
+          continue;
       }
 
       const numSlots = data.duration / 15;
       for (let s = 0; s < numSlots; s++) {
-        const blockedTime = addMinutes(data.startTime, s * 15);
+        const blockedTime = addMinutesToTime(data.startTime, s * 15);
         map[`${data.day}-${blockedTime}`] = false;
       }
-    } catch { /* skip */ }
+    } catch {
+      /* skip */
+    }
   }
 
   return map;
@@ -126,7 +132,12 @@ export function TopNav({ onLogout }) {
           Book an Appointment
         </Typography>
       </Stack>
-      <Button onClick={onLogout} color="secondary" variant="text" sx={{ fontSize: 14, fontWeight: 800, textTransform: "none" }}>
+      <Button
+        onClick={onLogout}
+        color="secondary"
+        variant="text"
+        sx={{ fontSize: 14, fontWeight: 800, textTransform: "none" }}
+      >
         Log Out
       </Button>
     </nav>
@@ -136,20 +147,23 @@ export function TopNav({ onLogout }) {
 export const isSlotAvailable = (availability, day, time, interval = 15) =>
   interval === 30
     ? !!availability[`${day}-${time}`] &&
-      !!availability[`${day}-${addMinutes(time, 15)}`] &&
-      !!availability[`${day}-${addMinutes(time, 30)}`] &&
-      !!availability[`${day}-${addMinutes(time, 45)}`]
+    !!availability[`${day}-${addMinutesToTime(time, 15)}`] &&
+    !!availability[`${day}-${addMinutesToTime(time, 30)}`] &&
+    !!availability[`${day}-${addMinutesToTime(time, 45)}`]
     : !!availability[`${day}-${time}`] &&
-      !!availability[`${day}-${addMinutes(time, 15)}`];
+    !!availability[`${day}-${addMinutesToTime(time, 15)}`];
 
 export function Stepper({ currentStep }) {
   return (
     <div className="ba-stepper">
       {STEPS.map((label, i) => {
-        const status = i < currentStep ? "done" : i === currentStep ? "active" : "pending";
+        const status =
+          i < currentStep ? "done" : i === currentStep ? "active" : "pending";
         return (
           <div key={label} className={`ba-step ${status}`}>
-            <div className="ba-step-circle">{status === "done" ? "✓" : i + 1}</div>
+            <div className="ba-step-circle">
+              {status === "done" ? "✓" : i + 1}
+            </div>
             <div className="ba-step-label">{label}</div>
           </div>
         );
@@ -159,143 +173,25 @@ export function Stepper({ currentStep }) {
 }
 
 // StepPersonalInfo
-export function StepPersonalInfo({ form, errors, onChange, onNext }) {
+
+export function StepPersonalInfo({ form, onChange, onNext, errors }) {
   return (
-    <>
-      <div className="ba-body">
-        <h2>Please fill out the following questions</h2>
-        <div className="ba-form-grid">
-
-          {/* First / Last name side by side */}
-          <div className="ba-field half">
-            <label className="ba-label">First Name<span className="req">*</span></label>
-            <input className="ba-input" value={form.firstName} placeholder="First name"
-              onChange={(e) => onChange("firstName", e.target.value)} />
-            {errors.firstName && <p className="ba-error">{errors.firstName}</p>}
-          </div>
-
-          <div className="ba-field half">
-            <label className="ba-label">Last Name<span className="req">*</span></label>
-            <input className="ba-input" value={form.lastName} placeholder="Last name"
-              onChange={(e) => onChange("lastName", e.target.value)} />
-            {errors.lastName && <p className="ba-error">{errors.lastName}</p>}
-          </div>
-
-          {/* Street address */}
-          <div className="ba-field full">
-            <label className="ba-label">Street Address<span className="req">*</span></label>
-            <input className="ba-input" value={form.streetAddress} placeholder="123 Main St"
-              onChange={(e) => onChange("streetAddress", e.target.value)} />
-            {errors.streetAddress && <p className="ba-error">{errors.streetAddress}</p>}
-          </div>
-
-          {/* City + Province side by side */}
-          <div className="ba-field half">
-            <label className="ba-label">City<span className="req">*</span></label>
-            <input className="ba-input" value={form.city} placeholder="Surrey"
-              onChange={(e) => onChange("city", e.target.value)} />
-            {errors.city && <p className="ba-error">{errors.city}</p>}
-          </div>
-
-          <div className="ba-field half">
-            <label className="ba-label">Province<span className="req">*</span></label>
-            <select className="ba-select" value={form.province}
-              onChange={(e) => onChange("province", e.target.value)}>
-              <option value="">Select…</option>
-              {CANADIAN_PROVINCES.map((p) => <option key={p} value={p}>{p}</option>)}
-            </select>
-            {errors.province && <p className="ba-error">{errors.province}</p>}
-          </div>
-
-          {/* Postal code */}
-          <div className="ba-field half">
-            <label className="ba-label">Postal Code<span className="req">*</span></label>
-            <input className="ba-input" value={form.postalCode} placeholder="V3T 0A1"
-              onChange={(e) => onChange("postalCode", e.target.value.toUpperCase())} />
-            {errors.postalCode && <p className="ba-error">{errors.postalCode}</p>}
-          </div>
-
-          {/* Phone */}
-          <div className="ba-field half">
-            <label className="ba-label">Phone Number<span className="req">*</span></label>
-            <input className="ba-input" type="tel" value={form.phone} placeholder="(604) 555-0100"
-              onChange={(e) => onChange("phone", e.target.value)} />
-            {errors.phone && <p className="ba-error">{errors.phone}</p>}
-          </div>
-
-          {/* Status in Canada */}
-          <div className="ba-field full">
-            <label className="ba-label">Status in Canada<span className="req">*</span></label>
-            <select className="ba-select" value={form.statusInCanada}
-              onChange={(e) => onChange("statusInCanada", e.target.value)}>
-              <option value="">Select status…</option>
-              {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
-            </select>
-            {errors.statusInCanada && <p className="ba-error">{errors.statusInCanada}</p>}
-          </div>
-
-          {/* Household size */}
-          <div className="ba-field full">
-            <label className="ba-label">Household Size<span className="req">*</span></label>
-            <input className="ba-input" type="number" min="1" max="20"
-              value={form.householdMembers} placeholder="Number of people"
-              onChange={(e) => onChange("householdMembers", e.target.value)}
-              style={{ maxWidth: 180 }} />
-            {errors.householdMembers && <p className="ba-error">{errors.householdMembers}</p>}
-            {Number(form.householdMembers) >= 5 && (
-              <p style={{ fontSize: 12, color: "var(--teal)", marginTop: 4 }}>
-                Households of 5 or more are booked in 30-minute slots.
-              </p>
-            )}
-          </div>
-
-          {/* Tiny Bundles */}
-          <div className="ba-field full" style={{ marginTop: 4 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <label className="ba-label">Applying to the Tiny Bundles Program?</label>
-              <div className="ba-info-tooltip">
-                i
-                <div className="ba-tooltip-text">
-                  Please select Yes if your household has a pregnant mom or children under 12 months old.
-                  Tiny Bundles families receive food every week instead of every two weeks. They are also
-                  supplied with fresh eggs and milk while pregnant or nursing. Additional fresh vegetables
-                  and other nutritional items are supplied when available.
-                </div>
-              </div>
-            </div>
-            <div className="ba-tiny-radio">
-              {["no", "yes"].map((val) => (
-                <label key={val} className="ba-radio-label">
-                  <input type="radio" name="applyingToTinyBundles" value={val}
-                    checked={form.applyingToTinyBundles === val}
-                    onChange={() => onChange("applyingToTinyBundles", val)} />
-                  {val === "no" ? "No" : "Yes"}
-                </label>
-              ))}
-            </div>
-            {form.applyingToTinyBundles === "yes" && (
-              <p style={{ fontSize: 12, color: "var(--teal)", marginTop: 4 }}>
-                Tiny Bundles appointments are available on Wednesdays only.
-              </p>
-            )}
-          </div>
-
-          {/* Preferred language */}
-          <div className="ba-field full">
-            <label className="ba-label">Preferred Language</label>
-            <select className="ba-select" value={form.language}
-              onChange={(e) => onChange("language", e.target.value)}>
-              {LANGUAGES.map((l) => <option key={l} value={l}>{l}</option>)}
-            </select>
-          </div>
-
-        </div>
-      </div>
-      <div className="ba-footer">
-        <div />
-        <button className="ba-btn ba-btn-primary" onClick={onNext}>Next →</button>
-      </div>
-    </>
+    <Box className="ba-body">
+      <Typography variant="h2">
+        Please fill out the following questions
+      </Typography>
+      <RegistrationFields
+        form={form}
+        onChange={onChange}
+        errors={errors}
+        isDisabled={false}
+      />
+      <Stack direction="row" spacing={2} mt={4}>
+        <Button variant="contained" color="primary" onClick={onNext}>
+          Next
+        </Button>
+      </Stack>
+    </Box>
   );
 }
 
@@ -308,12 +204,15 @@ function TimerBar({ secondsLeft }) {
   const ss = String(secondsLeft % 60).padStart(2, "0");
   return (
     <div className="ba-timer-wrap" style={{ marginTop: 16 }}>
-      <div className="ba-timer-label"
-        style={{ color: secondsLeft < 60 ? "var(--red)" : "var(--gray-700)" }}>
+      <div
+        className="ba-timer-label"
+        style={{ color: secondsLeft < 60 ? "var(--red)" : "var(--gray-700)" }}
+      >
         Time remaining to confirm: {mm}:{ss}
       </div>
       <div className="ba-timer-bar-bg">
-        <div className="ba-timer-bar-fill"
+        <div
+          className="ba-timer-bar-fill"
           style={{
             width: `${timerPct}%`,
             background: secondsLeft < 60 ? "var(--red)" : "var(--teal)",
@@ -325,26 +224,35 @@ function TimerBar({ secondsLeft }) {
   );
 }
 
-// StepChooseTime 
-export function StepChooseTime({ form, selectedSlot, onSelectSlot, onClearSlot, onBack, onNext }) {
+// StepChooseTime
+export function StepChooseTime({
+  form,
+  selectedSlot,
+  onSelectSlot,
+  onClearSlot,
+  onBack,
+  onNext,
+}) {
   const todayStart = getWeekStart(new Date());
   const [weekStart, setWeekStart] = useState(todayStart);
-  const weekDates     = getWeekDates(weekStart);
+  const weekDates = getWeekDates(weekStart);
 
-  const [weekAvailability, setWeekAvailability] = useState(() => generateAvailability(getWeekDates(weekStart)));
+  const [weekAvailability, setWeekAvailability] = useState(() =>
+    generateAvailability(getWeekDates(weekStart)),
+  );
   useEffect(() => {
     setWeekAvailability(generateAvailability(getWeekDates(weekStart)));
   }, [weekStart]);
 
   const availability = weekAvailability;
-  
+
   const isCurrentWeek = weekStart.getTime() === todayStart.getTime();
 
-  const householdSize     = Number(form.householdMembers) || 1;
-  const isLargeHousehold  = householdSize >= 5;
-  const bookingInterval   = isLargeHousehold ? 30 : 15;
-  const tinyBundles       = form.applyingToTinyBundles === "yes";
-  const isDimmed          = (day) => tinyBundles && day !== "Wednesday";
+  const householdSize = Number(form.householdMembers) || 1;
+  const isLargeHousehold = householdSize >= 5;
+  const bookingInterval = isLargeHousehold ? 30 : 15;
+  const tinyBundles = form.applyingToTinyBundles === "yes";
+  const isDimmed = (day) => tinyBundles && day !== "Wednesday";
 
   const shiftWeek = (delta) => {
     const d = new Date(weekStart);
@@ -355,7 +263,11 @@ export function StepChooseTime({ form, selectedSlot, onSelectSlot, onClearSlot, 
   const handleSlotClick = (day, time) => {
     if (isDimmed(day)) return;
     if (isLargeHousehold) {
-      if (!availability[`${day}-${time}`] || !availability[`${day}-${addMinutes(time, 15)}`]) return;
+      if (
+        !availability[`${day}-${time}`] ||
+        !availability[`${day}-${addMinutesToTime(time, 15)}`]
+      )
+        return;
     } else {
       if (!availability[`${day}-${time}`]) return;
     }
@@ -368,7 +280,10 @@ export function StepChooseTime({ form, selectedSlot, onSelectSlot, onClearSlot, 
 
   const isHighlighted = (day, time) => {
     if (!selectedSlot || selectedSlot.day !== day) return false;
-    if (isLargeHousehold) return time === selectedSlot.time || time === addMinutes(selectedSlot.time, 15);
+    if (isLargeHousehold)
+      return (
+        time === selectedSlot.time || time === addMinutesToTime(selectedSlot.time, 15)
+      );
     return time === selectedSlot.time;
   };
 
@@ -378,36 +293,72 @@ export function StepChooseTime({ form, selectedSlot, onSelectSlot, onClearSlot, 
         <h2>Select a Date and Time for your appointment</h2>
 
         {tinyBundles && (
-          <p style={{ textAlign: "center", fontSize: 13, color: "var(--teal)", marginBottom: 12, fontWeight: 600 }}>
+          <p
+            style={{
+              textAlign: "center",
+              fontSize: 13,
+              color: "var(--teal)",
+              marginBottom: 12,
+              fontWeight: 600,
+            }}
+          >
             Showing Wednesday appointments only (Tiny Bundles program)
           </p>
         )}
         {isLargeHousehold && (
-          <p style={{ textAlign: "center", fontSize: 13, color: "var(--teal)", marginBottom: 12, fontWeight: 600 }}>
-            Your household size requires a 30-minute appointment. Selecting any slot will reserve that slot and the following 15 minutes.
+          <p
+            style={{
+              textAlign: "center",
+              fontSize: 13,
+              color: "var(--teal)",
+              marginBottom: 12,
+              fontWeight: 600,
+            }}
+          >
+            Your household size requires a 30-minute appointment. Selecting any
+            slot will reserve that slot and the following 15 minutes.
           </p>
         )}
 
         {/* Week nav */}
         <div className="ba-cal-header">
           <div style={{ display: "flex", gap: 8, minWidth: 170 }}>
-            <button className="ba-cal-btn" onClick={() => shiftWeek(-7)}>← Prev Week</button>
+            <button className="ba-cal-btn" onClick={() => shiftWeek(-7)}>
+              ← Prev Week
+            </button>
             {!isCurrentWeek && (
-              <button className="ba-cal-btn today" onClick={() => setWeekStart(todayStart)}>Today</button>
+              <button
+                className="ba-cal-btn today"
+                onClick={() => setWeekStart(todayStart)}
+              >
+                Today
+              </button>
             )}
           </div>
           <div className="ba-cal-range">
             {formatDateShort(weekDates[0])} – {formatDateShort(weekDates[4])}
           </div>
-          <div style={{ display: "flex", justifyContent: "flex-end", minWidth: 170 }}>
-            <button className="ba-cal-btn" onClick={() => shiftWeek(7)}>Next Week →</button>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "flex-end",
+              minWidth: 170,
+            }}
+          >
+            <button className="ba-cal-btn" onClick={() => shiftWeek(7)}>
+              Next Week →
+            </button>
           </div>
         </div>
 
         {/* Legend */}
         <div className="ba-cal-legend">
-          <span><div className="ba-legend-dot avail" /> Available</span>
-          <span><div className="ba-legend-dot booked" /> Unavailable</span>
+          <span>
+            <div className="ba-legend-dot avail" /> Available
+          </span>
+          <span>
+            <div className="ba-legend-dot booked" /> Unavailable
+          </span>
         </div>
 
         {/* Grid */}
@@ -415,14 +366,21 @@ export function StepChooseTime({ form, selectedSlot, onSelectSlot, onClearSlot, 
           <table className="ba-cal-table" style={{ tableLayout: "fixed" }}>
             <colgroup>
               <col style={{ width: 54 }} />
-              {DAYS_FULL.map((d) => <col key={d} style={{ width: "calc((100% - 54px) / 5)" }} />)}
+              {DAYS_FULL.map((d) => (
+                <col key={d} style={{ width: "calc((100% - 54px) / 5)" }} />
+              ))}
             </colgroup>
             <thead>
               <tr>
                 <th className="ba-cal-th" />
                 {DAYS_FULL.map((day, i) => (
-                  <th key={day} className="ba-cal-th" style={{ opacity: isDimmed(day) ? 0.25 : 1 }}>
-                    {DAYS_SHORT[i]}<br />
+                  <th
+                    key={day}
+                    className="ba-cal-th"
+                    style={{ opacity: isDimmed(day) ? 0.25 : 1 }}
+                  >
+                    {DAYS_SHORT[i]}
+                    <br />
                     <span style={{ fontWeight: 400, color: "var(--gray-500)" }}>
                       {formatDateShort(weekDates[i])}
                     </span>
@@ -437,12 +395,18 @@ export function StepChooseTime({ form, selectedSlot, onSelectSlot, onClearSlot, 
                     {rowIdx % 2 === 0 ? formatTime(time) : ""}
                   </td>
                   {DAYS_FULL.map((day) => {
-                    const dimmed   = isDimmed(day);
-                    const avail    = !!availability[`${day}-${time}`];
+                    const dimmed = isDimmed(day);
+                    const avail = !!availability[`${day}-${time}`];
                     const selected = isHighlighted(day, time);
                     return (
-                      <td key={day} className="ba-cal-td"
-                        style={{ opacity: dimmed ? 0.15 : 1, pointerEvents: dimmed ? "none" : "auto" }}>
+                      <td
+                        key={day}
+                        className="ba-cal-td"
+                        style={{
+                          opacity: dimmed ? 0.15 : 1,
+                          pointerEvents: dimmed ? "none" : "auto",
+                        }}
+                      >
                         <div
                           className={`ba-slot ${selected ? "selected" : avail ? "avail" : "unavail"}`}
                           onClick={() => handleSlotClick(day, time)}
@@ -458,30 +422,56 @@ export function StepChooseTime({ form, selectedSlot, onSelectSlot, onClearSlot, 
 
         {/* Selected pill / hint */}
         {selectedSlot ? (
-          <div style={{ display: "flex", justifyContent: "center", marginTop: 14 }}>
+          <div
+            style={{ display: "flex", justifyContent: "center", marginTop: 14 }}
+          >
             <div className="ba-selected-pill">
               <div>
-                <div style={{ fontSize: 11, opacity: 0.8, marginBottom: 2 }}>Selected:</div>
+                <div style={{ fontSize: 11, opacity: 0.8, marginBottom: 2 }}>
+                  Selected:
+                </div>
                 <div className="ba-pill-time">
-                  {formatTime(selectedSlot.time)} – {formatTime(addMinutes(selectedSlot.time, bookingInterval))}
+                  {formatTime(selectedSlot.time)} –{" "}
+                  {formatTime(addMinutesToTime(selectedSlot.time, bookingInterval))}
                   &nbsp;·&nbsp;
-                  {selectedSlot.date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
+                  {selectedSlot.date.toLocaleDateString("en-US", {
+                    weekday: "short",
+                    month: "short",
+                    day: "numeric",
+                  })}
                 </div>
               </div>
-              <button className="ba-pill-clear" onClick={onClearSlot}>✕</button>
+              <button className="ba-pill-clear" onClick={onClearSlot}>
+                ✕
+              </button>
             </div>
           </div>
         ) : (
-          <p style={{ textAlign: "center", marginTop: 10, fontSize: 13, color: "var(--gray-500)" }}>
+          <p
+            style={{
+              textAlign: "center",
+              marginTop: 10,
+              fontSize: 13,
+              color: "var(--gray-500)",
+            }}
+          >
             Click an available slot to select your appointment time.
           </p>
         )}
       </div>
 
       <div className="ba-footer">
-        <button className="ba-btn ba-btn-secondary" onClick={onBack}>← Back</button>
-        <button className="ba-btn ba-btn-primary" onClick={onNext}
-          style={{ opacity: selectedSlot ? 1 : 0.5, cursor: selectedSlot ? "pointer" : "not-allowed" }}>
+        <button className="ba-btn ba-btn-secondary" onClick={onBack}>
+          ← Back
+        </button>
+        <button
+          className="ba-btn ba-btn-primary"
+          onClick={onNext}
+          style={{
+            opacity: selectedSlot ? 1 : 0.5,
+            cursor: selectedSlot ? "pointer" : "not-allowed",
+          }}
+        >
           Next →
         </button>
       </div>
@@ -490,27 +480,42 @@ export function StepChooseTime({ form, selectedSlot, onSelectSlot, onClearSlot, 
 }
 
 // StepReview
-export function StepReview({ form, selectedSlot, onBack, onConfirm, onTimerExpired }) {
+export function StepReview({
+  form,
+  selectedSlot,
+  onBack,
+  onConfirm,
+  onTimerExpired,
+}) {
   const householdSize = Number(form.householdMembers) || 1;
-  const interval      = householdSize >= 5 ? 30 : 15;
+  const interval = householdSize >= 5 ? 30 : 15;
 
-  
-const fullName = (form.firstName || form.lastName)
-  ? [form.firstName, form.lastName].filter(Boolean).join(" ")
-  : form.name || "";
+  const fullName =
+    form.firstName || form.lastName
+      ? [form.firstName, form.lastName].filter(Boolean).join(" ")
+      : form.name || "";
 
-const fullAddress = form.streetAddress
-  ? [form.streetAddress, form.city, form.province, form.postalCode].filter(Boolean).join(", ")
-  : form.address || "";
+  const fullAddress = form.streetAddress
+    ? [form.streetAddress, form.city, form.province, form.postalCode]
+      .filter(Boolean)
+      .join(", ")
+    : form.address || "";
 
   const rows = [
-    { label: "Name",             value: fullName },
-    { label: "Address",          value: fullAddress },
-    { label: "Phone",            value: form.phone },
+    { label: "Name", value: fullName },
+    { label: "Address", value: fullAddress },
+    { label: "Phone", value: form.phone },
     { label: "Status in Canada", value: form.statusInCanada },
-    { label: "Household Size",   value: form.householdMembers },
-    { label: "Tiny Bundles?",    value: form.applyingToTinyBundles === "yes" ? "Yes" : "No" },
-    { label: "Appointment",      value: formatApptString(selectedSlot) },
+    { label: "Household Size", value: form.householdMembers },
+    {
+      label: "Tiny Bundles?",
+      value: form.applyingToTinyBundles === "yes" ? "Yes" : "No",
+    },
+    {
+      label: "Preferred Language",
+      value: form.language,
+    },
+    { label: "Appointment", value: formatApptString(selectedSlot) },
   ];
 
   // Timer
@@ -542,9 +547,16 @@ const fullAddress = form.streetAddress
       {/* Timer shown on review so user knows how long they have to confirm */}
       <TimerBar secondsLeft={secondsLeft} />
 
-      <div className="ba-footer" style={{ justifyContent: "center", gap: 16, marginTop: 12 }}>
-        <button className="ba-btn ba-btn-secondary" onClick={onBack}>← Back</button>
-        <button className="ba-btn ba-btn-confirm" onClick={onConfirm}>Confirm</button>
+      <div
+        className="ba-footer"
+        style={{ justifyContent: "center", gap: 16, marginTop: 12 }}
+      >
+        <button className="ba-btn ba-btn-secondary" onClick={onBack}>
+          ← Back
+        </button>
+        <button className="ba-btn ba-btn-confirm" onClick={onConfirm}>
+          Confirm
+        </button>
       </div>
     </>
   );
@@ -563,17 +575,20 @@ export function StepThankYou({ selectedSlot, onDone }) {
             {formatApptString(selectedSlot, interval)}
           </p>
           <p style={{ marginTop: 20, fontSize: 13 }}>
-            Please remember to bring valid government-issued ID for each adult in your household
-            containing proof of address (e.g. driver's license, BCID) for your appointment.
+            Please remember to bring valid government-issued ID for each adult
+            in your household containing proof of address (e.g. driver's
+            license, BCID) for your appointment.
           </p>
           <p style={{ marginTop: 8, fontSize: 13 }}>
-            If you need to reschedule or cancel, you can do so through your online account or by
-            calling us at <strong>(604) 581-5443</strong>.
+            If you need to reschedule or cancel, you can do so through your
+            online account or by calling us at <strong>(604) 581-5443</strong>.
           </p>
         </div>
       </div>
       <div className="ba-footer" style={{ justifyContent: "flex-end" }}>
-        <button className="ba-btn ba-btn-done" onClick={onDone}>Done</button>
+        <button className="ba-btn ba-btn-done" onClick={onDone}>
+          Done
+        </button>
       </div>
     </>
   );
