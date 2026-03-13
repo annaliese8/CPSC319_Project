@@ -31,12 +31,19 @@ function Profile() {
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [appointment, setAppointment] = useState({
     applicantEmail: "",
+    firstName: "",
+    lastName: "",
     name: "",
     phone: "",
     address: "",
+    streetAddress: "",
+    city: "",
+    postalCode: "",
+    province: "",
     statusInCanada: "",
     applyingToTinyBundles: "no",
     householdMembers: "",
+    language: "",
     day: "",
     startTime: "",
     duration: 0,
@@ -58,11 +65,17 @@ function Profile() {
     // Prioritize location.state (just completed booking) over stored data
     if (location.state) {
       setAppointment((prev) => ({ ...prev, ...location.state }));
-      localStorage.setItem(storageKey, JSON.stringify({ ...JSON.parse(localStorage.getItem(storageKey) || "{}"), ...location.state }));
-  // Clear location.state so refresh doesn't re-apply it
+      localStorage.setItem(
+        storageKey,
+        JSON.stringify({
+          ...JSON.parse(localStorage.getItem(storageKey) || "{}"),
+          ...location.state,
+        }),
+      );
+      // Clear location.state so refresh doesn't re-apply it
       window.history.replaceState({}, "");
       return;
-}
+    }
 
     // Otherwise load from localStorage
     const storedData = JSON.parse(localStorage.getItem(storageKey) || "null");
@@ -123,18 +136,18 @@ function Profile() {
 
   const handleCancelComplete = () => {
     // Update the local state to reflect the cancelled booking
-     if (appointment) {
-    setAppointment({
-      ...appointment,
-      day: "",
-      startTime: "",
-      date: "",
-      duration: 0,
-      dateLabel: "",
-      timeLabel: "",
-    });
-  }
-};
+    if (appointment) {
+      setAppointment({
+        ...appointment,
+        day: "",
+        startTime: "",
+        date: "",
+        duration: 0,
+        dateLabel: "",
+        timeLabel: "",
+      });
+    }
+  };
 
   return (
     <>
@@ -196,8 +209,9 @@ function Profile() {
               onClose={() => setShowCancelDialog(false)}
               appointment={appointment}
               isStaff={true}
-              applicantEmail={appointment?.email || appointment?.applicantEmail || null}
-
+              applicantEmail={
+                appointment?.email || appointment?.applicantEmail || null
+              }
               onCancelComplete={handleCancelComplete}
             />
           </Box>

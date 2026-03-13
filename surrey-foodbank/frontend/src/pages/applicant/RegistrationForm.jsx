@@ -1,11 +1,9 @@
 import { useState } from "react";
 import { useBookingStyles } from "./Bookingstyles";
-import {
-  Stepper,
-  StepPersonalInfo,
-} from "../../components/BookingSteps";
+import { Stepper, StepPersonalInfo } from "../../components/BookingSteps";
 import { useNavigate } from "react-router-dom";
 import ApplicantTopBar from "../../components/ApplicantTopBar";
+import { validateRegistrationForm } from "../../utils/ValidateRegistrationForm";
 
 export default function Register() {
   useBookingStyles();
@@ -13,14 +11,19 @@ export default function Register() {
   const handleLogout = () => navigate("/applicant/home");
 
   const [form, setForm] = useState({
-  firstName: "", lastName: "",
-  streetAddress: "", city: "", province: "", postalCode: "",
-  phone: "", statusInCanada: "",
-  householdMembers: "", applyingToTinyBundles: "no", language: "English",
-});
+    firstName: "",
+    lastName: "",
+    streetAddress: "",
+    city: "",
+    province: "British Columbia",
+    postalCode: "",
+    phone: "",
+    statusInCanada: "",
+    householdMembers: "",
+    applyingToTinyBundles: "no",
+    language: "English",
+  });
   const [formErrors, setFormErrors] = useState({});
-
-  const isValidPhone = (value) => value.replace(/\D/g, "").length >= 10;
 
   const handleFormChange = (field, value) => {
     setForm((f) => ({ ...f, [field]: value }));
@@ -28,28 +31,23 @@ export default function Register() {
   };
 
   const handlePersonalNext = () => {
-    const errors = {};
-    if (!form.firstName.trim())    errors.firstName    = "Required";
-    if (!form.lastName.trim())     errors.lastName     = "Required";
-    if (!form.streetAddress.trim()) errors.streetAddress = "Required";
-    if (!form.city.trim())         errors.city         = "Required";
-    if (!form.province)            errors.province     = "Required";
-    if (!/^[A-Za-z]\d[A-Za-z] ?\d[A-Za-z]\d$/.test(form.postalCode)) errors.postalCode = "Enter a valid postal code (e.g. V3T 0A1)";
-    if (!form.phone.trim())                        errors.phone          = "Required";
-    else if (!isValidPhone(form.phone))            errors.phone          = "Please enter a valid phone number (at least 10 digits)";
-    if (!form.statusInCanada)                      errors.statusInCanada = "Required";
-    if (!form.householdMembers || Number(form.householdMembers) < 1)
-      errors.householdMembers = "Please enter a valid household size (1 or more)";
+    // Check if form fields are valid and set errors
+    const errors = validateRegistrationForm(form);
     setFormErrors(errors);
     if (Object.keys(errors).length) return;
 
     // Persist to localStorage under the activeUser key so RegistrationFormInfo
     // and BookAppointment can read the same data without relying solely on router state
     const activeUser = JSON.parse(localStorage.getItem("activeUser") || "null");
-    const applicantKey = activeUser?.email ? `applicant_${activeUser.email}` : null;
+    const applicantKey = activeUser?.email
+      ? `applicant_${activeUser.email}`
+      : null;
     if (applicantKey) {
       const existing = JSON.parse(localStorage.getItem(applicantKey) || "{}");
-      localStorage.setItem(applicantKey, JSON.stringify({ ...existing, ...form }));
+      localStorage.setItem(
+        applicantKey,
+        JSON.stringify({ ...existing, ...form }),
+      );
     }
 
     navigate("/applicant/profile", {
@@ -67,8 +65,8 @@ export default function Register() {
         applyingToTinyBundles: form.applyingToTinyBundles,
         householdMembers: form.householdMembers,
         language: form.language,
-    },
-  });
+      },
+    });
   };
 
   return (
