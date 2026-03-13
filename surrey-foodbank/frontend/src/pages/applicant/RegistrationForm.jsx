@@ -25,10 +25,10 @@ export default function Register() {
   });
   const [formErrors, setFormErrors] = useState({});
 
-  const handleFormChange = (field, value) => {
-    setForm((f) => ({ ...f, [field]: value }));
-    setFormErrors((e) => ({ ...e, [field]: undefined }));
-  };
+  const handleFormChange = (field) => (e) => {
+  setForm((f) => ({ ...f, [field]: e.target.value }));
+  setFormErrors((e) => ({ ...e, [field]: undefined }));
+};
 
   const handlePersonalNext = () => {
     // Check if form fields are valid and set errors

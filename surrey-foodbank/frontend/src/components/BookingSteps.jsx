@@ -189,7 +189,7 @@ export function StepPersonalInfo({ form, onChange, onNext, errors }) {
         form={form}
         onChange={onChange}
         errors={errors}
-        disabled={false}
+        isDisabled={false}
       />
       <Stack direction="row" spacing={2} mt={4}>
         <Button variant="contained" color="primary" onClick={onNext}>

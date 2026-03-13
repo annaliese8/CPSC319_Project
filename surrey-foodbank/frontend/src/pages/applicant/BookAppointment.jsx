@@ -53,7 +53,7 @@ export default function BookAppointment() {
     const duration = Number(form.householdMembers) >= 5 ? 30 : 15;
     const payload = {
       email: activeUser?.email,
-      firstName: form.firstNameame,
+      firstName: form.firstName,
       lastName: form.lastName,
       name: `${form.firstName} ${form.lastName}`,
       phone: form.phone,
