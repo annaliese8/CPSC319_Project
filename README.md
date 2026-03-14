@@ -60,7 +60,9 @@ The app is hosted on GitHub Pages and can be accessed directly at:
 ```bash
    npm run dev
 ```
-6. Visit [http://localhost:5173/CPSC319_Project/](http://localhost:5173/CPSC319_Project/)
+6. Visit the app:
+   - **Applicant side:** [http://localhost:5173/CPSC319_Project/](http://localhost:5173/CPSC319_Project/)
+   - **Staff side:** `http://localhost:5173/CPSC319_Project/#/{VITE_STAFF_BASE}/login`
 
 ## Testing
 Navigate to the frontend folder and run:
