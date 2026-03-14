@@ -43,7 +43,10 @@ function EmailFormatGuide() {
         <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600, whiteSpace: "nowrap", fontSize: "0.95rem" }}>Email format:</Typography>
         <Stack direction="row" alignItems="center" flexWrap="wrap">
           {parts.map((part) => (
-            <Tooltip key={part.text} title={<Box><Typography variant="caption" sx={{ fontWeight: 700 }}>{part.label}</Typography><Typography variant="caption" sx={{ display: "block", mt: 0.5 }}>{part.detail}</Typography></Box>} arrow placement="top" enterTouchDelay={0}>
+            <Tooltip key={part.text} title={<Box><Typography variant="caption" sx={{ fontWeight: 700, fontSize: "1.1rem" }}>{part.label}</Typography><Typography variant="caption" sx={{ display: "block", mt: 0.5, fontSize: "0.9rem" }}>{part.detail}</Typography></Box>} arrow placement="top" enterTouchDelay={0} slotProps={{
+              tooltip: { sx: { backgroundColor: "primary.main" } },
+              arrow: { sx: { color: "primary.main" } }
+            }}>
               <Box component="span" sx={{ color: part.color, backgroundColor: part.bg, borderRadius: 0.75, px: 0.5, py: 0.1, fontFamily: "monospace", fontSize: "0.8rem", fontWeight: 700, cursor: "help", "&:hover": { opacity: 0.8 } }}>{part.text}</Box>
             </Tooltip>
           ))}
@@ -116,31 +119,31 @@ function CreateAccount() {
       localStorage.setItem("users", JSON.stringify(users));
 
       const applicantKey = `applicant_${emailField.value}`;
-    if (!localStorage.getItem(applicantKey)) {
-      localStorage.setItem(
-      applicantKey,
-      JSON.stringify({
-      email: emailField.value,
-      firstName: "",
-      lastName: "",
-      name: "",
-      phone: "",
-      streetAddress: "",
-      city: "",
-      province: "",
-      postalCode: "",
-      address: "",
-      statusInCanada: "",
-      applyingToTinyBundles: "no",
-      householdMembers: "",
-      day: "",
-      startTime: "",
-      duration: 0,
-      dateLabel: "",
-      timeLabel: "",
-      }),
-    );
-  }
+      if (!localStorage.getItem(applicantKey)) {
+        localStorage.setItem(
+          applicantKey,
+          JSON.stringify({
+            email: emailField.value,
+            firstName: "",
+            lastName: "",
+            name: "",
+            phone: "",
+            streetAddress: "",
+            city: "",
+            province: "",
+            postalCode: "",
+            address: "",
+            statusInCanada: "",
+            applyingToTinyBundles: "no",
+            householdMembers: "",
+            day: "",
+            startTime: "",
+            duration: 0,
+            dateLabel: "",
+            timeLabel: "",
+          }),
+        );
+      }
 
       localStorage.setItem(
         "activeUser",
@@ -176,7 +179,7 @@ function CreateAccount() {
           elevation={3}
           sx={{
             width: "100%",
-            maxWidth:1360,
+            maxWidth: 1360,
             borderRadius: 4,
             overflow: "hidden",
             display: "grid",
@@ -209,7 +212,7 @@ function CreateAccount() {
             <List disablePadding sx={{ width: "100%", maxWidth: 520 }}>
               <ListItem alignItems="flex-start" disableGutters>
                 <ListItemIcon sx={{ minWidth: 40 }}><Typography sx={listItemIconStyle}>1.</Typography></ListItemIcon>
-                <ListItemText primary="Create an account using the form on this page." secondary={<>Already have an account? Log in <Link href="/applicant/login" color="primary">here.</Link></>} slotProps={listItemTextStyle} />
+                <ListItemText primary="Create an account using the form on this page." secondary={<>Already have an account? Log in <Link href="/applicant/login" color="primary" aria-label="Log in">here.</Link></>} slotProps={listItemTextStyle} />
               </ListItem>
               <ListItem alignItems="flex-start" disableGutters>
                 <ListItemIcon sx={{ minWidth: 40 }}><Typography sx={listItemIconStyle}>2.</Typography></ListItemIcon>
@@ -221,7 +224,7 @@ function CreateAccount() {
               </ListItem>
               <ListItem alignItems="flex-start" disableGutters>
                 <ListItemIcon sx={{ minWidth: 40 }}><Typography sx={listItemIconStyle}>4.</Typography></ListItemIcon>
-                <ListItemText primary={<>Attend your scheduled appointment at our <Link href="https://maps.app.goo.gl/1H39wzvMBqmki2se6" color="primary">registration office.</Link></>} secondary="Bring proof of address and original government-issued photo ID for each household member." slotProps={listItemTextStyle} />
+                <ListItemText primary={<>Attend your scheduled appointment at our <Link href="https://maps.app.goo.gl/1H39wzvMBqmki2se6" color="primary" aria-label="Google Maps of Surrey Food Bank's registration office">registration office.</Link></>} secondary="Bring proof of address and original government-issued photo ID for each household member." slotProps={listItemTextStyle} />
               </ListItem>
               <ListItem alignItems="flex-start" disableGutters>
                 <ListItemIcon sx={{ minWidth: 40 }}><Typography sx={listItemIconStyle}>5.</Typography></ListItemIcon>

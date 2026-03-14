@@ -22,35 +22,35 @@ function CancelBookingDialogue({
   const navigate = useNavigate();
 
   const handleCancel = () => {
-  const emailToUse = isStaff
-    ? applicantEmail
-    : JSON.parse(localStorage.getItem("activeUser") || "null")?.email;
+    const emailToUse = isStaff
+      ? applicantEmail
+      : JSON.parse(localStorage.getItem("activeUser") || "null")?.email;
 
-  if (emailToUse) {
-    const key = `applicant_${emailToUse}`;
-    const storedData = localStorage.getItem(key);
-    if (storedData) {
-      const data = JSON.parse(storedData);
-      // Clear all booking fields, not just labels
-      data.day = "";
-      data.startTime = "";
-      data.date = "";
-      data.duration = 0;
-      data.dateLabel = "";
-      data.timeLabel = "";
-      localStorage.setItem(key, JSON.stringify(data));
+    if (emailToUse) {
+      const key = `applicant_${emailToUse}`;
+      const storedData = localStorage.getItem(key);
+      if (storedData) {
+        const data = JSON.parse(storedData);
+        // Clear all booking fields, not just labels
+        data.day = "";
+        data.startTime = "";
+        data.date = "";
+        data.duration = 0;
+        data.dateLabel = "";
+        data.timeLabel = "";
+        localStorage.setItem(key, JSON.stringify(data));
 
+      }
     }
-  }
 
-  if (onCancelComplete) onCancelComplete();
-  onClose();
+    if (onCancelComplete) onCancelComplete();
+    onClose();
 
-  // Applicant side: navigate away after cancel
-  if (!isStaff) {
-    navigate("/applicant/profile");
-  }
-};
+    // Applicant side: navigate away after cancel
+    if (!isStaff) {
+      navigate("/applicant/profile");
+    }
+  };
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
@@ -65,7 +65,7 @@ function CancelBookingDialogue({
           fontSize: 28,
         }}
       >
-        <IconButton onClick={onClose} sx={{ color: "common.white" }}>
+        <IconButton onClick={onClose} aria-text="Back" sx={{ color: "common.white" }}>
           <ArrowBackIcon />
         </IconButton>
         Please Confirm

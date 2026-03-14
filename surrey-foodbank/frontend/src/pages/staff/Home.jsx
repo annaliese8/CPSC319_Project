@@ -98,7 +98,7 @@ import StaffTopBar from "../../components/StaffTopBar";
 import WelcomePanel from "../../components/WelcomePanel";
 import AdminCalendarPanel from "../../components/AdminCalendarPanel";
 import { useNavigate, useLocation } from 'react-router-dom';
-import AppointmentInfoDialog from "../../components/ApplicantInfoCard";
+import AppointmentInfoDialog from "../../components/AppointmentInfoDialog";
 
 function Home() {
   const [openInfoDialog, setOpenInfoDialog] = React.useState(false);
@@ -195,7 +195,7 @@ function Home() {
           open={openInfoDialog}
           onClose={() => setOpenInfoDialog(false)}
           appointment={appointmentData}
-          onDelete={() => {}}
+          onDelete={() => { }}
         />
       </Box>
     </Box>

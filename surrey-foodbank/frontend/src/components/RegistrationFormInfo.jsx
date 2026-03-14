@@ -86,6 +86,7 @@ export default function RegistrationFormInfo({ appointment, onSave }) {
           {/* Buttons for editing the form, saving changes, and discarding changes */}
           {isDisabled ? (
             <Button
+              label="Edit registration form"
               variant="contained"
               color="primary"
               size="large"

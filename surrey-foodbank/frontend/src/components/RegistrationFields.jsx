@@ -232,15 +232,34 @@ export default function RegistrationFields({
             Would you like to signup for the Tiny Bundles Program?
           </FormLabel>
           <Tooltip
-            title="Please select Yes if your household has a pregnant mom or children under 12 months old.
+            title="Select 'Yes' if your household has a pregnant mom or children under 12 months old.
                           Tiny Bundles families receive food every week instead of every two weeks. They are also
                           supplied with fresh eggs and milk while pregnant or nursing. Additional fresh vegetables
                           and other nutritional items are supplied when available."
+            disableHoverListener={isDisabled}
+            disableFocusListener={isDisabled}
+            arrow
+            slotProps={{
+              tooltip: {
+                sx: {
+                  fontSize: "1rem",
+                  maxWidth: 300,
+                  p: 2,
+                  backgroundColor: "primary.main"
+                }
+              },
+              arrow: {
+                sx: {
+                  color: "primary.main",
+                }
+              }
+            }}
           >
             <Link
               href="https://surreyfoodbank.org/program/babies-toddlers/"
               target="_blank"
               rel="noopener noreferrer"
+              aria-label="Learn more about the Tiny Bundles program"
             >
               <InfoIcon
                 sx={{
@@ -270,9 +289,9 @@ export default function RegistrationFields({
             />
           </RadioGroup>
         </Stack>
-      </FormControl>
+      </FormControl >
       {/* Language */}
-      <Autocomplete
+      < Autocomplete
         options={LANGUAGES}
         value={form.language}
         disabled={isDisabled}
@@ -296,6 +315,6 @@ export default function RegistrationFields({
         autoHighlight
         freeSolo
       />
-    </Stack>
+    </Stack >
   );
 }

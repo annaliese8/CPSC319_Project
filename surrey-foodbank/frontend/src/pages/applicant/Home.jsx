@@ -31,7 +31,7 @@ function Home() {
       {/* Simple navbar */}
       <AppBar position="sticky" color="transparent" elevation={1}>
         <Toolbar>
-          <MuiLink href="https://surreyfoodbank.org/">
+          <MuiLink href="https://surreyfoodbank.org/" aria-label="Surrey Food Bank website">
             <Box
               component="img"
               src={logo}
@@ -133,7 +133,7 @@ function Home() {
               primary={
                 <>
                   Create an account in our registration system{" "}
-                  <MuiLink component={Link} to="/applicant/create-account" color="primary">
+                  <MuiLink component={Link} to="/applicant/create-account" color="primary" aria-label="Create an account">
                     here.
                   </MuiLink>
                 </>
@@ -141,7 +141,7 @@ function Home() {
               secondary={
                 <>
                   Already have an account? Log in{" "}
-                  <MuiLink component={Link} to="/applicant/login" color="primary">
+                  <MuiLink component={Link} to="/applicant/login" color="primary" aria-label="Log in">
                     here.
                   </MuiLink>
                 </>
@@ -184,6 +184,7 @@ function Home() {
                   <MuiLink
                     href="https://maps.app.goo.gl/1H39wzvMBqmki2se6"
                     color="primary.main"
+                    aria-label="Google Maps of Surrey Food Bank's registration office"
                   >
                     registration office.
                   </MuiLink>

@@ -9,6 +9,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import RegistrationFields from "./RegistrationFields";
 import { addMinutesToTime } from "../utils/TimeUtils";
 
@@ -186,11 +187,11 @@ export function StepPersonalInfo({ form, onChange, onNext, errors }) {
         errors={errors}
         isDisabled={false}
       />
-      <Stack direction="row" spacing={2} mt={4}>
-        <Button variant="contained" color="primary" onClick={onNext}>
+      <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 3 }}>
+        <Button variant="contained" color="primary" onClick={onNext} sx={{ fontWeight: "bold" }} endIcon={<NavigateNextIcon />}>
           Next
         </Button>
-      </Stack>
+      </Box>
     </Box>
   );
 }
@@ -410,6 +411,16 @@ export function StepChooseTime({
                         <div
                           className={`ba-slot ${selected ? "selected" : avail ? "avail" : "unavail"}`}
                           onClick={() => handleSlotClick(day, time)}
+                          // Makes the calendar accessible with keyboard controls
+                          tabIndex={0}
+                          role="button"
+                          aria-label={`${selected ? "Appointment selected" : avail ? "Available" : "Unavailable"} slot: ${day} at ${time}`}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              handleSlotClick(day, time);
+                            }
+                          }}
                         />
                       </td>
                     );
@@ -441,7 +452,7 @@ export function StepChooseTime({
                   })}
                 </div>
               </div>
-              <button className="ba-pill-clear" onClick={onClearSlot}>
+              <button className="ba-pill-clear" aria-label="Deselect appointment slot" onClick={onClearSlot}>
                 ✕
               </button>
             </div>
