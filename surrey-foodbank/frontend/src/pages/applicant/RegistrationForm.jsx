@@ -26,9 +26,9 @@ export default function Register() {
   const [formErrors, setFormErrors] = useState({});
 
   const handleFormChange = (field) => (e) => {
-  setForm((f) => ({ ...f, [field]: e.target.value }));
-  setFormErrors((e) => ({ ...e, [field]: undefined }));
-};
+    setForm((f) => ({ ...f, [field]: e.target.value }));
+    setFormErrors((e) => ({ ...e, [field]: undefined }));
+  };
 
   const handlePersonalNext = () => {
     // Check if form fields are valid and set errors
@@ -71,6 +71,7 @@ export default function Register() {
 
   return (
     <div className="ba-shell">
+      <title>Registration | Surrey Food Bank</title>
       <ApplicantTopBar onLogout={handleLogout} />
       <div className="ba-card-wrap">
         <div className="ba-card">

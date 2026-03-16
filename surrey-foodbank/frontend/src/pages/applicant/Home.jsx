@@ -28,6 +28,7 @@ function Home() {
 
   return (
     <>
+      <title>Welcome | Surrey Food Bank</title>
       {/* Simple navbar */}
       <AppBar position="sticky" color="transparent" elevation={1}>
         <Toolbar>

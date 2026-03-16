@@ -162,6 +162,7 @@ function Home() {
 
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
+      <title>Appointment Calendar | Surrey Food Bank</title>
       <StaffTopBar position="sticky" onLogout={handleLogout} />
       {/* Main Layout */}
       <Box

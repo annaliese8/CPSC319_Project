@@ -155,6 +155,7 @@ function CreateAccount() {
 
   return (
     <Box sx={{ minHeight: "100vh", display: "flex", flexDirection: "column", backgroundColor: "#f0f4f8" }}>
+      <title>Create Account | Surrey Food Bank</title>
       {/* Navbar */}
       <AppBar position="sticky" color="transparent" elevation={1} sx={{ backgroundColor: "#fff" }}>
         <Toolbar>

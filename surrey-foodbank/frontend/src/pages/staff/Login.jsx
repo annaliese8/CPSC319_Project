@@ -28,6 +28,7 @@ function Login() {
 
   return (
     <>
+      <title>Staff Login Page | Surrey Food Bank</title>
       <Window title="Surrey Food Bank Administrator Login">
         <UserNameField
           onChange={(e) => setUsername(e.target.value)}

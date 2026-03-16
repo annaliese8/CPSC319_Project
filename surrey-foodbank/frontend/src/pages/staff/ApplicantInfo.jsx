@@ -197,16 +197,16 @@ export default function ApplicantInfoPage() {
 
   // Load fresh data from localStorage when component mounts or when applicantEmail changes
   useEffect(() => {
-    const applicantEmail = location.state?.appointment?.email 
-        || location.state?.appointment?.applicantEmail;
+    const applicantEmail = location.state?.appointment?.email
+      || location.state?.appointment?.applicantEmail;
     if (applicantEmail) {
-        const storedData = localStorage.getItem(`applicant_${applicantEmail}`);
-        if (storedData) {
-            const data = JSON.parse(storedData);
-            setAppointment({ ...data, email: applicantEmail, applicantEmail });
-        } else {
-            setAppointment(location.state.appointment);
-        }
+      const storedData = localStorage.getItem(`applicant_${applicantEmail}`);
+      if (storedData) {
+        const data = JSON.parse(storedData);
+        setAppointment({ ...data, email: applicantEmail, applicantEmail });
+      } else {
+        setAppointment(location.state.appointment);
+      }
     }
   }, [location.state?.appointment?.email]);
 
@@ -260,10 +260,11 @@ export default function ApplicantInfoPage() {
     } else {
       console.error("No applicant email found in appointment data");
     }
-};
+  };
 
   return (
     <Box sx={{ minHeight: "100vh" }}>
+      <title>Applicant Info | Surrey Food Bank</title>
       <AppBar
         position="static"
         sx={{
