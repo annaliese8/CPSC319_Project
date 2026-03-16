@@ -132,7 +132,7 @@ function Profile() {
 
     setAppointment(merged);
     localStorage.setItem(storageKey, JSON.stringify(merged));
-};
+  };
 
   const handleCancelComplete = () => {
     // Update the local state to reflect the cancelled booking
@@ -299,6 +299,7 @@ function NextSteps() {
                 target="_blank"
                 rel="noopener noreferrer"
                 color="primary"
+                aria-label="Google Maps of Surrey Food Bank's registration office"
               >
                 Unit 1 - 13478 78th Avenue, Surrey, BC
               </Link>
@@ -323,18 +324,19 @@ function NextSteps() {
                   href="https://surreyfoodbank.org/clients/"
                   target="_blank"
                   rel="noopener noreferrer"
+                  aria-label="Surrey Food Bank website"
                 >
                   surreyfoodbank.org/clients
                 </Link>
               </Typography>
               <Typography color="text.secondary">
                 • Email:{" "}
-                <Link href="mailto:registration@surreyfoodbank.org">
+                <Link href="mailto:registration@surreyfoodbank.org" aria-label="Email address of Surrey Food Bank">
                   registration@surreyfoodbank.org
                 </Link>
               </Typography>
               <Typography color="text.secondary">
-                • Call: <Link href="tel:16045815443">(604) 581-5443</Link>
+                • Call: <Link href="tel:16045815443" aria-label="Phone number of Surrey Food Bank">(604) 581-5443</Link>
               </Typography>
             </Stack>
           </Box>

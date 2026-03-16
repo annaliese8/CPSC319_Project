@@ -60,18 +60,18 @@ function ApplicantDatabase() {
     navigate(`/staff/applicant-info`, {
       state: {
         appointment: {
-          name:                 applicant.name        || "",
-          email:                applicant.email       || "",
-          phone:                applicant.phone       || "",
-          address:              applicant.address     || "",
-          statusInCanada:       applicant.statusInCanada       || "",
+          name: applicant.name || "",
+          email: applicant.email || "",
+          phone: applicant.phone || "",
+          address: applicant.address || "",
+          statusInCanada: applicant.statusInCanada || "",
           applyingToTinyBundles: applicant.applyingToTinyBundles || "no",
-          householdMembers:     applicant.householdMembers     || "",
-          dateLabel:            applicant.dateLabel   || "",
-          timeLabel:            applicant.timeLabel   || "",
-          duration:             applicant.duration    || 0,
-          day:                  applicant.day         || "",
-          startTime:            applicant.startTime   || "",
+          householdMembers: applicant.householdMembers || "",
+          dateLabel: applicant.dateLabel || "",
+          timeLabel: applicant.timeLabel || "",
+          duration: applicant.duration || 0,
+          day: applicant.day || "",
+          startTime: applicant.startTime || "",
         },
       },
     });
@@ -89,7 +89,7 @@ function ApplicantDatabase() {
 
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
-      <StaffTopBar onLogout={handleLogout}/>
+      <StaffTopBar onLogout={handleLogout} />
 
       <Box sx={{ p: { xs: 2, md: 4 } }}>
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
@@ -102,6 +102,7 @@ function ApplicantDatabase() {
         </Box>
 
         <TextField
+          label="Search applicant database"
           fullWidth
           placeholder="Search by name or email..."
           value={query}
@@ -115,7 +116,7 @@ function ApplicantDatabase() {
             ),
             endAdornment: query && (
               <InputAdornment position="end">
-                <IconButton size="small" onClick={() => setQuery("")}>
+                <IconButton size="small" aria-label="Clear search" onClick={() => setQuery("")}>
                   <ClearIcon fontSize="small" />
                 </IconButton>
               </InputAdornment>
@@ -150,8 +151,24 @@ function ApplicantDatabase() {
                     <TableRow
                       key={applicant.key}
                       hover
-                      sx={{ cursor: "pointer" }}
+                      sx={{
+                        cursor: "pointer",
+                        "&:focus-visible": {
+                          outline: "5px solid",
+                          outlineColor: "secondary.main",
+                          outlineOffset: "-5px",
+                        }
+                      }}
                       onClick={() => handleRowClick(applicant)}
+                      tabIndex={0}
+                      role="button"
+                      aria-label={`View details for ${applicant.name || applicant.email}`}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          handleRowClick(applicant);
+                        }
+                      }}
                     >
                       <TableCell>{applicant.name || <em style={{ color: "#aaa" }}>Not provided</em>}</TableCell>
                       <TableCell>{applicant.email}</TableCell>

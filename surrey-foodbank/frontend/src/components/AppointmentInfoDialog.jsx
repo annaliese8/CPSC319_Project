@@ -11,7 +11,6 @@ import {
 import CloseIcon from "@mui/icons-material/Close";
 import { useNavigate } from "react-router-dom";
 
-
 function AppointmentInfoDialog({
   open,
   onClose,
@@ -23,7 +22,7 @@ function AppointmentInfoDialog({
   const handleMoreDetails = () => {
     // Pass data via router state for now (no backend yet)
     navigate("/staff/applicant-info", { state: { appointment } });
-  };  
+  };
 
   return (
     // Creates a dialog box to interact with when clicked on the appointment in calendar
@@ -39,12 +38,12 @@ function AppointmentInfoDialog({
         }}
       >
         APPOINTMENT INFO
-        <IconButton onClick={onClose}>
+        <IconButton aria-label="Close appointment information dialog window" onClick={onClose}>
           <CloseIcon />
         </IconButton>
       </DialogTitle>
 
-        {/* Shows appointment details here */}
+      {/* Shows appointment details here */}
       <DialogContent>
         <Box sx={{ textAlign: "center", py: 2 }}>
           <Typography variant="h6" sx={{ fontWeight: 800 }}>

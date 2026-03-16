@@ -486,7 +486,7 @@
 
 import React, { useState } from "react";
 import "./AdminCalendar.css";
-import AppointmentInfoDialog from "./ApplicantInfoCard.jsx";
+import AppointmentInfoDialog from "./AppointmentInfoDialog.jsx";
 import StaffBookingPanel from "./StaffBookingPanel.jsx";
 import {
     Dialog,
@@ -978,6 +978,16 @@ function AdminCalendar({
                                         key={day + time}
                                         className={`slot ${isBlocked(day, time) ? "unavailable-invis" : isHighlighted ? "admin-selected" : slotBooked ? "admin-booked" : "admin-available"}`}
                                         onClick={() => handleSlotClick(day, time)}
+                                        // Makes the calendar accessible with keyboard controls
+                                        tabIndex={0}
+                                        role="button"
+                                        aria-label={`${isBlocked(day, time) ? "Unavailable" : slotBooked ? "Booked" : "Available"} slot: ${day} at ${time}`}
+                                        onKeyDown={(e) => {
+                                            if (e.key === "Enter" || e.key === " ") {
+                                                e.preventDefault();
+                                                handleSlotClick(day, time);
+                                            }
+                                        }}
                                     />
                                 );
                             }

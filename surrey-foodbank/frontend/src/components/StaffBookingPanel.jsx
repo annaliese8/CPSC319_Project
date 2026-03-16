@@ -619,7 +619,7 @@ export default function StaffBookingPanel({
             />
           )}
         </Box>
-        <Button onClick={onClose} sx={{ minWidth: "auto", p: 0.5, fontSize: "1.5rem" }}>
+        <Button onClick={onClose} aria-label="Close appointment booking panel and discard changes" sx={{ minWidth: "auto", p: 0.5, fontSize: "1.5rem" }}>
           ✕
         </Button>
       </Box>
@@ -686,22 +686,20 @@ export default function StaffBookingPanel({
           isDisabled={isRebooking}
         />
 
-        <Stack direction="row" spacing={1.5} sx={{ mt: 2 }}>
+        <Stack direction="row" spacing={1.5} sx={{ mt: 3 }}>
           <Button
             variant="outlined"
             onClick={onClose}
             fullWidth
-            size="small"
             sx={{ fontWeight: 600 }}
           >
             Discard
           </Button>
           <Button
             variant="contained"
-            color="secondary"
+            color="primary"
             onClick={handleConfirm}
             fullWidth
-            size="small"
             sx={{ fontWeight: 600, color: "common.white" }}
           >
             {isRebooking ? "Confirm Change" : "Confirm"}
