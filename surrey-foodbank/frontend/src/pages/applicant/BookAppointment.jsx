@@ -96,6 +96,7 @@ export default function BookAppointment() {
   // Render
   return (
     <div className="ba-shell">
+      <title>Book Appointment | Surrey Food Bank</title>
       <ApplicantTopBar onLogout={handleLogout} />
 
       <div className="ba-card-wrap">

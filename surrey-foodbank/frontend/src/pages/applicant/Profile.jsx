@@ -151,6 +151,7 @@ function Profile() {
 
   return (
     <>
+      <title>My Profile | Surrey Food Bank</title>
       <ApplicantTopBar onLogout={handleLogout} />
       {/* Tabs for switching between appointment details and registration form */}
       <Tabs

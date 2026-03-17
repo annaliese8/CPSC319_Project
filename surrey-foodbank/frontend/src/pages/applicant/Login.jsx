@@ -58,6 +58,7 @@ function Login() {
 
   return (
     <>
+      <title>Login | Surrey Food Bank</title>
       <Window title="Surrey Food Bank Appointment Booking">
         <Box
           component="form"

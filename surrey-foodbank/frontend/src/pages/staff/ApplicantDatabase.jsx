@@ -89,6 +89,7 @@ function ApplicantDatabase() {
 
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
+      <title>Applicant Database | Surrey Food Bank</title>
       <StaffTopBar onLogout={handleLogout} />
 
       <Box sx={{ p: { xs: 2, md: 4 } }}>

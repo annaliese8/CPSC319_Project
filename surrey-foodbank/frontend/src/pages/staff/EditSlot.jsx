@@ -231,6 +231,7 @@ function EditSlot() {
 
   return (
     <div className="booking-container">
+      <title>Manage Availability | Surrey Food Bank</title>
       {pendingConflicts && pendingConflicts.length > 0 && (
         <ConflictModal
           conflicts={pendingConflicts}
