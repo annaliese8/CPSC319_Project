@@ -1,6 +1,5 @@
 /**
  * Tests for the ValidateRegistrationForm.jsx utility
- * new updated file for the CI demo
  */
 
 import { describe, it, expect } from "vitest";
