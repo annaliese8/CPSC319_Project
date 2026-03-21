@@ -42,10 +42,10 @@ export default function Register() {
   const [memberErrors, setMemberErrors] = useState({});
   const [savedToast, setSavedToast] = useState(false);
 
-  // Auto-save silently on every change
-  useEffect(() => {
-    saveSignupDraft(step, form, familyMembers);
-  }, [step, form, familyMembers]);
+  // // Auto-save silently on every change
+  // useEffect(() => {
+  //   saveSignupDraft(step, form, familyMembers);
+  // }, [step, form, familyMembers]);
 
   // ── Step 0: Personal Info ──────────────────────────────────────────────────
 
@@ -68,8 +68,8 @@ export default function Register() {
     familyMembers.forEach((m) => {
       const mErr = {};
       if (!m.firstName?.trim()) mErr.firstName = "Required";
-      if (!m.lastName?.trim())  mErr.lastName  = "Required";
-      if (!m.ageGroup)          mErr.ageGroup  = "Please select an age group";
+      if (!m.lastName?.trim()) mErr.lastName = "Required";
+      if (!m.ageGroup) mErr.ageGroup = "Please select an age group";
       if (Object.keys(mErr).length) newErrors[m.id] = mErr;
     });
     setMemberErrors(newErrors);
@@ -81,12 +81,11 @@ export default function Register() {
     setStep(2);
   };
 
-  // ── Save & exit ────────────────────────────────────────────────────────────
+  // ── Save Progress ────────────────────────────────────────────────────────────
 
-  const handleSaveAndExit = () => {
+  const handleSaveProgress = () => {
     saveSignupDraft(step, form, familyMembers);
     setSavedToast(true);
-    setTimeout(() => navigate("/applicant/home"), 1400);
   };
 
   // ── Step 2: Review → straight to profile ──────────────────────────────────
@@ -167,7 +166,7 @@ export default function Register() {
             />
           )}
 
-          {/* Save & Continue Later — visible on steps 0 and 1, not on review */}
+          {/* Save Progress — visible on steps 0 and 1, not on review */}
           {step < 2 && (
             <>
               <Divider sx={{ mx: 3, borderColor: "#f0f0f0" }} />
@@ -177,7 +176,7 @@ export default function Register() {
                   variant="outlined"
                   size="large"
                   startIcon={<BookmarkIcon />}
-                  onClick={handleSaveAndExit}
+                  onClick={handleSaveProgress}
                   sx={{
                     textTransform: "none",
                     fontWeight: 700,
@@ -193,7 +192,7 @@ export default function Register() {
                     },
                   }}
                 >
-                  Save & Continue Later
+                  Save Progress
                 </Button>
               </div>
             </>
@@ -203,11 +202,12 @@ export default function Register() {
 
       <Snackbar
         open={savedToast}
-        autoHideDuration={1400}
+        autoHideDuration={5000}
+        onClose={() => setSavedToast(false)}
         anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       >
         <Alert severity="success" variant="filled" sx={{ fontWeight: 600, fontSize: 14 }}>
-          ✓ Progress saved — you can resume anytime after logging back in.
+          ✓ Progress saved — feel free to log out and continue later.
         </Alert>
       </Snackbar>
     </div>

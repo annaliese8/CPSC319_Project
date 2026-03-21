@@ -15,6 +15,7 @@ import {
   ContactSupport as ContactSupportIcon,
   FormatListBulleted as FormatListBulletedIcon,
   Place as PlaceIcon,
+  FamilyRestroom as FamilyRestroomIcon,
 } from "@mui/icons-material";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
@@ -22,6 +23,7 @@ import BookingInfo from "../../components/BookingInfo";
 import RegistrationFormInfo from "../../components/RegistrationFormInfo";
 import ApplicantTopBar from "../../components/ApplicantTopBar";
 import CancelBookingDialogue from "../../components/CancelBookingDialogue";
+import HouseholdMemberInfo from "../../components/HouseholdMemberInfo";
 
 function Profile() {
   const navigate = useNavigate();
@@ -49,6 +51,7 @@ function Profile() {
     duration: 0,
     dateLabel: "",
     timeLabel: "",
+    familyMembers: [],
   });
 
   // Load user and appointment data
@@ -153,7 +156,8 @@ function Profile() {
     <>
       <title>My Profile | Surrey Food Bank</title>
       <ApplicantTopBar onLogout={handleLogout} />
-      {/* Tabs for switching between appointment details and registration form */}
+      {/* Tabs for switching between appointment, registration form, and household members.
+          Active section is displayed on the left. Next steps secion is always on the right. */}
       <Tabs
         value={activeTab}
         onChange={handleTabChange}
@@ -177,14 +181,20 @@ function Profile() {
           label="Appointment Information"
         />
         <Tab
-          value="registration"
+          value="registration-form"
           icon={<FormatListBulletedIcon />}
           iconPosition="start"
-          label="Registration Form Responses"
+          label="Registration Form"
+        />
+        <Tab
+          value="household-members"
+          icon={<FamilyRestroomIcon />}
+          iconPosition="start"
+          label="Household Members"
         />
       </Tabs>
-      {activeTab === "appointment" ? (
-        // Stack containing booking info on the left and next steps on the right
+      {/* Shows when Appointment Information tab is active */}
+      {activeTab === "appointment" && (
         <Stack
           direction={{ xs: "column", md: "row" }}
           spacing={2}
@@ -194,7 +204,6 @@ function Profile() {
             alignItems: "stretch",
           }}
         >
-          {/* Booking Information Section */}
           <Box sx={{ flex: 1, px: 5 }}>
             <Typography variant="h4" sx={{ fontWeight: 800, mb: 2 }}>
               Booking Information
@@ -216,11 +225,11 @@ function Profile() {
               onCancelComplete={handleCancelComplete}
             />
           </Box>
-          {/* Next Steps Section */}
           <NextSteps />
         </Stack>
-      ) : (
-        // Registration Information Section
+      )}
+      {/* Shows when Registration Form tab is active */}
+      {activeTab === "registration-form" && (
         <Stack
           direction={{ xs: "column", md: "row" }}
           spacing={2}
@@ -237,6 +246,30 @@ function Profile() {
             <RegistrationFormInfo
               appointment={appointment}
               onSave={handleRegistrationSave}
+            />
+          </Box>
+          <NextSteps />
+        </Stack>
+      )}
+      {/* Shows when Household Members tab is active */}
+      {activeTab === "household-members" && (
+        <Stack
+          direction={{ xs: "column", md: "row" }}
+          spacing={2}
+          divider={<Divider orientation="vertical" flexItem />}
+          sx={{
+            justifyContent: "center",
+            alignItems: "stretch",
+          }}
+        >
+          <Box sx={{ flex: 1, px: 5 }}>
+            <Typography variant="h4" sx={{ fontWeight: 800, mb: 2 }}>
+              Household Members
+            </Typography>
+            <HouseholdMemberInfo
+              familyMembers={appointment.familyMembers ?? []}
+              onChange={(updated) => handleRegistrationSave({ ...appointment, familyMembers: updated })}
+              errors={{}}
             />
           </Box>
           <NextSteps />
