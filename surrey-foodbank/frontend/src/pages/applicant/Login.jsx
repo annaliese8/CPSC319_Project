@@ -9,7 +9,7 @@ import Typography from "@mui/material/Typography";
 import Window from "../../components/Window";
 import { Link, useNavigate } from "react-router-dom";
 import useTextField from "../../hooks/useTextField";
-import { loadSignupDraft } from "../../components/BookingSteps";
+// import { loadSignupDraft } from "../../components/BookingSteps";
 
 function Login() {
   // Email must be associated with an existing account
@@ -49,11 +49,25 @@ function Login() {
     const hasEmptyFields = !emailField.value || !passwordField.value;
     if (hasErrors || hasEmptyFields) return;
 
-    localStorage.setItem("activeUser", JSON.stringify({ email: emailField.value }));
+    localStorage.setItem(
+      "activeUser",
+      JSON.stringify({ email: emailField.value }),
+    );
 
-    // Resume incomplete registration if a draft was saved
-    const draft = loadSignupDraft();
-    if (draft) {
+    // // Resume incomplete registration if a draft was saved
+    // const draft = loadSignupDraft();
+    // if (draft) {
+    //   navigate("/applicant/register");
+    // } else {
+    //   navigate("/applicant/profile");
+    // }
+
+    const applicantKey = `applicant_${email}`;
+    const stored = JSON.parse(localStorage.getItem(applicantKey) || "{}");
+
+    const isRegistrationComplete = stored.registrationComplete;
+
+    if (!isRegistrationComplete) {
       navigate("/applicant/register");
     } else {
       navigate("/applicant/profile");
@@ -100,7 +114,12 @@ function Login() {
             >
               <Typography>Don't have an account?</Typography>
             </MuiLink>
-            <Button type="submit" variant="contained" size="large" sx={{ fontWeight: "bold" }}>
+            <Button
+              type="submit"
+              variant="contained"
+              size="large"
+              sx={{ fontWeight: "bold" }}
+            >
               Log In
             </Button>
           </Stack>

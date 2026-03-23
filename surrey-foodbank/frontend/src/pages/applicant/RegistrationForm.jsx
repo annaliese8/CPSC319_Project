@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useBookingStyles } from "./Bookingstyles";
 import {
   Stepper,
@@ -6,46 +6,45 @@ import {
   StepFamilyMembers,
   StepSignupReview,
   SIGNUP_STEPS,
-  saveSignupDraft,
-  loadSignupDraft,
-  clearSignupDraft,
 } from "../../components/BookingSteps";
 import { useNavigate } from "react-router-dom";
 import ApplicantTopBar from "../../components/ApplicantTopBar";
 import { validateRegistrationForm } from "../../utils/ValidateRegistrationForm";
-import { Button, Snackbar, Alert, Divider } from "@mui/material";
-import BookmarkIcon from "@mui/icons-material/Bookmark";
+import { validateHouseholdMembers } from "../../utils/ValidateHouseholdMembers";
+import { Snackbar, Alert } from "@mui/material";
 
 export default function Register() {
   useBookingStyles();
   const navigate = useNavigate();
   const handleLogout = () => navigate("/applicant/home");
 
-  const draft = loadSignupDraft();
-
-  const [step, setStep] = useState(draft?.step ?? 0);
-  const [form, setForm] = useState(draft?.form ?? {
-    firstName: "",
-    lastName: "",
-    streetAddress: "",
-    city: "",
-    province: "British Columbia",
-    postalCode: "",
-    phone: "",
-    statusInCanada: "",
-    householdMembers: "",
-    applyingToTinyBundles: "no",
-    language: "English",
+  const activeUser = JSON.parse(localStorage.getItem("activeUser") || "null");
+  const applicantKey = activeUser?.email
+    ? `applicant_${activeUser.email}`
+    : null;
+  const stored = applicantKey
+    ? JSON.parse(localStorage.getItem(applicantKey) || "{}")
+    : {};
+  const [step, setStep] = useState(0);
+  const [form, setForm] = useState({
+    firstName: stored.firstName ?? "",
+    lastName: stored.lastName ?? "",
+    streetAddress: stored.streetAddress ?? "",
+    city: stored.city ?? "",
+    province: stored.province ?? "British Columbia",
+    postalCode: stored.postalCode ?? "",
+    phone: stored.phone ?? "",
+    statusInCanada: stored.statusInCanada ?? "",
+    householdMembers: stored.householdMembers ?? "",
+    applyingToTinyBundles: stored.applyingToTinyBundles ?? "no",
+    language: stored.language ?? "English",
   });
-  const [familyMembers, setFamilyMembers] = useState(draft?.familyMembers ?? []);
+  const [familyMembers, setFamilyMembers] = useState(
+    stored.familyMembers ?? [],
+  );
   const [formErrors, setFormErrors] = useState({});
   const [memberErrors, setMemberErrors] = useState({});
   const [savedToast, setSavedToast] = useState(false);
-
-  // // Auto-save silently on every change
-  // useEffect(() => {
-  //   saveSignupDraft(step, form, familyMembers);
-  // }, [step, form, familyMembers]);
 
   // ── Step 0: Personal Info ──────────────────────────────────────────────────
 
@@ -58,51 +57,63 @@ export default function Register() {
     const errors = validateRegistrationForm(form);
     setFormErrors(errors);
     if (Object.keys(errors).length) return;
+
+    // Save to applicant record on successful validation
+    if (applicantKey) {
+      const existing = JSON.parse(localStorage.getItem(applicantKey) || "{}");
+      localStorage.setItem(
+        applicantKey,
+        JSON.stringify({ ...existing, ...form }),
+      );
+      setSavedToast(true);
+    }
+
     setStep(1);
   };
 
   // ── Step 1: Family Members ─────────────────────────────────────────────────
 
-  const validateFamilyMembers = () => {
-    const newErrors = {};
-    familyMembers.forEach((m) => {
-      const mErr = {};
-      if (!m.firstName?.trim()) mErr.firstName = "Required";
-      if (!m.lastName?.trim()) mErr.lastName = "Required";
-      if (!m.ageGroup) mErr.ageGroup = "Please select an age group";
-      if (Object.keys(mErr).length) newErrors[m.id] = mErr;
-    });
-    setMemberErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
   const handleFamilyNext = () => {
-    if (!validateFamilyMembers()) return;
+    const errors = validateHouseholdMembers(familyMembers);
+    setMemberErrors(errors);
+    if (Object.keys(errors).length) return;
+    // Save household members to applicant record
+    if (applicantKey) {
+      const existing = JSON.parse(localStorage.getItem(applicantKey) || "{}");
+      localStorage.setItem(
+        applicantKey,
+        JSON.stringify({ ...existing, familyMembers }),
+      );
+      setSavedToast(true);
+    }
+
     setStep(2);
   };
 
   // ── Save Progress ────────────────────────────────────────────────────────────
 
   const handleSaveProgress = () => {
-    saveSignupDraft(step, form, familyMembers);
+    // saveSignupDraft(step, form, familyMembers);
     setSavedToast(true);
   };
 
   // ── Step 2: Review → straight to profile ──────────────────────────────────
 
   const handleConfirm = () => {
-    const activeUser = JSON.parse(localStorage.getItem("activeUser") || "null");
-    const applicantKey = activeUser?.email ? `applicant_${activeUser.email}` : null;
-
     if (applicantKey) {
       const existing = JSON.parse(localStorage.getItem(applicantKey) || "{}");
       localStorage.setItem(
         applicantKey,
-        JSON.stringify({ ...existing, ...form, familyMembers }),
+        JSON.stringify({
+          ...existing,
+          ...form,
+          familyMembers,
+          registrationComplete: true,
+        }),
       );
     }
 
-    clearSignupDraft();
+    // clearSignupDraft();
 
     navigate("/applicant/profile", {
       state: {
@@ -165,38 +176,6 @@ export default function Register() {
               onConfirm={handleConfirm}
             />
           )}
-
-          {/* Save Progress — visible on steps 0 and 1, not on review */}
-          {step < 2 && (
-            <>
-              <Divider sx={{ mx: 3, borderColor: "#f0f0f0" }} />
-              <div style={{ padding: "16px 24px 24px" }}>
-                <Button
-                  fullWidth
-                  variant="outlined"
-                  size="large"
-                  startIcon={<BookmarkIcon />}
-                  onClick={handleSaveProgress}
-                  sx={{
-                    textTransform: "none",
-                    fontWeight: 700,
-                    fontSize: 15,
-                    borderRadius: "10px",
-                    py: 1.4,
-                    borderColor: "#d0d0d0",
-                    color: "#666",
-                    "&:hover": {
-                      borderColor: "var(--teal, #009688)",
-                      color: "var(--teal, #009688)",
-                      background: "rgba(0,150,136,0.04)",
-                    },
-                  }}
-                >
-                  Save Progress
-                </Button>
-              </div>
-            </>
-          )}
         </div>
       </div>
 
@@ -206,8 +185,12 @@ export default function Register() {
         onClose={() => setSavedToast(false)}
         anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       >
-        <Alert severity="success" variant="filled" sx={{ fontWeight: 600, fontSize: 14 }}>
-          ✓ Progress saved — feel free to log out and continue later.
+        <Alert
+          severity="success"
+          variant="filled"
+          sx={{ fontWeight: 600, fontSize: 14 }}
+        >
+          Progress saved
         </Alert>
       </Snackbar>
     </div>

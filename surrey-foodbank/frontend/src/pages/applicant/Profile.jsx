@@ -12,6 +12,8 @@ import {
 import {
   Badge as BadgeIcon,
   CalendarMonth as CalendarMonthIcon,
+  Check as CheckIcon,
+  Clear as ClearIcon,
   ContactSupport as ContactSupportIcon,
   FormatListBulleted as FormatListBulletedIcon,
   Place as PlaceIcon,
@@ -24,6 +26,7 @@ import RegistrationFormInfo from "../../components/RegistrationFormInfo";
 import ApplicantTopBar from "../../components/ApplicantTopBar";
 import CancelBookingDialogue from "../../components/CancelBookingDialogue";
 import HouseholdMemberInfo from "../../components/HouseholdMemberInfo";
+import { validateHouseholdMembers } from "../../utils/ValidateHouseholdMembers";
 
 function Profile() {
   const navigate = useNavigate();
@@ -53,11 +56,19 @@ function Profile() {
     timeLabel: "",
     familyMembers: [],
   });
+  const [pendingFamilyMembers, setPendingFamilyMembers] = useState(
+    appointment.familyMembers ?? [],
+  );
+  const [memberErrors, setMemberErrors] = useState({});
+
+  // Compare stringified arrays to detect any additions, removals, or edits of household members
+  const hasChanges =
+    JSON.stringify(pendingFamilyMembers) !==
+    JSON.stringify(appointment.familyMembers ?? []);
 
   // Load user and appointment data
   useEffect(() => {
     const activeUser = JSON.parse(localStorage.getItem("activeUser") || "null");
-
     if (!activeUser?.email) {
       navigate("/applicant/login");
       return;
@@ -110,6 +121,11 @@ function Profile() {
     };
   }, []);
 
+  // Keep in sync when appointment loads
+  useEffect(() => {
+    setPendingFamilyMembers(appointment.familyMembers ?? []);
+  }, [appointment.familyMembers]);
+
   const onCancelBooking = () => setShowCancelDialog(true);
   const onChangeBooking = () => navigate(`/applicant/book-appointment`);
   const onBookAppointment = () => navigate(`/applicant/book-appointment`);
@@ -150,6 +166,26 @@ function Profile() {
         timeLabel: "",
       });
     }
+  };
+
+  // Saves household member changes to local storage
+  const handleHouseholdSave = () => {
+    const errors = validateHouseholdMembers(pendingFamilyMembers);
+    if (Object.keys(errors).length) {
+      setMemberErrors(errors);
+      return;
+    }
+    setMemberErrors({});
+    handleRegistrationSave({
+      ...appointment,
+      familyMembers: pendingFamilyMembers,
+    });
+  };
+
+  // Reverts unsaved household member changes
+  const handleHouseholdDiscard = () => {
+    setPendingFamilyMembers(appointment.familyMembers ?? []);
+    setMemberErrors({});
   };
 
   return (
@@ -193,7 +229,7 @@ function Profile() {
           label="Household Members"
         />
       </Tabs>
-      {/* Shows when Appointment Information tab is active */}
+      {/* Shows Appointment Information when tab is active */}
       {activeTab === "appointment" && (
         <Stack
           direction={{ xs: "column", md: "row" }}
@@ -218,7 +254,7 @@ function Profile() {
               open={showCancelDialog}
               onClose={() => setShowCancelDialog(false)}
               appointment={appointment}
-              isStaff={true}
+              isStaff={false}
               applicantEmail={
                 appointment?.email || appointment?.applicantEmail || null
               }
@@ -228,7 +264,7 @@ function Profile() {
           <NextSteps />
         </Stack>
       )}
-      {/* Shows when Registration Form tab is active */}
+      {/* Shows Registration Form when tab is active */}
       {activeTab === "registration-form" && (
         <Stack
           direction={{ xs: "column", md: "row" }}
@@ -251,26 +287,57 @@ function Profile() {
           <NextSteps />
         </Stack>
       )}
-      {/* Shows when Household Members tab is active */}
+      {/* Shows Household Members when tab is active */}
       {activeTab === "household-members" && (
         <Stack
           direction={{ xs: "column", md: "row" }}
           spacing={2}
           divider={<Divider orientation="vertical" flexItem />}
-          sx={{
-            justifyContent: "center",
-            alignItems: "stretch",
-          }}
+          sx={{ justifyContent: "center", alignItems: "stretch" }}
         >
           <Box sx={{ flex: 1, px: 5 }}>
             <Typography variant="h4" sx={{ fontWeight: 800, mb: 2 }}>
               Household Members
             </Typography>
-            <HouseholdMemberInfo
-              familyMembers={appointment.familyMembers ?? []}
-              onChange={(updated) => handleRegistrationSave({ ...appointment, familyMembers: updated })}
-              errors={{}}
-            />
+            <Paper
+              variant="outlined"
+              sx={{ p: 4, borderRadius: 2, bgcolor: "grey.25" }}
+            >
+              <Stack spacing={2}>
+                {hasChanges && (
+                  <>
+                    <Stack direction="row" spacing={2}>
+                      <Button
+                        variant="outlined"
+                        color="primary"
+                        size="large"
+                        startIcon={<ClearIcon />}
+                        sx={{ fontWeight: 800, flex: 1 }}
+                        onClick={handleHouseholdDiscard}
+                      >
+                        Discard Changes
+                      </Button>
+                      <Button
+                        variant="contained"
+                        color="primary"
+                        size="large"
+                        startIcon={<CheckIcon />}
+                        sx={{ fontWeight: 800, color: "common.white", flex: 1 }}
+                        onClick={handleHouseholdSave}
+                      >
+                        Save Changes
+                      </Button>
+                    </Stack>
+                    <Divider />
+                  </>
+                )}
+                <HouseholdMemberInfo
+                  familyMembers={pendingFamilyMembers}
+                  onChange={setPendingFamilyMembers}
+                  errors={memberErrors}
+                />
+              </Stack>
+            </Paper>
           </Box>
           <NextSteps />
         </Stack>
@@ -365,12 +432,21 @@ function NextSteps() {
               </Typography>
               <Typography color="text.secondary">
                 • Email:{" "}
-                <Link href="mailto:registration@surreyfoodbank.org" aria-label="Email address of Surrey Food Bank">
+                <Link
+                  href="mailto:registration@surreyfoodbank.org"
+                  aria-label="Email address of Surrey Food Bank"
+                >
                   registration@surreyfoodbank.org
                 </Link>
               </Typography>
               <Typography color="text.secondary">
-                • Call: <Link href="tel:16045815443" aria-label="Phone number of Surrey Food Bank">(604) 581-5443</Link>
+                • Call:{" "}
+                <Link
+                  href="tel:16045815443"
+                  aria-label="Phone number of Surrey Food Bank"
+                >
+                  (604) 581-5443
+                </Link>
               </Typography>
             </Stack>
           </Box>
