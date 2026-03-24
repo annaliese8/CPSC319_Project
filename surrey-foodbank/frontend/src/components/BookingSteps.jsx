@@ -234,7 +234,7 @@ export function StepChooseTime({
 
   const availability = weekAvailability;
   const isCurrentWeek = weekStart.getTime() === todayStart.getTime();
-  const householdSize = Number(form.householdMembers) || 1;
+  const householdSize = form.householdMembers.length + 1;
   const isLargeHousehold = householdSize >= 5;
   const bookingInterval = isLargeHousehold ? 30 : 15;
   const tinyBundles = form.applyingToTinyBundles === "yes";
@@ -492,7 +492,6 @@ export function StepReview({
     { label: "Address", value: fullAddress },
     { label: "Phone", value: form.phone },
     { label: "Status in Canada", value: form.statusInCanada },
-    { label: "Household Size", value: form.householdMembers },
     {
       label: "Tiny Bundles?",
       value: form.applyingToTinyBundles === "yes" ? "Yes" : "No",
@@ -570,41 +569,11 @@ export function StepThankYou({ selectedSlot, onDone }) {
   );
 }
 
-export const SIGNUP_STEPS = ["Personal Info", "Family Members", "Review"];
+export const SIGNUP_STEPS = ["Personal Info", "Household Members", "Review"];
 export const BOOKING_STEPS = ["Choose Time", "Review", "Thank You"];
 
-const SIGNUP_DRAFT_KEY = "signupDraft";
-
-export const saveSignupDraft = (step, form, familyMembers) => {
-  try {
-    localStorage.setItem(
-      SIGNUP_DRAFT_KEY,
-      JSON.stringify({ step, form, familyMembers }),
-    );
-  } catch {
-    /* skip */
-  }
-};
-
-export const loadSignupDraft = () => {
-  try {
-    const raw = localStorage.getItem(SIGNUP_DRAFT_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
-};
-
-export const clearSignupDraft = () => {
-  try {
-    localStorage.removeItem(SIGNUP_DRAFT_KEY);
-  } catch {
-    /* skip */
-  }
-};
-
-export function StepFamilyMembers({
-  familyMembers,
+export function StepHouseholdMembers({
+  householdMembers,
   onChange,
   onBack,
   onNext,
@@ -615,7 +584,7 @@ export function StepFamilyMembers({
       <Typography variant="h2">Household Members</Typography>
 
       <HouseholdMemberInfo
-        familyMembers={familyMembers}
+        householdMembers={householdMembers}
         onChange={onChange}
         errors={errors}
       />
@@ -645,7 +614,12 @@ export function StepFamilyMembers({
 /**
  * StepSignupReview
  */
-export function StepSignupReview({ form, familyMembers, onBack, onConfirm }) {
+export function StepSignupReview({
+  form,
+  householdMembers,
+  onBack,
+  onConfirm,
+}) {
   const fullName =
     form.firstName || form.lastName
       ? [form.firstName, form.lastName].filter(Boolean).join(" ")
@@ -660,7 +634,6 @@ export function StepSignupReview({ form, familyMembers, onBack, onConfirm }) {
     { label: "Address", value: fullAddress },
     { label: "Phone", value: form.phone },
     { label: "Status in Canada", value: form.statusInCanada },
-    { label: "Household Size", value: form.householdMembers },
     {
       label: "Tiny Bundles?",
       value: form.applyingToTinyBundles === "yes" ? "Yes" : "No",
@@ -685,13 +658,13 @@ export function StepSignupReview({ form, familyMembers, onBack, onConfirm }) {
         </div>
 
         <Typography variant="subtitle1" sx={{ fontWeight: 700, mt: 3, mb: 1 }}>
-          Household Members{" "}
+          Additional Household Members{" "}
           <span style={{ fontWeight: 400, color: "var(--gray-500)" }}>
-            ({familyMembers.length})
+            ({householdMembers.length})
           </span>
         </Typography>
 
-        {familyMembers.length === 0 ? (
+        {householdMembers.length === 0 ? (
           <Typography
             variant="body2"
             sx={{ color: "var(--gray-500)", fontStyle: "italic" }}
@@ -699,7 +672,7 @@ export function StepSignupReview({ form, familyMembers, onBack, onConfirm }) {
             No additional household members added.
           </Typography>
         ) : (
-          familyMembers.map((m, i) => {
+          householdMembers.map((m, i) => {
             const ageGroupConfig = AGE_GROUPS.find((g) => g.key === m.ageGroup);
             return (
               <div
@@ -708,7 +681,7 @@ export function StepSignupReview({ form, familyMembers, onBack, onConfirm }) {
                 style={{
                   marginBottom: 10,
                   borderBottom:
-                    i < familyMembers.length
+                    i < householdMembers.length
                       ? "1px solid var(--gray-200)"
                       : "none",
                 }}

@@ -9,7 +9,11 @@ import {
   Toolbar,
   Typography,
 } from "@mui/material";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import {
+  ArrowBack as ArrowBackIcon,
+  Check as CheckIcon,
+  Clear as ClearIcon,
+} from "@mui/icons-material";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import BookingInfo from "../../components/BookingInfo";
@@ -25,19 +29,19 @@ export default function ApplicantInfoPage() {
   const [appointment, setAppointment] = useState(location.state?.appointment);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
 
-  const [pendingFamilyMembers, setPendingFamilyMembers] = useState(
-    appointment?.familyMembers ?? [],
+  const [pendingHouseholdMembers, setPendingHouseholdMembers] = useState(
+    appointment?.householdMembers ?? [],
   );
   const [memberErrors, setMemberErrors] = useState({});
 
   const hasChanges =
-    JSON.stringify(pendingFamilyMembers) !==
-    JSON.stringify(appointment?.familyMembers ?? []);
+    JSON.stringify(pendingHouseholdMembers) !==
+    JSON.stringify(appointment?.householdMembers ?? []);
 
   // Keep in sync when appointment loads
   useEffect(() => {
-    setPendingFamilyMembers(appointment?.familyMembers ?? []);
-  }, [appointment?.familyMembers]);
+    setPendingHouseholdMembers(appointment?.householdMembers ?? []);
+  }, [appointment?.householdMembers]);
 
   // Load fresh data from localStorage when component mounts or when applicantEmail changes
   useEffect(() => {
@@ -113,7 +117,7 @@ export default function ApplicantInfoPage() {
   };
 
   const handleHouseholdSave = () => {
-    const errors = validateHouseholdMembers(pendingFamilyMembers);
+    const errors = validateHouseholdMembers(pendingHouseholdMembers);
     if (Object.keys(errors).length) {
       setMemberErrors(errors);
       return;
@@ -121,12 +125,12 @@ export default function ApplicantInfoPage() {
     setMemberErrors({});
     handleSavePersonalInfo({
       ...appointment,
-      familyMembers: pendingFamilyMembers,
+      householdMembers: pendingHouseholdMembers,
     });
   };
 
   const handleHouseholdDiscard = () => {
-    setPendingFamilyMembers(appointment?.familyMembers ?? []);
+    setPendingHouseholdMembers(appointment?.householdMembers ?? []);
     setMemberErrors({});
   };
 
@@ -213,6 +217,8 @@ export default function ApplicantInfoPage() {
                         <Button
                           variant="outlined"
                           color="primary"
+                          size="large"
+                          startIcon={<ClearIcon />}
                           sx={{ fontWeight: 800, flex: 1 }}
                           onClick={handleHouseholdDiscard}
                         >
@@ -221,6 +227,8 @@ export default function ApplicantInfoPage() {
                         <Button
                           variant="contained"
                           color="primary"
+                          size="large"
+                          startIcon={<CheckIcon />}
                           sx={{
                             fontWeight: 800,
                             color: "common.white",
@@ -235,8 +243,8 @@ export default function ApplicantInfoPage() {
                     </>
                   )}
                   <HouseholdMemberInfo
-                    familyMembers={pendingFamilyMembers}
-                    onChange={setPendingFamilyMembers}
+                    householdMembers={pendingHouseholdMembers}
+                    onChange={setPendingHouseholdMembers}
                     errors={memberErrors}
                   />
                 </Stack>

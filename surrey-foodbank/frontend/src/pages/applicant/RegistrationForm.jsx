@@ -3,7 +3,7 @@ import { useBookingStyles } from "./Bookingstyles";
 import {
   Stepper,
   StepPersonalInfo,
-  StepFamilyMembers,
+  StepHouseholdMembers,
   StepSignupReview,
   SIGNUP_STEPS,
 } from "../../components/BookingSteps";
@@ -35,12 +35,11 @@ export default function Register() {
     postalCode: stored.postalCode ?? "",
     phone: stored.phone ?? "",
     statusInCanada: stored.statusInCanada ?? "",
-    householdMembers: stored.householdMembers ?? "",
     applyingToTinyBundles: stored.applyingToTinyBundles ?? "no",
     language: stored.language ?? "English",
   });
-  const [familyMembers, setFamilyMembers] = useState(
-    stored.familyMembers ?? [],
+  const [householdMembers, setHouseholdMembers] = useState(
+    stored.householdMembers ?? [],
   );
   const [formErrors, setFormErrors] = useState({});
   const [memberErrors, setMemberErrors] = useState({});
@@ -71,10 +70,10 @@ export default function Register() {
     setStep(1);
   };
 
-  // ── Step 1: Family Members ─────────────────────────────────────────────────
+  // ── Step 1: Household Members ─────────────────────────────────────────────────
 
-  const handleFamilyNext = () => {
-    const errors = validateHouseholdMembers(familyMembers);
+  const handleHouseholdNext = () => {
+    const errors = validateHouseholdMembers(householdMembers);
     setMemberErrors(errors);
     if (Object.keys(errors).length) return;
     // Save household members to applicant record
@@ -82,7 +81,7 @@ export default function Register() {
       const existing = JSON.parse(localStorage.getItem(applicantKey) || "{}");
       localStorage.setItem(
         applicantKey,
-        JSON.stringify({ ...existing, familyMembers }),
+        JSON.stringify({ ...existing, householdMembers }),
       );
       setSavedToast(true);
     }
@@ -93,7 +92,6 @@ export default function Register() {
   // ── Save Progress ────────────────────────────────────────────────────────────
 
   const handleSaveProgress = () => {
-    // saveSignupDraft(step, form, familyMembers);
     setSavedToast(true);
   };
 
@@ -107,13 +105,11 @@ export default function Register() {
         JSON.stringify({
           ...existing,
           ...form,
-          familyMembers,
+          householdMembers,
           registrationComplete: true,
         }),
       );
     }
-
-    // clearSignupDraft();
 
     navigate("/applicant/profile", {
       state: {
@@ -128,9 +124,8 @@ export default function Register() {
         phone: form.phone,
         statusInCanada: form.statusInCanada,
         applyingToTinyBundles: form.applyingToTinyBundles,
-        householdMembers: form.householdMembers,
         language: form.language,
-        familyMembers,
+        householdMembers: householdMembers,
       },
     });
   };
@@ -159,11 +154,11 @@ export default function Register() {
           )}
 
           {step === 1 && (
-            <StepFamilyMembers
-              familyMembers={familyMembers}
-              onChange={setFamilyMembers}
+            <StepHouseholdMembers
+              householdMembers={householdMembers}
+              onChange={setHouseholdMembers}
               onBack={() => setStep(0)}
-              onNext={handleFamilyNext}
+              onNext={handleHouseholdNext}
               errors={memberErrors}
             />
           )}
@@ -171,7 +166,7 @@ export default function Register() {
           {step === 2 && (
             <StepSignupReview
               form={form}
-              familyMembers={familyMembers}
+              householdMembers={householdMembers}
               onBack={() => setStep(1)}
               onConfirm={handleConfirm}
             />

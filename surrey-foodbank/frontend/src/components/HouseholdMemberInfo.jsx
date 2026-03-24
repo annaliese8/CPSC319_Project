@@ -1,6 +1,6 @@
 /**
  * Reusable household member list with add/remove and inline editing.
- * Used in StepFamilyMembers (registration flow) and the profile/staff applicant info pages.
+ * Used in StepHouseholdMembers (registration flow) and the profile/staff applicant info pages.
  */
 import { useState } from "react";
 import {
@@ -462,16 +462,16 @@ function MemberCard({ member, idx, onField, onRemove, errors }) {
 // ── HouseholdMemberInfo ───────────────────────────────────────────────────────
 
 export default function HouseholdMemberInfo({
-  familyMembers,
+  householdMembers,
   onChange,
   errors = {},
 }) {
-  const handleAdd = () => onChange([...familyMembers, emptyMember()]);
+  const handleAdd = () => onChange([...householdMembers, emptyMember()]);
   const handleRemove = (id) =>
-    onChange(familyMembers.filter((m) => m.id !== id));
+    onChange(householdMembers.filter((m) => m.id !== id));
   const handleField = (id, field, value) =>
     onChange(
-      familyMembers.map((m) => (m.id === id ? { ...m, [field]: value } : m)),
+      householdMembers.map((m) => (m.id === id ? { ...m, [field]: value } : m)),
     );
 
   return (
@@ -483,7 +483,7 @@ export default function HouseholdMemberInfo({
         Add the other people you live with. This helps us prepare enough food
         and plan your appointment time.
       </Typography>
-      {familyMembers.length === 0 ? (
+      {householdMembers.length === 0 ? (
         <Box
           sx={{
             textAlign: "center",
@@ -501,7 +501,7 @@ export default function HouseholdMemberInfo({
         </Box>
       ) : (
         <Box sx={{ mb: 1 }}>
-          {familyMembers.map((member, idx) => (
+          {householdMembers.map((member, idx) => (
             <MemberCard
               key={member.id}
               member={member}

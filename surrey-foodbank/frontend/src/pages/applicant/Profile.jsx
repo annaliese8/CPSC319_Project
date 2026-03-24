@@ -47,24 +47,23 @@ function Profile() {
     province: "",
     statusInCanada: "",
     applyingToTinyBundles: "no",
-    householdMembers: "",
+    householdMembers: [],
     language: "",
     day: "",
     startTime: "",
     duration: 0,
     dateLabel: "",
     timeLabel: "",
-    familyMembers: [],
   });
-  const [pendingFamilyMembers, setPendingFamilyMembers] = useState(
-    appointment.familyMembers ?? [],
+  const [pendingHouseholdMembers, setPendingHouseholdMembers] = useState(
+    appointment.householdMembers ?? [],
   );
   const [memberErrors, setMemberErrors] = useState({});
 
   // Compare stringified arrays to detect any additions, removals, or edits of household members
   const hasChanges =
-    JSON.stringify(pendingFamilyMembers) !==
-    JSON.stringify(appointment.familyMembers ?? []);
+    JSON.stringify(pendingHouseholdMembers) !==
+    JSON.stringify(appointment.householdMembers ?? []);
 
   // Load user and appointment data
   useEffect(() => {
@@ -123,8 +122,8 @@ function Profile() {
 
   // Keep in sync when appointment loads
   useEffect(() => {
-    setPendingFamilyMembers(appointment.familyMembers ?? []);
-  }, [appointment.familyMembers]);
+    setPendingHouseholdMembers(appointment.householdMembers ?? []);
+  }, [appointment.householdMembers]);
 
   const onCancelBooking = () => setShowCancelDialog(true);
   const onChangeBooking = () => navigate(`/applicant/book-appointment`);
@@ -170,7 +169,7 @@ function Profile() {
 
   // Saves household member changes to local storage
   const handleHouseholdSave = () => {
-    const errors = validateHouseholdMembers(pendingFamilyMembers);
+    const errors = validateHouseholdMembers(pendingHouseholdMembers);
     if (Object.keys(errors).length) {
       setMemberErrors(errors);
       return;
@@ -178,13 +177,13 @@ function Profile() {
     setMemberErrors({});
     handleRegistrationSave({
       ...appointment,
-      familyMembers: pendingFamilyMembers,
+      householdMembers: pendingHouseholdMembers,
     });
   };
 
   // Reverts unsaved household member changes
   const handleHouseholdDiscard = () => {
-    setPendingFamilyMembers(appointment.familyMembers ?? []);
+    setPendingHouseholdMembers(appointment.householdMembers ?? []);
     setMemberErrors({});
   };
 
@@ -332,8 +331,8 @@ function Profile() {
                   </>
                 )}
                 <HouseholdMemberInfo
-                  familyMembers={pendingFamilyMembers}
-                  onChange={setPendingFamilyMembers}
+                  householdMembers={pendingHouseholdMembers}
+                  onChange={setPendingHouseholdMembers}
                   errors={memberErrors}
                 />
               </Stack>
