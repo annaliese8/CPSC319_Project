@@ -5,7 +5,6 @@ export async function getApplicants() {
   const { data, error } = await supabase
     .from('registrationformresponse')
     .select('*')
-    .order('created_at', { ascending: false })
   if (error) throw error
   return data
 }
