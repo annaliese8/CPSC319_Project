@@ -1,11 +1,14 @@
 import React from "react";
 import { Typography, Box, Paper, Button, Divider, Stack } from "@mui/material";
+import AppointmentStatus from "./AppointmentStatus";
 
 export default function BookingInfo({
   appointment,
   onCancelBooking,
   onChangeBooking,
   onBookAppointment,
+  onStatusChange,
+  isStaffPage
 }) {
   const hasAppointment = !!appointment?.day && !!appointment?.startTime;
 
@@ -42,7 +45,16 @@ export default function BookingInfo({
               <Typography color="primary" variant="h6" sx={{ fontWeight: 600 }}>
                 {appointment.timeLabel}
               </Typography>
-              </>
+              {/* If it's a staff page, render the appointment status component */}
+              {isStaffPage && (
+                <Box sx={{ mt: 1 }}>
+                  <AppointmentStatus
+                    appointment={appointment}
+                    onStatusChange={onStatusChange}
+                  />
+                </Box>
+              )}
+            </>
           ) : (
             <Button
               variant="contained"
@@ -91,7 +103,7 @@ export default function BookingInfo({
                 Change Booking
               </Button>
             </Stack>
-            </>
+          </>
         )}
       </Paper>
     </Box>
