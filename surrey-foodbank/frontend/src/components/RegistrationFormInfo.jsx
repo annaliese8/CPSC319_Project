@@ -28,7 +28,7 @@ export default function RegistrationFormInfo({ appointment, onSave }) {
     province: appt?.province ?? "",
     statusInCanada: appt?.statusInCanada ?? "Temporary Resident (6 months+)",
     applyingToTinyBundles: appt?.applyingToTinyBundles ?? "no",
-    householdMembers: appt?.householdMembers ?? "",
+    householdMembers: appt?.householdMembers ?? [],
     language: appt?.language ?? "",
     day: appt?.day ?? "",
     startTime: appt?.startTime ?? "",

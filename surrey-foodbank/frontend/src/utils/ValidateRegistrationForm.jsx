@@ -17,8 +17,6 @@ export const validateRegistrationForm = (form) => {
   };
   // Helper that checks if a postal code is letter-number-letter-number-letter-number
   const isValidPostalCode = (value) => /^[a-z]\d[a-z] ?\d[a-z]\d$/i.test(value);
-  // Helper that checks if a household size is at least 1
-  const isValidHouseholdSize = (value) => Number(value) >= 1;
 
   // All form fields are required
   if (!form.firstName?.trim()) errors.firstName = "Required";
@@ -33,9 +31,6 @@ export const validateRegistrationForm = (form) => {
   else if (!isValidPhone(form.phone))
     errors.phone = "Please enter a valid phone number (at least 10 digits)";
   if (!form.statusInCanada?.trim()) errors.statusInCanada = "Required";
-  if (!form.householdMembers?.toString().trim()) errors.householdMembers = "Required (1 or more)";
-  else if (!isValidHouseholdSize(form.householdMembers))
-    errors.householdMembers = "Please enter a valid household size (1 or more)";
   if (!form.language?.trim()) errors.language = "Required";
 
   return errors;
