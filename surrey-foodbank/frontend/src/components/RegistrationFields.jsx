@@ -237,14 +237,16 @@ export default function RegistrationFields({
             color: isDisabled ? "text.disabled" : "text.primary",
           }}
         >
-          <FormLabel>
-            Would you like to signup for the Tiny Bundles Program?
+          <FormLabel sx={{ maxWidth: '50%'}}>
+            Does your household have someone currently pregnant
+            or children under 12 months old?
           </FormLabel>
           <Tooltip
-            title="Select 'Yes' if your household has a pregnant mom or children under 12 months old.
+            title={<span>The Tiny Bundles program is available for pregnancies and children under 12 months. <br/>
                           Tiny Bundles households receive food every week instead of every two weeks. They are also
                           supplied with fresh eggs and milk while pregnant or nursing. Additional fresh vegetables
-                          and other nutritional items are supplied when available."
+                          and other nutritional items are supplied when available. <br/>  <br/>
+                          <i>Note: Tiny Bundles appointments can only be booked on Wednesdays.</i> </span>}
             disableHoverListener={isDisabled}
             disableFocusListener={isDisabled}
             arrow
