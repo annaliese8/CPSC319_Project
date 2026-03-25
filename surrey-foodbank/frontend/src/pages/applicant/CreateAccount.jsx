@@ -27,17 +27,17 @@ const EMAIL_FORMAT_HINT = "e.g. yourname@example.com";
 const PASSWORD_RULES = [
   {
     id: "length",
-    label: "At least 10 characters long",
+    label: "at least 10 characters",
     test: (v) => v.length >= 10,
   },
   {
     id: "uppercase",
-    label: "Contains at least one capital letter (e.g. A, B, C …)",
+    label: "at least one uppercase letter (e.g. A, B, C)",
     test: (v) => /[A-Z]/.test(v),
   },
   {
     id: "number",
-    label: "Contains at least one number (e.g. 1, 2, 3 …)",
+    label: "at least one number (e.g. 1, 2, 3)",
     test: (v) => /[0-9]/.test(v),
   },
 ];
@@ -180,7 +180,7 @@ function PasswordRequirementsChecklist({ value }) {
           fontSize: "1rem",
         }}
       >
-        Your password must have:
+        Your password must contain:
       </Typography>
       <Stack spacing={1}>
         {PASSWORD_RULES.map((rule) => {

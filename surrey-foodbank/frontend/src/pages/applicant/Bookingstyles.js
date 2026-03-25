@@ -59,7 +59,7 @@ export const bookingStyles = `
 
   /* ── Banner ── */
   .ba-banner { background: var(--navy); padding: 20px 32px; text-align: center; }
-  .ba-banner h1 { font-family: 'Playfair Display', serif; font-size: 22px; color: var(--white); font-weight: 700; letter-spacing: .5px; }
+  .ba-banner h1 { font-size: 22px; color: var(--white); font-weight: 700; letter-spacing: .5px; }
 
   /* ── Stepper ── */
   .ba-stepper { display: flex; align-items: center; justify-content: center; padding: 20px 32px; border-bottom: 1px solid var(--gray-200); background: var(--white); }

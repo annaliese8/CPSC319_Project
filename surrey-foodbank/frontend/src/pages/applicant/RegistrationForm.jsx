@@ -11,7 +11,7 @@ import { useNavigate } from "react-router-dom";
 import ApplicantTopBar from "../../components/ApplicantTopBar";
 import { validateRegistrationForm } from "../../utils/ValidateRegistrationForm";
 import { validateHouseholdMembers } from "../../utils/ValidateHouseholdMembers";
-import { Snackbar, Alert } from "@mui/material";
+import { Alert, Snackbar, Typography } from "@mui/material";
 
 export default function Register() {
   useBookingStyles();
@@ -139,7 +139,7 @@ export default function Register() {
       <div className="ba-card-wrap">
         <div className="ba-card">
           <div className="ba-banner">
-            <h1>Registration</h1>
+            <Typography variant="h1">Registration</Typography>
           </div>
 
           <Stepper currentStep={step} steps={SIGNUP_STEPS} />
