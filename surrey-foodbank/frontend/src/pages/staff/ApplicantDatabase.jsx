@@ -1,6 +1,8 @@
 // claude.ai was used to generate and debug this page
-import { useState, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { getApplicants } from "../../api/applicantsAPI"
+
 import Typography from "@mui/material/Typography";
 import Box from "@mui/material/Box";
 import TextField from "@mui/material/TextField";
@@ -20,41 +22,28 @@ import ClearIcon from "@mui/icons-material/Clear";
 
 import StaffTopBar from "../../components/StaffTopBar";
 
-// Read all applicants from localStorage at render time.
-// Every account created by HomePage writes a key of the form `applicant_<email>`.
-function loadApplicants() {
-  const applicants = [];
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    if (key && key.startsWith("applicant_")) {
-      try {
-        const data = JSON.parse(localStorage.getItem(key));
-        if (data) applicants.push({ key, ...data });
-      } catch {
-        // skip malformed entries
-      }
-    }
-  }
-  // Sort newest accounts first using the email key as a stable fallback
-  return applicants;
-}
-
 function ApplicantDatabase() {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
+  const [applicants, setApplicants] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const staffBase = import.meta.env.VITE_STAFF_BASE;
   const handleLogout = () => navigate(`/${staffBase}/login`);
 
-  // Load once on mount — a full page reload will refresh the list
-  const applicants = useMemo(() => loadApplicants(), []);
+  useEffect(() => {
+    getApplicants()
+      .then(setApplicants)
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false))
+  }, []);
 
   // Filter by name or email
-  const filtered = useMemo(() =>
-    applicants.filter((a) =>
-      (a.name || "").toLowerCase().includes(query.toLowerCase()) ||
-      (a.email || "").toLowerCase().includes(query.toLowerCase())
-    ), [applicants, query]);
+  const filtered = applicants.filter((a) =>
+    (a.name || "").toLowerCase().includes(query.toLowerCase()) ||
+    (a.email || "").toLowerCase().includes(query.toLowerCase())
+  );
 
   const handleRowClick = (applicant) => {
     navigate(`/staff/applicant-info`, {
@@ -125,7 +114,15 @@ function ApplicantDatabase() {
           }}
         />
 
-        {applicants.length === 0 ? (
+        {loading ? (
+          <Typography color="text.secondary" align="center" sx={{ mt: 4 }}>
+            Loading applicants...
+          </Typography>
+        ) : error ? (
+          <Typography color="error" align="center" sx={{ mt: 4 }}>
+            Error loading applicants: {error}
+          </Typography>
+        ) : applicants.length === 0 ? (
           <Typography color="text.secondary" align="center" sx={{ mt: 4 }}>
             No applicants have registered yet.
           </Typography>
@@ -150,7 +147,7 @@ function ApplicantDatabase() {
                   const status = bookingStatus(applicant);
                   return (
                     <TableRow
-                      key={applicant.key}
+                      key={applicant.id}
                       hover
                       sx={{
                         cursor: "pointer",
@@ -158,7 +155,7 @@ function ApplicantDatabase() {
                           outline: "5px solid",
                           outlineColor: "secondary.main",
                           outlineOffset: "-5px",
-                        }
+                        },
                       }}
                       onClick={() => handleRowClick(applicant)}
                       tabIndex={0}
@@ -199,5 +196,5 @@ function ApplicantDatabase() {
     </Box>
   );
 }
-
+ 
 export default ApplicantDatabase;
