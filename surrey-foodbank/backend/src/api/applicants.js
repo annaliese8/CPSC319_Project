@@ -9,12 +9,12 @@ export async function getApplicants() {
   return data
 }
 
-// PATCH — update a single applicant by their id
+// PATCH — update a single applicant by response_id
 export async function updateApplicant(id, updates) {
   const { data, error } = await supabase
     .from('registrationformresponse')
     .update(updates)
-    .eq('id', id)
+    .eq('response_id', id)  // use response_id, not id
     .select()
   if (error) throw error
   return data

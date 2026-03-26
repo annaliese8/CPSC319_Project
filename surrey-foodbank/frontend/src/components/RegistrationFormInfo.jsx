@@ -1,8 +1,3 @@
-/**
- * Displays the applicant's registration form.
- * Renders as read-only by default, with Edit/Save/Discard controls to update their information.
- */
-
 import { Box, Button, Divider, Paper, Stack } from "@mui/material";
 import {
   Check as CheckIcon,
@@ -15,21 +10,18 @@ import { validateRegistrationForm } from "../utils/ValidateRegistrationForm";
 
 export default function RegistrationFormInfo({ appointment, onSave }) {
   // Helper function for setting appointment form fields
+  // CHANGED: updated all field names to match Supabase DB column names
   const buildFormFromAppointment = (appt) => ({
-    email: appt?.email ?? "",
-    firstName: appt?.firstName ?? "",
-    lastName: appt?.lastName ?? "",
-    name: appt?.name ?? "",
+    email: appt?.email_address ?? appt?.email ?? "",
+    first_name: appt?.first_name ?? "",
+    last_name: appt?.last_name ?? "",
     phone: appt?.phone ?? "",
-    address: appt?.address ?? "",
-    streetAddress: appt?.streetAddress ?? "",
+    street_addr: appt?.street_addr ?? "",
     city: appt?.city ?? "",
-    postalCode: appt?.postalCode ?? "",
-    province: appt?.province ?? "",
-    statusInCanada: appt?.statusInCanada ?? "Temporary Resident (6 months+)",
-    applyingToTinyBundles: appt?.applyingToTinyBundles ?? "no",
+    postal_code: appt?.postal_code ?? "",
+    status_in_canada: appt?.status_in_canada ?? "Temporary Resident (6 months+)",
+    tiny_bundles_program: appt?.tiny_bundles_program ?? false,
     householdMembers: appt?.householdMembers ?? [],
-    language: appt?.language ?? "",
     day: appt?.day ?? "",
     startTime: appt?.startTime ?? "",
     duration: appt?.duration ?? 0,
@@ -53,7 +45,6 @@ export default function RegistrationFormInfo({ appointment, onSave }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // Check if form fields are valid and set errors
     const errors = validateRegistrationForm(form);
     setFormErrors(errors);
     if (Object.keys(errors).length) return;
