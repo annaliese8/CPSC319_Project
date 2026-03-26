@@ -16,9 +16,10 @@
 .calendar {
   flex: fit-content;
   overflow-y: scroll;
-  margin-right: -18px;
+  /*margin-right: -18px;*/
   max-height: 550px;
-  border-radius: 10px;
+  scrollbar-gutter: stable;
+  border-bottom-right-radius: 10px;
   font-family: 'DM Sans', sans-serif;
   /*Keep Text inside from being Selectable (for click and drag)*/
   -webkit-user-select: none; /* Safari */
