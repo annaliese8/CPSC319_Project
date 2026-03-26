@@ -125,7 +125,7 @@ function ApplicantDatabase() {
           </Typography>
         ) : error ? (
           <Typography color="error" align="center" sx={{ mt: 4 }}>
-            Error loading applicants: {error}
+            Error loading applicants: {error}. Please try reloading the page.
           </Typography>
         ) : applicants.length === 0 ? (
           <Typography color="text.secondary" align="center" sx={{ mt: 4 }}>
