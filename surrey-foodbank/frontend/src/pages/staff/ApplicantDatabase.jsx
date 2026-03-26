@@ -121,7 +121,7 @@ function ApplicantDatabase() {
  
         {loading ? (
           <Typography color="text.secondary" align="center" sx={{ mt: 4 }}>
-            Loading applicants...
+            Loading...
           </Typography>
         ) : error ? (
           <Typography color="error" align="center" sx={{ mt: 4 }}>
