@@ -51,7 +51,7 @@ export default function RegistrationFormInfo({ appointment, onSave }) {
   const onChange = (key) => (e) =>
     setForm((prev) => ({ ...prev, [key]: e.target.value }));
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     // Check if form fields are valid and set errors
     const errors = validateRegistrationForm(form);
@@ -59,7 +59,8 @@ export default function RegistrationFormInfo({ appointment, onSave }) {
     if (Object.keys(errors).length) return;
 
     if (onSave) {
-      onSave(form);
+      const didSave = await onSave(form);
+      if (!didSave) return;
     } else {
       console.log("Save changes", form);
     }

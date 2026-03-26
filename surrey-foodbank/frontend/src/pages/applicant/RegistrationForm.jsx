@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useBookingStyles } from "./Bookingstyles";
 import {
   Stepper,
@@ -10,6 +10,13 @@ import {
 import { useNavigate } from "react-router-dom";
 import ApplicantTopBar from "../../components/ApplicantTopBar";
 import { validateRegistrationForm } from "../../utils/ValidateRegistrationForm";
+import { getSupabaseClient } from "../../lib/supabaseClient";
+
+function getApiBaseUrl() {
+  const envBase = (import.meta.env.VITE_API_BASE_URL || "").trim();
+  if (envBase) return envBase.replace(/\/$/, "");
+  return import.meta.env.DEV ? "http://localhost:5000" : "";
+}
 import { validateHouseholdMembers } from "../../utils/ValidateHouseholdMembers";
 import { Alert, Snackbar, Typography } from "@mui/material";
 
@@ -46,16 +53,123 @@ export default function Register() {
   const [savedToast, setSavedToast] = useState(false);
 
   // ── Step 0: Personal Info ──────────────────────────────────────────────────
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function verifySession() {
+      const supabase = getSupabaseClient();
+      const { data } = await supabase.auth.getSession();
+      if (!isMounted) return;
+
+      if (!data?.session?.user) {
+        navigate("/applicant/login", { replace: true });
+      }
+    }
+
+    verifySession();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [navigate]);
 
   const handleFormChange = (field) => (e) => {
     setForm((f) => ({ ...f, [field]: e.target.value }));
     setFormErrors((err) => ({ ...err, [field]: undefined }));
   };
 
-  const handlePersonalNext = () => {
+  const handlePersonalNext = async () => {
+    if (isSubmitting) return;
+    setSubmitError("");
+
+    // Check if form fields are valid and set errors
     const errors = validateRegistrationForm(form);
     setFormErrors(errors);
     if (Object.keys(errors).length) return;
+
+    setIsSubmitting(true);
+
+    const supabase = getSupabaseClient();
+    const { data } = await supabase.auth.getSession();
+    const accessToken = data?.session?.access_token;
+
+    if (!accessToken) {
+      setIsSubmitting(false);
+      setSubmitError("Your session has expired. Please log in again.");
+      navigate("/applicant/login", { replace: true });
+      return;
+    }
+
+    const apiBase = getApiBaseUrl();
+
+    try {
+      const response = await fetch(`${apiBase}/api/applicant/register`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify(form),
+      });
+
+      const result = await response.json().catch(() => null);
+      if (!response.ok) {
+        const message =
+          result?.error ||
+          "Unable to save your registration right now. Please try again.";
+        setSubmitError(message);
+        setIsSubmitting(false);
+        return;
+      }
+      setSavedToast(true);
+    } catch (_error) {
+      setSubmitError("Unable to save your registration right now. Please try again.");
+      setIsSubmitting(false);
+      return;
+    }
+
+    // setIsSubmitting(true);
+
+    // const supabase = getSupabaseClient();
+    // const { data } = await supabase.auth.getSession();
+    // const accessToken = data?.session?.access_token;
+
+    // if (!accessToken) {
+    //   setIsSubmitting(false);
+    //   setSubmitError("Your session has expired. Please log in again.");
+    //   navigate("/applicant/login", { replace: true });
+    //   return;
+    // }
+
+    // const apiBase = getApiBaseUrl();
+
+    // try {
+    //   const response = await fetch(`${apiBase}/api/applicant/register`, {
+    //     method: "POST",
+    //     headers: {
+    //       "Content-Type": "application/json",
+    //       Authorization: `Bearer ${accessToken}`,
+    //     },
+    //     body: JSON.stringify(form),
+    //   });
+
+    //   const result = await response.json().catch(() => null);
+    //   if (!response.ok) {
+    //     const message =
+    //       result?.error ||
+    //       "Unable to save your registration right now. Please try again.";
+    //     setSubmitError(message);
+    //     setIsSubmitting(false);
+    //     return;
+    //   }
+    // } catch (_error) {
+    //   setSubmitError("Unable to save your registration right now. Please try again.");
+    //   setIsSubmitting(false);
+    //   return;
+    // }
 
     // Save to applicant record on successful validation
     if (applicantKey) {
@@ -64,7 +178,6 @@ export default function Register() {
         applicantKey,
         JSON.stringify({ ...existing, ...form }),
       );
-      setSavedToast(true);
     }
 
     setStep(1);
@@ -110,6 +223,8 @@ export default function Register() {
         }),
       );
     }
+
+    setIsSubmitting(false);
 
     navigate("/applicant/profile", {
       state: {
@@ -171,6 +286,16 @@ export default function Register() {
               onConfirm={handleConfirm}
             />
           )}
+          {isSubmitting ? (
+            <p style={{ margin: "8px 20px 0", color: "#6b7280" }}>
+              Saving your registration information...
+            </p>
+          ) : null}
+          {submitError ? (
+            <p style={{ margin: "8px 20px 0", color: "#b91c1c" }}>
+              {submitError}
+            </p>
+          ) : null}
         </div>
       </div>
 

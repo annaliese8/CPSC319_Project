@@ -17,11 +17,21 @@ function CancelBookingDialogue({
   appointment,
   isStaff = false,
   applicantEmail = null,
+  onConfirmCancel = null,
   onCancelComplete = null,
 }) {
   const navigate = useNavigate();
 
-  const handleCancel = () => {
+  const handleCancel = async () => {
+    if (onConfirmCancel) {
+      await onConfirmCancel();
+      onClose();
+      if (!isStaff) {
+        navigate("/applicant/profile");
+      }
+      return;
+    }
+
     const emailToUse = isStaff
       ? applicantEmail
       : JSON.parse(localStorage.getItem("activeUser") || "null")?.email;
@@ -40,7 +50,6 @@ function CancelBookingDialogue({
         data.timeLabel = "";
         data.appointmentStatus = "";
         localStorage.setItem(key, JSON.stringify(data));
-
       }
     }
 
