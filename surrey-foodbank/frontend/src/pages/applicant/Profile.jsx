@@ -163,6 +163,7 @@ function Profile() {
         duration: 0,
         dateLabel: "",
         timeLabel: "",
+        appointmentStatus: ""
       });
     }
   };
@@ -248,6 +249,8 @@ function Profile() {
               onCancelBooking={onCancelBooking}
               onChangeBooking={onChangeBooking}
               onBookAppointment={onBookAppointment}
+              onStatusChange={null}
+              isStaffPage={false}
             />
             <CancelBookingDialogue
               open={showCancelDialog}

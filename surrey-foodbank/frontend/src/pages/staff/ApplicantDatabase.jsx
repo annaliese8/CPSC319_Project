@@ -19,6 +19,7 @@ import IconButton from "@mui/material/IconButton";
 import SearchIcon from "@mui/icons-material/Search";
 import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
 import ClearIcon from "@mui/icons-material/Clear";
+import { STATUS_OPTIONS } from "../../components/AppointmentStatus";
 
 import StaffTopBar from "../../components/StaffTopBar";
 
@@ -66,15 +67,12 @@ function ApplicantDatabase() {
     });
   };
 
-  // Derive a booking status label from the stored data
-  const bookingStatus = (a) => {
-    if (a.dateLabel && a.timeLabel) return "Booked";
-    if (a.name) return "Registered";
-    return "Pending";
-  };
 
-  const statusColor = (s) =>
-    s === "Booked" ? "success" : s === "Registered" ? "warning" : "default";
+  const statusColor = (status) => {
+    if (!status) return "default"; // fallback for unbooked
+    const match = STATUS_OPTIONS.find((opt) => opt.label === status);
+    return match ? match.color : "default";
+  };
 
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
@@ -163,7 +161,6 @@ function ApplicantDatabase() {
               </TableHead>
               <TableBody>
                 {filtered.map((applicant) => {
-                  const status = bookingStatus(applicant);
                   return (
                     <TableRow
                       key={applicant.id}
@@ -204,9 +201,9 @@ function ApplicantDatabase() {
                       </TableCell>
                       <TableCell>
                         <Chip
-                          label={status}
+                          label={applicant.appointmentStatus || "Unbooked"}
                           size="small"
-                          color={statusColor(status)}
+                          color={statusColor(applicant.appointmentStatus)}
                         />
                       </TableCell>
                       <TableCell align="right">

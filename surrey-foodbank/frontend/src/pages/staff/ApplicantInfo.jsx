@@ -85,6 +85,7 @@ export default function ApplicantInfoPage() {
         startTime: "",
         dateLabel: "",
         timeLabel: "",
+        appointmentStatus: ""
       });
     }
   };
@@ -129,6 +130,18 @@ export default function ApplicantInfoPage() {
   const handleHouseholdDiscard = () => {
     setPendingHouseholdMembers(appointment?.householdMembers ?? []);
     setMemberErrors({});
+  };
+
+  // Updates appointment status in localStorage when status is updated by staff
+  const handleStatusChange = (newStatus) => {
+    const updated = { ...appointment, appointmentStatus: newStatus };
+
+    localStorage.setItem(
+      `applicant_${updated.email}`,
+      JSON.stringify(updated)
+    );
+
+    setAppointment(updated);
   };
 
   return (
@@ -194,6 +207,8 @@ export default function ApplicantInfoPage() {
                   appointment={appointment}
                   onCancelBooking={onCancelBooking}
                   onChangeBooking={onChangeBooking}
+                  onStatusChange={handleStatusChange}
+                  isStaffPage={true}
                 />
               </Box>
               <Divider sx={{ my: 3 }} />

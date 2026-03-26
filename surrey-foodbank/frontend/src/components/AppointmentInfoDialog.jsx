@@ -9,6 +9,7 @@ import {
   Box,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
+import AppointmentStatus from "./AppointmentStatus";
 import { useNavigate } from "react-router-dom";
 
 function AppointmentInfoDialog({
@@ -16,6 +17,7 @@ function AppointmentInfoDialog({
   onClose,
   appointment,
   onDelete,
+  onStatusChange
 }) {
   const navigate = useNavigate();
 
@@ -46,15 +48,19 @@ function AppointmentInfoDialog({
       {/* Shows appointment details here */}
       <DialogContent>
         <Box sx={{ textAlign: "center", py: 2 }}>
-          <Typography variant="h6" sx={{ fontWeight: 800 }}>
+          <Typography variant="h5" sx={{ fontWeight: 700 }}>
             {appointment?.name}
           </Typography>
-          <Typography variant="body1" sx={{ fontStyle: "italic" }}>
+          <Typography variant="body1" sx={{ m: 2 }}>
             {appointment?.dateLabel}
           </Typography>
           <Typography variant="body2" color="text.secondary">
             {appointment?.timeLabel}
           </Typography>
+          <AppointmentStatus
+            appointment={appointment}
+            onStatusChange={onStatusChange}
+          />
         </Box>
       </DialogContent>
 

@@ -102,6 +102,7 @@ const cancelAppointmentInStorage = (email) => {
   delete data.duration;
   delete data.dateLabel;
   delete data.timeLabel;
+  delete data.appointmentStatus;
   localStorage.setItem(key, JSON.stringify(data));
 };
 
@@ -320,6 +321,19 @@ function AdminCalendar({
     clearMouseTrackers();
   };
 
+  const handleStatusChange = (newStatus) => {
+    const email = appointmentData?.email;
+    if (email) {
+      const existing = JSON.parse(localStorage.getItem(`applicant_${email}`) || "{}");
+      const updated = { ...existing, appointmentStatus: newStatus };
+      localStorage.setItem(`applicant_${email}`, JSON.stringify(updated));
+      setAppointmentData(updated);
+      setAppointments((prev) =>
+        prev.map((a) => a.email === email ? { ...a, appointmentStatus: newStatus } : a)
+      );
+    }
+  };
+
   const handleModalConfirm = () => {
     pendingConflicts.forEach((apt) => cancelAppointmentInStorage(apt.email));
     const cancelled = [...pendingConflicts];
@@ -401,11 +415,15 @@ function AdminCalendar({
     }
   };
 
-  // Normal new booking confirm
+  // Normal new booking confirm; sets appointment status
   const handleConfirmBooking = (newAppointmentData) => {
-    const key = `applicant_${newAppointmentData.email}`;
-    localStorage.setItem(key, JSON.stringify(newAppointmentData));
-    setAppointments((prev) => [...prev, newAppointmentData]);
+    const updated = {
+      ...newAppointmentData,
+      appointmentStatus: "Booked",
+    };
+    const key = `applicant_${updated.email}`;
+    localStorage.setItem(key, JSON.stringify(updated));
+    setAppointments((prev) => [...prev, updated]);
     setShowBookingPanel(false);
     setSelectedSlot(null);
     setRebookingAppointment(null);
@@ -542,6 +560,7 @@ function AdminCalendar({
         ))}
       </div>
 
+      {/* The dialogue that pops up when you click an appointment slot in the calendar */}
       <AppointmentInfoDialog
         open={openInfoDialog}
         onClose={() => setOpenInfoDialog(false)}
@@ -554,6 +573,7 @@ function AdminCalendar({
           }
           setOpenInfoDialog(false);
         }}
+        onStatusChange={handleStatusChange}
       />
 
       {showBookingPanel && (
@@ -571,11 +591,11 @@ function AdminCalendar({
           existingAppointments={
             rebookingAppointment
               ? appointments.filter(
-                  (a) =>
-                    a.email !==
-                    (rebookingAppointment.email ||
-                      rebookingAppointment.applicantEmail),
-                )
+                (a) =>
+                  a.email !==
+                  (rebookingAppointment.email ||
+                    rebookingAppointment.applicantEmail),
+              )
               : appointments
           }
           rebookingAppointment={rebookingAppointment}
