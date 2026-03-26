@@ -76,6 +76,7 @@ export default function BookAppointment() {
         year: "numeric",
       }),
       timeLabel: `${formatTime(selectedSlot.time)} – ${formatTime(addMinutesToTime(selectedSlot.time, selectedSlot.interval ?? 15))}`,
+      appointmentStatus: "Booked"
     };
 
     if (applicantKey) {
