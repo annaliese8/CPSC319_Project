@@ -26,7 +26,7 @@ import { updateApplicant } from "../../api/applicantsAPI";
 export default function ApplicantInfoPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const handleBack = () => navigate("/staff/home");
+  const handleBack = () => navigate("/staff/applicant-database");
   const [appointment, setAppointment] = useState(location.state?.appointment);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
 
