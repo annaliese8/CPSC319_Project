@@ -177,22 +177,31 @@ export default function RegistrationFields({
         />
       </Stack>
       <Stack direction="row" spacing={2}>
-        {/* Household Members */}
-        <TextField
-          label="Household size (including yourself)"
-          type="number"
-          value={form.householdMembers}
-          error={!!errors.householdMembers}
-          helperText={errors.householdMembers}
+        {/* Language */}
+        <Autocomplete
+          options={LANGUAGES}
+          value={form.language}
           disabled={isDisabled}
-          fullWidth
+          onChange={(_, newValue) =>
+            onChange("language")({ target: { value: newValue ?? "" } })
+          }
+          onInputChange={(_, newInputValue) =>
+            onChange("language")({ target: { value: newInputValue } })
+          }
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              label="Language"
+              error={!!errors.language}
+              helperText={errors.language}
+              fullWidth
+              required
+            />
+          )}
           size="small"
-          required
-          inputProps={{ min: "1", step: "1" }}
-          InputLabelProps={{
-            shrink: !!form.householdMembers,
-          }}
-          onChange={onChange("householdMembers")}
+          fullWidth
+          autoHighlight
+          freeSolo
         />
         {/* Status in Canada */}
         <FormControl
@@ -233,7 +242,7 @@ export default function RegistrationFields({
           </FormLabel>
           <Tooltip
             title="Select 'Yes' if your household has a pregnant mom or children under 12 months old.
-                          Tiny Bundles families receive food every week instead of every two weeks. They are also
+                          Tiny Bundles households receive food every week instead of every two weeks. They are also
                           supplied with fresh eggs and milk while pregnant or nursing. Additional fresh vegetables
                           and other nutritional items are supplied when available."
             disableHoverListener={isDisabled}
@@ -245,14 +254,14 @@ export default function RegistrationFields({
                   fontSize: "1rem",
                   maxWidth: 300,
                   p: 2,
-                  backgroundColor: "primary.main"
-                }
+                  backgroundColor: "primary.main",
+                },
               },
               arrow: {
                 sx: {
                   color: "primary.main",
-                }
-              }
+                },
+              },
             }}
           >
             <Link
@@ -289,32 +298,7 @@ export default function RegistrationFields({
             />
           </RadioGroup>
         </Stack>
-      </FormControl >
-      {/* Language */}
-      < Autocomplete
-        options={LANGUAGES}
-        value={form.language}
-        disabled={isDisabled}
-        onChange={(_, newValue) =>
-          onChange("language")({ target: { value: newValue ?? "" } })
-        }
-        onInputChange={(_, newInputValue) =>
-          onChange("language")({ target: { value: newInputValue } })
-        }
-        renderInput={(params) => (
-          <TextField
-            {...params}
-            label="Language"
-            error={!!errors.language}
-            helperText={errors.language}
-            fullWidth
-            required
-          />
-        )}
-        size="small"
-        autoHighlight
-        freeSolo
-      />
-    </Stack >
+      </FormControl>
+    </Stack>
   );
 }

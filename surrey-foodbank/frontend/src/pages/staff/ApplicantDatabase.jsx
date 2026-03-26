@@ -55,7 +55,7 @@ function ApplicantDatabase() {
           address: applicant.address || "",
           statusInCanada: applicant.statusInCanada || "",
           applyingToTinyBundles: applicant.applyingToTinyBundles || "no",
-          householdMembers: applicant.householdMembers || "",
+          householdMembers: applicant.householdMembers || [],
           dateLabel: applicant.dateLabel || "",
           timeLabel: applicant.timeLabel || "",
           duration: applicant.duration || 0,
@@ -82,7 +82,14 @@ function ApplicantDatabase() {
       <StaffTopBar onLogout={handleLogout} />
 
       <Box sx={{ p: { xs: 2, md: 4 } }}>
-        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            mb: 3,
+          }}
+        >
           <Typography variant="h4" fontWeight="bold">
             Registered Applicants
           </Typography>
@@ -106,7 +113,11 @@ function ApplicantDatabase() {
             ),
             endAdornment: query && (
               <InputAdornment position="end">
-                <IconButton size="small" aria-label="Clear search" onClick={() => setQuery("")}>
+                <IconButton
+                  size="small"
+                  aria-label="Clear search"
+                  onClick={() => setQuery("")}
+                >
                   <ClearIcon fontSize="small" />
                 </IconButton>
               </InputAdornment>
@@ -135,10 +146,18 @@ function ApplicantDatabase() {
             <Table>
               <TableHead>
                 <TableRow sx={{ backgroundColor: "grey.100" }}>
-                  <TableCell><strong>Name</strong></TableCell>
-                  <TableCell><strong>Email</strong></TableCell>
-                  <TableCell><strong>Appointment</strong></TableCell>
-                  <TableCell><strong>Status</strong></TableCell>
+                  <TableCell>
+                    <strong>Name</strong>
+                  </TableCell>
+                  <TableCell>
+                    <strong>Email</strong>
+                  </TableCell>
+                  <TableCell>
+                    <strong>Appointment</strong>
+                  </TableCell>
+                  <TableCell>
+                    <strong>Status</strong>
+                  </TableCell>
                   <TableCell />
                 </TableRow>
               </TableHead>
@@ -168,12 +187,20 @@ function ApplicantDatabase() {
                         }
                       }}
                     >
-                      <TableCell>{applicant.name || <em style={{ color: "#aaa" }}>Not provided</em>}</TableCell>
+                      <TableCell>
+                        {applicant.name || (
+                          <em style={{ color: "#aaa" }}>Not provided</em>
+                        )}
+                      </TableCell>
                       <TableCell>{applicant.email}</TableCell>
                       <TableCell>
-                        {applicant.dateLabel && applicant.timeLabel
-                          ? `${applicant.dateLabel} · ${applicant.timeLabel}`
-                          : <em style={{ color: "#aaa" }}>No appointment booked</em>}
+                        {applicant.dateLabel && applicant.timeLabel ? (
+                          `${applicant.dateLabel} · ${applicant.timeLabel}`
+                        ) : (
+                          <em style={{ color: "#aaa" }}>
+                            No appointment booked
+                          </em>
+                        )}
                       </TableCell>
                       <TableCell>
                         <Chip
@@ -198,3 +225,4 @@ function ApplicantDatabase() {
 }
  
 export default ApplicantDatabase;
+

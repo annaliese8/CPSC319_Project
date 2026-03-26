@@ -12,9 +12,12 @@ import {
 import {
   Badge as BadgeIcon,
   CalendarMonth as CalendarMonthIcon,
+  Check as CheckIcon,
+  Clear as ClearIcon,
   ContactSupport as ContactSupportIcon,
   FormatListBulleted as FormatListBulletedIcon,
   Place as PlaceIcon,
+  FamilyRestroom as FamilyRestroomIcon,
 } from "@mui/icons-material";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
@@ -22,6 +25,8 @@ import BookingInfo from "../../components/BookingInfo";
 import RegistrationFormInfo from "../../components/RegistrationFormInfo";
 import ApplicantTopBar from "../../components/ApplicantTopBar";
 import CancelBookingDialogue from "../../components/CancelBookingDialogue";
+import HouseholdMemberInfo from "../../components/HouseholdMemberInfo";
+import { validateHouseholdMembers } from "../../utils/ValidateHouseholdMembers";
 
 function Profile() {
   const navigate = useNavigate();
@@ -42,7 +47,7 @@ function Profile() {
     province: "",
     statusInCanada: "",
     applyingToTinyBundles: "no",
-    householdMembers: "",
+    householdMembers: [],
     language: "",
     day: "",
     startTime: "",
@@ -50,11 +55,19 @@ function Profile() {
     dateLabel: "",
     timeLabel: "",
   });
+  const [pendingHouseholdMembers, setPendingHouseholdMembers] = useState(
+    appointment.householdMembers ?? [],
+  );
+  const [memberErrors, setMemberErrors] = useState({});
+
+  // Compare stringified arrays to detect any additions, removals, or edits of household members
+  const hasChanges =
+    JSON.stringify(pendingHouseholdMembers) !==
+    JSON.stringify(appointment.householdMembers ?? []);
 
   // Load user and appointment data
   useEffect(() => {
     const activeUser = JSON.parse(localStorage.getItem("activeUser") || "null");
-
     if (!activeUser?.email) {
       navigate("/applicant/login");
       return;
@@ -107,6 +120,11 @@ function Profile() {
     };
   }, []);
 
+  // Keep in sync when appointment loads
+  useEffect(() => {
+    setPendingHouseholdMembers(appointment.householdMembers ?? []);
+  }, [appointment.householdMembers]);
+
   const onCancelBooking = () => setShowCancelDialog(true);
   const onChangeBooking = () => navigate(`/applicant/book-appointment`);
   const onBookAppointment = () => navigate(`/applicant/book-appointment`);
@@ -149,11 +167,32 @@ function Profile() {
     }
   };
 
+  // Saves household member changes to local storage
+  const handleHouseholdSave = () => {
+    const errors = validateHouseholdMembers(pendingHouseholdMembers);
+    if (Object.keys(errors).length) {
+      setMemberErrors(errors);
+      return;
+    }
+    setMemberErrors({});
+    handleRegistrationSave({
+      ...appointment,
+      householdMembers: pendingHouseholdMembers,
+    });
+  };
+
+  // Reverts unsaved household member changes
+  const handleHouseholdDiscard = () => {
+    setPendingHouseholdMembers(appointment.householdMembers ?? []);
+    setMemberErrors({});
+  };
+
   return (
     <>
       <title>My Profile | Surrey Food Bank</title>
       <ApplicantTopBar onLogout={handleLogout} />
-      {/* Tabs for switching between appointment details and registration form */}
+      {/* Tabs for switching between appointment, registration form, and household members.
+          Active section is displayed on the left. Next steps secion is always on the right. */}
       <Tabs
         value={activeTab}
         onChange={handleTabChange}
@@ -177,14 +216,20 @@ function Profile() {
           label="Appointment Information"
         />
         <Tab
-          value="registration"
+          value="registration-form"
           icon={<FormatListBulletedIcon />}
           iconPosition="start"
-          label="Registration Form Responses"
+          label="Registration Form"
+        />
+        <Tab
+          value="household-members"
+          icon={<FamilyRestroomIcon />}
+          iconPosition="start"
+          label="Household Members"
         />
       </Tabs>
-      {activeTab === "appointment" ? (
-        // Stack containing booking info on the left and next steps on the right
+      {/* Shows Appointment Information when tab is active */}
+      {activeTab === "appointment" && (
         <Stack
           direction={{ xs: "column", md: "row" }}
           spacing={2}
@@ -194,7 +239,6 @@ function Profile() {
             alignItems: "stretch",
           }}
         >
-          {/* Booking Information Section */}
           <Box sx={{ flex: 1, px: 5 }}>
             <Typography variant="h4" sx={{ fontWeight: 800, mb: 2 }}>
               Booking Information
@@ -209,18 +253,18 @@ function Profile() {
               open={showCancelDialog}
               onClose={() => setShowCancelDialog(false)}
               appointment={appointment}
-              isStaff={true}
+              isStaff={false}
               applicantEmail={
                 appointment?.email || appointment?.applicantEmail || null
               }
               onCancelComplete={handleCancelComplete}
             />
           </Box>
-          {/* Next Steps Section */}
           <NextSteps />
         </Stack>
-      ) : (
-        // Registration Information Section
+      )}
+      {/* Shows Registration Form when tab is active */}
+      {activeTab === "registration-form" && (
         <Stack
           direction={{ xs: "column", md: "row" }}
           spacing={2}
@@ -238,6 +282,61 @@ function Profile() {
               appointment={appointment}
               onSave={handleRegistrationSave}
             />
+          </Box>
+          <NextSteps />
+        </Stack>
+      )}
+      {/* Shows Household Members when tab is active */}
+      {activeTab === "household-members" && (
+        <Stack
+          direction={{ xs: "column", md: "row" }}
+          spacing={2}
+          divider={<Divider orientation="vertical" flexItem />}
+          sx={{ justifyContent: "center", alignItems: "stretch" }}
+        >
+          <Box sx={{ flex: 1, px: 5 }}>
+            <Typography variant="h4" sx={{ fontWeight: 800, mb: 2 }}>
+              Household Members
+            </Typography>
+            <Paper
+              variant="outlined"
+              sx={{ p: 4, borderRadius: 2, bgcolor: "grey.25" }}
+            >
+              <Stack spacing={2}>
+                {hasChanges && (
+                  <>
+                    <Stack direction="row" spacing={2}>
+                      <Button
+                        variant="outlined"
+                        color="primary"
+                        size="large"
+                        startIcon={<ClearIcon />}
+                        sx={{ fontWeight: 800, flex: 1 }}
+                        onClick={handleHouseholdDiscard}
+                      >
+                        Discard Changes
+                      </Button>
+                      <Button
+                        variant="contained"
+                        color="primary"
+                        size="large"
+                        startIcon={<CheckIcon />}
+                        sx={{ fontWeight: 800, color: "common.white", flex: 1 }}
+                        onClick={handleHouseholdSave}
+                      >
+                        Save Changes
+                      </Button>
+                    </Stack>
+                    <Divider />
+                  </>
+                )}
+                <HouseholdMemberInfo
+                  householdMembers={pendingHouseholdMembers}
+                  onChange={setPendingHouseholdMembers}
+                  errors={memberErrors}
+                />
+              </Stack>
+            </Paper>
           </Box>
           <NextSteps />
         </Stack>
@@ -332,12 +431,21 @@ function NextSteps() {
               </Typography>
               <Typography color="text.secondary">
                 • Email:{" "}
-                <Link href="mailto:registration@surreyfoodbank.org" aria-label="Email address of Surrey Food Bank">
+                <Link
+                  href="mailto:registration@surreyfoodbank.org"
+                  aria-label="Email address of Surrey Food Bank"
+                >
                   registration@surreyfoodbank.org
                 </Link>
               </Typography>
               <Typography color="text.secondary">
-                • Call: <Link href="tel:16045815443" aria-label="Phone number of Surrey Food Bank">(604) 581-5443</Link>
+                • Call:{" "}
+                <Link
+                  href="tel:16045815443"
+                  aria-label="Phone number of Surrey Food Bank"
+                >
+                  (604) 581-5443
+                </Link>
               </Typography>
             </Stack>
           </Box>

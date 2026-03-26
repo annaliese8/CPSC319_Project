@@ -1,6 +1,7 @@
 import {
   AppBar,
   Box,
+  Button,
   Divider,
   IconButton,
   Paper,
@@ -8,12 +9,18 @@ import {
   Toolbar,
   Typography,
 } from "@mui/material";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import {
+  ArrowBack as ArrowBackIcon,
+  Check as CheckIcon,
+  Clear as ClearIcon,
+} from "@mui/icons-material";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import BookingInfo from "../../components/BookingInfo";
 import CancelBookingDialogue from "../../components/CancelBookingDialogue";
 import RegistrationFormInfo from "../../components/RegistrationFormInfo";
+import HouseholdMemberInfo from "../../components/HouseholdMemberInfo";
+import { validateHouseholdMembers } from "../../utils/ValidateHouseholdMembers";
 import { updateApplicant } from "../../api/applicantsAPI";
 
 export default function ApplicantInfoPage() {
@@ -22,6 +29,20 @@ export default function ApplicantInfoPage() {
   const handleBack = () => navigate("/staff/home");
   const [appointment, setAppointment] = useState(location.state?.appointment);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
+
+  const [pendingHouseholdMembers, setPendingHouseholdMembers] = useState(
+    appointment?.householdMembers ?? [],
+  );
+  const [memberErrors, setMemberErrors] = useState({});
+
+  const hasChanges =
+    JSON.stringify(pendingHouseholdMembers) !==
+    JSON.stringify(appointment?.householdMembers ?? []);
+
+  // Keep in sync when appointment loads
+  useEffect(() => {
+    setPendingHouseholdMembers(appointment?.householdMembers ?? []);
+  }, [appointment?.householdMembers]);
 
   // // Load fresh data from localStorage when component mounts or when applicantEmail changes
   // useEffect(() => {
@@ -92,6 +113,24 @@ export default function ApplicantInfoPage() {
     }
   };
 
+  const handleHouseholdSave = () => {
+    const errors = validateHouseholdMembers(pendingHouseholdMembers);
+    if (Object.keys(errors).length) {
+      setMemberErrors(errors);
+      return;
+    }
+    setMemberErrors({});
+    handleSavePersonalInfo({
+      ...appointment,
+      householdMembers: pendingHouseholdMembers,
+    });
+  };
+
+  const handleHouseholdDiscard = () => {
+    setPendingHouseholdMembers(appointment?.householdMembers ?? []);
+    setMemberErrors({});
+  };
+
   return (
     <Box sx={{ minHeight: "100vh" }}>
       <title>Applicant Info | Surrey Food Bank</title>
@@ -143,20 +182,71 @@ export default function ApplicantInfoPage() {
                 onSave={handleSavePersonalInfo}
               />
             </Box>
-
-            <Box sx={{ flex: 1 }}>
+            <Stack>
+              <Box sx={{ flex: 1 }}>
+                <Typography
+                  variant="h4"
+                  sx={{ fontWeight: 800, color: "primary.main", mb: 2 }}
+                >
+                  Booking Information
+                </Typography>
+                <BookingInfo
+                  appointment={appointment}
+                  onCancelBooking={onCancelBooking}
+                  onChangeBooking={onChangeBooking}
+                />
+              </Box>
+              <Divider sx={{ my: 3 }} />
               <Typography
                 variant="h4"
                 sx={{ fontWeight: 800, color: "primary.main", mb: 2 }}
               >
-                Booking Information
+                Household Members
               </Typography>
-              <BookingInfo
-                appointment={appointment}
-                onCancelBooking={onCancelBooking}
-                onChangeBooking={onChangeBooking}
-              />
-            </Box>
+              <Paper
+                variant="outlined"
+                sx={{ p: 4, borderRadius: 2, bgcolor: "grey.25" }}
+              >
+                <Stack spacing={2}>
+                  {hasChanges && (
+                    <>
+                      <Stack direction="row" spacing={2}>
+                        <Button
+                          variant="outlined"
+                          color="primary"
+                          size="large"
+                          startIcon={<ClearIcon />}
+                          sx={{ fontWeight: 800, flex: 1 }}
+                          onClick={handleHouseholdDiscard}
+                        >
+                          Discard Changes
+                        </Button>
+                        <Button
+                          variant="contained"
+                          color="primary"
+                          size="large"
+                          startIcon={<CheckIcon />}
+                          sx={{
+                            fontWeight: 800,
+                            color: "common.white",
+                            flex: 1,
+                          }}
+                          onClick={handleHouseholdSave}
+                        >
+                          Save Changes
+                        </Button>
+                      </Stack>
+                      <Divider />
+                    </>
+                  )}
+                  <HouseholdMemberInfo
+                    householdMembers={pendingHouseholdMembers}
+                    onChange={setPendingHouseholdMembers}
+                    errors={memberErrors}
+                  />
+                </Stack>
+              </Paper>
+            </Stack>
           </Stack>
         </Paper>
       </Box>
