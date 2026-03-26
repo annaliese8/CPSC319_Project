@@ -1,6 +1,8 @@
 // claude.ai was used to generate and debug this page
-import { useState, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { getApplicants } from "../../api/applicantsAPI"
+
 import Typography from "@mui/material/Typography";
 import Box from "@mui/material/Box";
 import TextField from "@mui/material/TextField";
@@ -21,57 +23,45 @@ import { STATUS_OPTIONS } from "../../components/AppointmentStatus";
 
 import StaffTopBar from "../../components/StaffTopBar";
 
-// Read all applicants from localStorage at render time.
-// Every account created by HomePage writes a key of the form `applicant_<email>`.
-function loadApplicants() {
-  const applicants = [];
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    if (key && key.startsWith("applicant_")) {
-      try {
-        const data = JSON.parse(localStorage.getItem(key));
-        if (data) applicants.push({ key, ...data });
-      } catch {
-        // skip malformed entries
-      }
-    }
-  }
-  // Sort newest accounts first using the email key as a stable fallback
-  return applicants;
-}
-
 function ApplicantDatabase() {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
+  const [applicants, setApplicants] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const staffBase = import.meta.env.VITE_STAFF_BASE;
   const handleLogout = () => navigate(`/${staffBase}/login`);
 
-  // Load once on mount — a full page reload will refresh the list
-  const applicants = useMemo(() => loadApplicants(), []);
+  useEffect(() => {
+    getApplicants()
+      .then(setApplicants)
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false))
+  }, []);
 
   // Filter by name or email
-  const filtered = useMemo(
-    () =>
-      applicants.filter(
-        (a) =>
-          (a.name || "").toLowerCase().includes(query.toLowerCase()) ||
-          (a.email || "").toLowerCase().includes(query.toLowerCase()),
-      ),
-    [applicants, query],
-  );
+  const filtered = applicants.filter((a) => {
+    const fullName = `${a.first_name || ""} ${a.last_name || ""}`.toLowerCase();
+    const email = (a.email_address || "").toLowerCase();
+    const q = query.toLowerCase();
+    return fullName.includes(q) || email.includes(q);
+  });
 
   const handleRowClick = (applicant) => {
     navigate(`/staff/applicant-info`, {
       state: {
         appointment: {
-          name: applicant.name || "",
-          email: applicant.email || "",
+          id: applicant.response_id,
+          first_name: applicant.first_name || "",
+          last_name: applicant.last_name || "",
+          email: applicant.email_address || "",
           phone: applicant.phone || "",
-          address: applicant.address || "",
-          statusInCanada: applicant.statusInCanada || "",
-          applyingToTinyBundles: applicant.applyingToTinyBundles || "no",
-          householdMembers: applicant.householdMembers || [],
+          street_addr: applicant.street_addr || "",
+          city: applicant.city || "",
+          postal_code: applicant.postal_code || "",
+          status_in_canada: applicant.status_in_canada || "",
+          tiny_bundles_program: applicant.tiny_bundles_program || false,
           dateLabel: applicant.dateLabel || "",
           timeLabel: applicant.timeLabel || "",
           duration: applicant.duration || 0,
@@ -82,27 +72,22 @@ function ApplicantDatabase() {
     });
   };
 
-
-  const statusColor = (status) => {
-    if (!status) return "default"; // fallback for unbooked
-    const match = STATUS_OPTIONS.find((opt) => opt.label === status);
-    return match ? match.color : "default";
+  const bookingStatus = (a) => {
+    if (a.dateLabel && a.timeLabel) return "Booked";
+    if (a.first_name) return "Registered";
+    return "Pending";
   };
-
+ 
+  const statusColor = (s) =>
+    s === "Booked" ? "success" : s === "Registered" ? "warning" : "default";
+ 
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
       <title>Applicant Database | Surrey Food Bank</title>
       <StaffTopBar onLogout={handleLogout} />
-
+ 
       <Box sx={{ p: { xs: 2, md: 4 } }}>
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            mb: 3,
-          }}
-        >
+        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
           <Typography variant="h4" fontWeight="bold">
             Registered Applicants
           </Typography>
@@ -110,7 +95,7 @@ function ApplicantDatabase() {
             {filtered.length} result{filtered.length !== 1 ? "s" : ""}
           </Typography>
         </Box>
-
+ 
         <TextField
           label="Search applicant database"
           fullWidth
@@ -126,19 +111,23 @@ function ApplicantDatabase() {
             ),
             endAdornment: query && (
               <InputAdornment position="end">
-                <IconButton
-                  size="small"
-                  aria-label="Clear search"
-                  onClick={() => setQuery("")}
-                >
+                <IconButton size="small" aria-label="Clear search" onClick={() => setQuery("")}>
                   <ClearIcon fontSize="small" />
                 </IconButton>
               </InputAdornment>
             ),
           }}
         />
-
-        {applicants.length === 0 ? (
+ 
+        {loading ? (
+          <Typography color="text.secondary" align="center" sx={{ mt: 4 }}>
+            Loading applicants...
+          </Typography>
+        ) : error ? (
+          <Typography color="error" align="center" sx={{ mt: 4 }}>
+            Error loading applicants: {error}
+          </Typography>
+        ) : applicants.length === 0 ? (
           <Typography color="text.secondary" align="center" sx={{ mt: 4 }}>
             No applicants have registered yet.
           </Typography>
@@ -151,26 +140,19 @@ function ApplicantDatabase() {
             <Table>
               <TableHead>
                 <TableRow sx={{ backgroundColor: "grey.100" }}>
-                  <TableCell>
-                    <strong>Name</strong>
-                  </TableCell>
-                  <TableCell>
-                    <strong>Email</strong>
-                  </TableCell>
-                  <TableCell>
-                    <strong>Appointment</strong>
-                  </TableCell>
-                  <TableCell>
-                    <strong>Status</strong>
-                  </TableCell>
+                  <TableCell><strong>Name</strong></TableCell>
+                  <TableCell><strong>Email</strong></TableCell>
+                  <TableCell><strong>Appointment</strong></TableCell>
+                  <TableCell><strong>Status</strong></TableCell>
                   <TableCell />
                 </TableRow>
               </TableHead>
               <TableBody>
                 {filtered.map((applicant) => {
+                  const status = bookingStatus(applicant);
                   return (
                     <TableRow
-                      key={applicant.key}
+                      key={applicant.response_id}
                       hover
                       sx={{
                         cursor: "pointer",
@@ -183,7 +165,7 @@ function ApplicantDatabase() {
                       onClick={() => handleRowClick(applicant)}
                       tabIndex={0}
                       role="button"
-                      aria-label={`View details for ${applicant.name || applicant.email}`}
+                      aria-label={`View details for ${applicant.first_name} ${applicant.last_name}`}
                       onKeyDown={(e) => {
                         if (e.key === "Enter" || e.key === " ") {
                           e.preventDefault();
@@ -192,25 +174,21 @@ function ApplicantDatabase() {
                       }}
                     >
                       <TableCell>
-                        {applicant.name || (
-                          <em style={{ color: "#aaa" }}>Not provided</em>
-                        )}
+                        {applicant.first_name && applicant.last_name
+                          ? `${applicant.first_name} ${applicant.last_name}`
+                          : <em style={{ color: "#aaa" }}>Not provided</em>}
                       </TableCell>
-                      <TableCell>{applicant.email}</TableCell>
+                      <TableCell>{applicant.email_address}</TableCell>
                       <TableCell>
-                        {applicant.dateLabel && applicant.timeLabel ? (
-                          `${applicant.dateLabel} · ${applicant.timeLabel}`
-                        ) : (
-                          <em style={{ color: "#aaa" }}>
-                            No appointment booked
-                          </em>
-                        )}
+                        {applicant.dateLabel && applicant.timeLabel
+                          ? `${applicant.dateLabel} · ${applicant.timeLabel}`
+                          : <em style={{ color: "#aaa" }}>No appointment booked</em>}
                       </TableCell>
                       <TableCell>
                         <Chip
-                          label={applicant.appointmentStatus || "Unbooked"}
+                          label={status}
                           size="small"
-                          color={statusColor(applicant.appointmentStatus)}
+                          color={statusColor(status)}
                         />
                       </TableCell>
                       <TableCell align="right">
@@ -227,5 +205,5 @@ function ApplicantDatabase() {
     </Box>
   );
 }
-
+ 
 export default ApplicantDatabase;
