@@ -15,7 +15,7 @@ import { getSupabaseClient } from "../../lib/supabaseClient";
 function getApiBaseUrl() {
   const envBase = (import.meta.env.VITE_API_BASE_URL || "").trim();
   if (envBase) return envBase.replace(/\/$/, "");
-  return import.meta.env.DEV ? "http://localhost:5000" : "";
+  return import.meta.env.DEV ? "http://localhost:3000" : "";
 }
 
 /**

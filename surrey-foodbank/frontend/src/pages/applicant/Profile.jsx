@@ -32,7 +32,7 @@ import { addMinutesToTime } from "../../utils/TimeUtils";
 function getApiBaseUrl() {
   const envBase = (import.meta.env.VITE_API_BASE_URL || "").trim();
   if (envBase) return envBase.replace(/\/$/, "");
-  return import.meta.env.DEV ? "http://localhost:5000" : "";
+  return import.meta.env.DEV ? "http://localhost:3000" : "";
 }
 
 function toAppointmentDisplay(appointment) {
@@ -172,7 +172,7 @@ function Profile() {
           ...appointmentFromDb,
           ...(registration || {}),
           name:
-            registration?.name ||
+            [registration?.first_name, registration?.last_name].filter(Boolean).join(" ") ||
             userEmail.split("@")[0] ||
             prev.name,
         }));
@@ -225,6 +225,16 @@ function Profile() {
 
     const apiBase = getApiBaseUrl();
 
+    const registerPayload = {
+      ...updatedForm,
+      tiny_bundles_program:
+        updatedForm?.tiny_bundles_program === true || updatedForm?.tiny_bundles_program === "yes"
+          ? "yes"
+          : "no",
+    };
+
+    delete registerPayload.householdMembers;
+
     try {
       const response = await fetch(`${apiBase}/api/applicant/register`, {
         method: "POST",
@@ -232,7 +242,7 @@ function Profile() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${accessToken}`,
         },
-        body: JSON.stringify(updatedForm),
+        body: JSON.stringify(registerPayload),
       });
 
       const result = await response.json().catch(() => null);
@@ -245,7 +255,9 @@ function Profile() {
       setAppointment((prev) => ({
         ...prev,
         ...updatedForm,
-        name: `${updatedForm.firstName} ${updatedForm.lastName}`.trim() || prev.name,
+        name:
+          `${updatedForm.first_name || ""} ${updatedForm.last_name || ""}`.trim() ||
+          prev.name,
       }));
       setIsSubmitting(false);
       return true;
@@ -300,18 +312,58 @@ function Profile() {
     }
   };
 
-  // Saves household member changes to local storage
-  const handleHouseholdSave = () => {
+  // Saves household member changes to database
+  const handleHouseholdSave = async () => {
     const errors = validateHouseholdMembers(pendingHouseholdMembers);
     if (Object.keys(errors).length) {
       setMemberErrors(errors);
       return;
     }
+
+    setSubmitError("");
+    setIsSubmitting(true);
+
+    const supabase = getSupabaseClient();
+    const { data: sessionData } = await supabase.auth.getSession();
+    const accessToken = sessionData?.session?.access_token;
+
+    if (!accessToken) {
+      setIsSubmitting(false);
+      setSubmitError("Your session has expired. Please log in again.");
+      navigate("/applicant/login", { replace: true });
+      return;
+    }
+
+    const apiBase = getApiBaseUrl();
+
+    try {
+      const response = await fetch(`${apiBase}/api/applicant/household-members`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ householdMembers: pendingHouseholdMembers }),
+      });
+
+      const result = await response.json().catch(() => null);
+      if (!response.ok) {
+        setSubmitError(result?.error || "Unable to save household members.");
+        setIsSubmitting(false);
+        return;
+      }
+    } catch (_error) {
+      setSubmitError("Unable to save household members.");
+      setIsSubmitting(false);
+      return;
+    }
+
     setMemberErrors({});
-    handleRegistrationSave({
-      ...appointment,
+    setAppointment((prev) => ({
+      ...prev,
       householdMembers: pendingHouseholdMembers,
-    });
+    }));
+    setIsSubmitting(false);
   };
 
   // Reverts unsaved household member changes

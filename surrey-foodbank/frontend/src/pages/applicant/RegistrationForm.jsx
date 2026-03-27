@@ -15,10 +15,50 @@ import { getSupabaseClient } from "../../lib/supabaseClient";
 function getApiBaseUrl() {
   const envBase = (import.meta.env.VITE_API_BASE_URL || "").trim();
   if (envBase) return envBase.replace(/\/$/, "");
-  return import.meta.env.DEV ? "http://localhost:5000" : "";
+  return import.meta.env.DEV ? "http://localhost:3000" : "";
 }
 import { validateHouseholdMembers } from "../../utils/ValidateHouseholdMembers";
 import { Alert, Snackbar, Typography } from "@mui/material";
+
+function toValidationForm(form) {
+  return {
+    firstName: form.first_name ?? "",
+    lastName: form.last_name ?? "",
+    streetAddress: form.street_addr ?? "",
+    city: form.city ?? "",
+    province: form.province ?? "",
+    postalCode: form.postal_code ?? "",
+    phone: form.phone ?? "",
+    statusInCanada: form.status_in_canada ?? "",
+    language: form.language ?? "",
+    applyingToTinyBundles: form.tiny_bundles_program ? "yes" : "no",
+  };
+}
+
+function toUiErrors(validationErrors) {
+  return {
+    ...validationErrors,
+    first_name: validationErrors.firstName,
+    last_name: validationErrors.lastName,
+    street_addr: validationErrors.streetAddress,
+    postal_code: validationErrors.postalCode,
+    status_in_canada: validationErrors.statusInCanada,
+  };
+}
+
+function toRegistrationDbPayload(form) {
+  return {
+    first_name: form.first_name ?? "",
+    last_name: form.last_name ?? "",
+    street_addr: form.street_addr ?? "",
+    city: form.city ?? "",
+    postal_code: form.postal_code ?? "",
+    phone: form.phone ?? "",
+    status_in_canada: form.status_in_canada ?? "",
+    tiny_bundles_program: form.tiny_bundles_program ? "yes" : "no",
+    language: form.language ?? ""
+  };
+}
 
 export default function Register() {
   useBookingStyles();
@@ -34,19 +74,19 @@ export default function Register() {
     : {};
   const [step, setStep] = useState(0);
   const [form, setForm] = useState({
-    firstName: stored.firstName ?? "",
-    lastName: stored.lastName ?? "",
-    streetAddress: stored.streetAddress ?? "",
+    first_name: stored.first_name ?? "",
+    last_name: stored.last_name ?? "",
+    street_addr: stored.street_addr ?? "",
     city: stored.city ?? "",
-    province: stored.province ?? "British Columbia",
-    postalCode: stored.postalCode ?? "",
+    province: stored.province?.trim() || "British Columbia",
+    postal_code: stored.postal_code ?? "",
     phone: stored.phone ?? "",
-    statusInCanada: stored.statusInCanada ?? "",
-    applyingToTinyBundles: stored.applyingToTinyBundles ?? "no",
-    language: stored.language ?? "English",
+    status_in_canada: stored.status_in_canada ?? "",
+    tiny_bundles_program: stored.tiny_bundles_program ?? false,
+    language: stored.language?.trim() || "English",
   });
   const [householdMembers, setHouseholdMembers] = useState(
-    stored.householdMembers ?? [],
+    [],
   );
   const [formErrors, setFormErrors] = useState({});
   const [memberErrors, setMemberErrors] = useState({});
@@ -86,15 +126,20 @@ export default function Register() {
     setSubmitError("");
 
     // Check if form fields are valid and set errors
-    const errors = validateRegistrationForm(form);
-    setFormErrors(errors);
+    const errors = validateRegistrationForm(toValidationForm(form));
+    setFormErrors(toUiErrors(errors));
     if (Object.keys(errors).length) return;
 
     setIsSubmitting(true);
 
     const supabase = getSupabaseClient();
     const { data } = await supabase.auth.getSession();
-    const accessToken = data?.session?.access_token;
+    let accessToken = data?.session?.access_token;
+
+    if (!accessToken) {
+      const { data: refreshData } = await supabase.auth.refreshSession();
+      accessToken = refreshData?.session?.access_token;
+    }
 
     if (!accessToken) {
       setIsSubmitting(false);
@@ -112,7 +157,7 @@ export default function Register() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${accessToken}`,
         },
-        body: JSON.stringify(form),
+        body: JSON.stringify(toRegistrationDbPayload(form)),
       });
 
       const result = await response.json().catch(() => null);
@@ -153,7 +198,7 @@ export default function Register() {
     //       "Content-Type": "application/json",
     //       Authorization: `Bearer ${accessToken}`,
     //     },
-    //     body: JSON.stringify(form),
+    //     body: JSON.stringify(toRegistrationDbPayload(form, householdMembers)),
     //   });
 
     //   const result = await response.json().catch(() => null);
@@ -180,25 +225,66 @@ export default function Register() {
       );
     }
 
+    setIsSubmitting(false);
     setStep(1);
   };
 
   // ── Step 1: Household Members ─────────────────────────────────────────────────
 
-  const handleHouseholdNext = () => {
+  const handleHouseholdNext = async () => {
     const errors = validateHouseholdMembers(householdMembers);
     setMemberErrors(errors);
     if (Object.keys(errors).length) return;
-    // Save household members to applicant record
-    if (applicantKey) {
-      const existing = JSON.parse(localStorage.getItem(applicantKey) || "{}");
-      localStorage.setItem(
-        applicantKey,
-        JSON.stringify({ ...existing, householdMembers }),
-      );
-      setSavedToast(true);
+
+    setSubmitError("");
+    setIsSubmitting(true);
+
+    const supabase = getSupabaseClient();
+    const { data } = await supabase.auth.getSession();
+    let accessToken = data?.session?.access_token;
+
+    if (!accessToken) {
+      const { data: refreshData } = await supabase.auth.refreshSession();
+      accessToken = refreshData?.session?.access_token;
     }
 
+    if (!accessToken) {
+      setIsSubmitting(false);
+      setSubmitError("Your session has expired. Please log in again.");
+      navigate("/applicant/login", { replace: true });
+      return;
+    }
+
+    const apiBase = getApiBaseUrl();
+
+    try {
+      const response = await fetch(`${apiBase}/api/applicant/household-members`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ householdMembers }),
+      });
+
+      const result = await response.json().catch(() => null);
+      if (!response.ok) {
+        const message =
+          result?.error ||
+          "Unable to save household members right now. Please try again.";
+        setSubmitError(message);
+        setIsSubmitting(false);
+        return;
+      }
+    } catch (_error) {
+      setSubmitError("Unable to save household members right now. Please try again.");
+      setIsSubmitting(false);
+      return;
+    }
+
+    setSavedToast(true);
+
+    setIsSubmitting(false);
     setStep(2);
   };
 
@@ -218,7 +304,6 @@ export default function Register() {
         JSON.stringify({
           ...existing,
           ...form,
-          householdMembers,
           registrationComplete: true,
         }),
       );
@@ -228,17 +313,17 @@ export default function Register() {
 
     navigate("/applicant/profile", {
       state: {
-        firstName: form.firstName,
-        lastName: form.lastName,
-        name: `${form.firstName} ${form.lastName}`,
-        streetAddress: form.streetAddress,
+        first_name: form.first_name,
+        last_name: form.last_name,
+        name: `${form.first_name} ${form.last_name}`,
+        street_addr: form.street_addr,
         city: form.city,
         province: form.province,
-        postalCode: form.postalCode,
-        address: `${form.streetAddress}, ${form.city}, ${form.province}, ${form.postalCode}`,
+        postal_code: form.postal_code,
+        address: `${form.street_addr}, ${form.city}, ${form.province}, ${form.postal_code}`,
         phone: form.phone,
-        statusInCanada: form.statusInCanada,
-        applyingToTinyBundles: form.applyingToTinyBundles,
+        status_in_canada: form.status_in_canada,
+        applyingToTinyBundles: form.tiny_bundles_program ? "yes" : "no",
         language: form.language,
         householdMembers: householdMembers,
       },
@@ -265,6 +350,7 @@ export default function Register() {
               errors={formErrors}
               onChange={handleFormChange}
               onNext={handlePersonalNext}
+              isSubmitting={isSubmitting}
             />
           )}
 

@@ -21,11 +21,12 @@ import CancelBookingDialogue from "../../components/CancelBookingDialogue";
 import RegistrationFormInfo from "../../components/RegistrationFormInfo";
 import HouseholdMemberInfo from "../../components/HouseholdMemberInfo";
 import { validateHouseholdMembers } from "../../utils/ValidateHouseholdMembers";
+import { updateApplicant } from "../../api/applicantsAPI";
 
 export default function ApplicantInfoPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const handleBack = () => navigate("/staff/home");
+  const handleBack = () => navigate("/staff/applicant-database");
   const [appointment, setAppointment] = useState(location.state?.appointment);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
 
@@ -43,36 +44,6 @@ export default function ApplicantInfoPage() {
     setPendingHouseholdMembers(appointment?.householdMembers ?? []);
   }, [appointment?.householdMembers]);
 
-  // Load fresh data from localStorage when component mounts or when applicantEmail changes
-  useEffect(() => {
-    const applicantEmail =
-      location.state?.appointment?.email ||
-      location.state?.appointment?.applicantEmail;
-    if (applicantEmail) {
-      const storedData = localStorage.getItem(`applicant_${applicantEmail}`);
-      if (storedData) {
-        const data = JSON.parse(storedData);
-        setAppointment({ ...data, email: applicantEmail, applicantEmail });
-      } else {
-        setAppointment(location.state.appointment);
-      }
-    }
-  }, [location.state?.appointment?.email]);
-
-  // Listens for local storage changes from other tabs
-  useEffect(() => {
-    const handleStorageChange = (e) => {
-      if (e.key?.startsWith("applicant_")) {
-        const updatedData = JSON.parse(e.newValue);
-        if (updatedData.email === appointment?.email) {
-          setAppointment(updatedData);
-        }
-      }
-    };
-    window.addEventListener("storage", handleStorageChange);
-    return () => window.removeEventListener("storage", handleStorageChange);
-  }, [appointment]);
-
   const onCancelBooking = () => {
     setShowCancelDialog(true);
   };
@@ -85,7 +56,7 @@ export default function ApplicantInfoPage() {
         startTime: "",
         dateLabel: "",
         timeLabel: "",
-        appointmentStatus: ""
+        appointmentStatus: "",
       });
     }
   };
@@ -100,20 +71,32 @@ export default function ApplicantInfoPage() {
     });
   };
 
-  const handleSavePersonalInfo = (updatedData) => {
-    const applicantEmail = appointment?.email || appointment?.applicantEmail;
-    if (applicantEmail) {
-      const existing = JSON.parse(
-        localStorage.getItem(`applicant_${applicantEmail}`) || "{}",
-      );
-      const dataToSave = { ...existing, ...updatedData, applicantEmail };
-      localStorage.setItem(
-        `applicant_${applicantEmail}`,
-        JSON.stringify(dataToSave),
-      );
-      setAppointment(dataToSave);
-    } else {
-      console.error("No applicant email found in appointment data");
+  const handleSavePersonalInfo = async (updatedData) => {
+    const applicantId = appointment?.id;
+    if (!applicantId) {
+      console.error("No applicant id found — cannot save to database");
+      return;
+    }
+    try {
+      // Map frontend field names to DB column names
+      const dbData = {
+        first_name: updatedData.first_name,
+        last_name: updatedData.last_name,
+        email_address: updatedData.email,
+        phone: updatedData.phone,
+        street_addr: updatedData.street_addr,
+        city: updatedData.city,
+        postal_code: updatedData.postal_code,
+        status_in_canada: updatedData.status_in_canada,
+        tiny_bundles_program: updatedData.tiny_bundles_program,
+      };
+      // Remove undefined fields so we don't overwrite with null
+      Object.keys(dbData).forEach((k) => dbData[k] === undefined && delete dbData[k]);
+
+      await updateApplicant(applicantId, dbData);
+      setAppointment((prev) => ({ ...prev, ...updatedData }));
+    } catch (err) {
+      console.error("Failed to save applicant info:", err.message);
     }
   };
 
@@ -135,16 +118,19 @@ export default function ApplicantInfoPage() {
     setMemberErrors({});
   };
 
-  // Updates appointment status in localStorage when status is updated by staff
-  const handleStatusChange = (newStatus) => {
-    const updated = { ...appointment, appointmentStatus: newStatus };
-
-    localStorage.setItem(
-      `applicant_${updated.email}`,
-      JSON.stringify(updated)
-    );
-
-    setAppointment(updated);
+  // CHANGED: was writing to localStorage, now updates via API
+  const handleStatusChange = async (newStatus) => {
+    const applicantId = appointment?.id;
+    if (!applicantId) {
+      console.error("No applicant id found — cannot update status");
+      return;
+    }
+    try {
+      await updateApplicant(applicantId, { appointmentStatus: newStatus });
+      setAppointment((prev) => ({ ...prev, appointmentStatus: newStatus }));
+    } catch (err) {
+      console.error("Failed to update status:", err.message);
+    }
   };
 
   return (

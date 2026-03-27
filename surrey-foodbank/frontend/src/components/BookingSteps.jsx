@@ -159,7 +159,7 @@ export function Stepper({ currentStep, steps = STEPS }) {
   );
 }
 
-export function StepPersonalInfo({ form, onChange, onNext, errors }) {
+export function StepPersonalInfo({ form, onChange, onNext, errors, isSubmitting = false }) {
   return (
     <Box className="ba-body">
       <Typography variant="h2">
@@ -169,17 +169,18 @@ export function StepPersonalInfo({ form, onChange, onNext, errors }) {
         form={form}
         onChange={onChange}
         errors={errors}
-        isDisabled={false}
+        isDisabled={isSubmitting}
       />
       <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 3 }}>
         <Button
           variant="contained"
           color="primary"
           onClick={onNext}
+          disabled={isSubmitting}
           sx={{ fontWeight: "bold" }}
           endIcon={<NavigateNextIcon />}
         >
-          Next
+          {isSubmitting ? "Saving..." : "Next"}
         </Button>
       </Box>
     </Box>
@@ -620,23 +621,24 @@ export function StepSignupReview({
   onBack,
   onConfirm,
 }) {
-  const fullName =
-    form.firstName || form.lastName
-      ? [form.firstName, form.lastName].filter(Boolean).join(" ")
-      : form.name || "";
-  const fullAddress = form.streetAddress
-    ? [form.streetAddress, form.city, form.province, form.postalCode]
-        .filter(Boolean)
-        .join(", ")
-    : form.address || "";
+  const fullName = [form.first_name, form.last_name].filter(Boolean).join(" ");
+  const fullAddress = [form.street_addr, form.city, form.province, form.postal_code]
+    .filter(Boolean)
+    .join(", ");
+
   const personalRows = [
     { label: "Name", value: fullName },
     { label: "Address", value: fullAddress },
     { label: "Phone", value: form.phone },
-    { label: "Status in Canada", value: form.statusInCanada },
+    { label: "Status in Canada", value: form.status_in_canada },
     {
       label: "Tiny Bundles?",
-      value: form.applyingToTinyBundles === "yes" ? "Yes" : "No",
+      value:
+        form.tiny_bundles_program === true
+          ? "Yes"
+          : form.tiny_bundles_program === false
+            ? "No"
+            : "",
     },
     { label: "Preferred Language", value: form.language },
   ];
