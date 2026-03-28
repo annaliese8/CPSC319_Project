@@ -211,7 +211,7 @@ async function getRegistration(email) {
       data.tiny_bundles_program === true,
     province: data.province || "British Columbia",
     language: data.language || "English",
-    household_members: Number(data.household_members || 0),
+    household_size: householdMembers.length + 1,
     householdMembers,
   }
 }

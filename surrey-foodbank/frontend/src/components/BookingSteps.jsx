@@ -133,11 +133,11 @@ export function TopNav({ onLogout }) {
 export const isSlotAvailable = (availability, day, time, interval = 15) =>
   interval === 30
     ? !!availability[`${day}-${time}`] &&
-      !!availability[`${day}-${addMinutesToTime(time, 15)}`] &&
-      !!availability[`${day}-${addMinutesToTime(time, 30)}`] &&
-      !!availability[`${day}-${addMinutesToTime(time, 45)}`]
+    !!availability[`${day}-${addMinutesToTime(time, 15)}`] &&
+    !!availability[`${day}-${addMinutesToTime(time, 30)}`] &&
+    !!availability[`${day}-${addMinutesToTime(time, 45)}`]
     : !!availability[`${day}-${time}`] &&
-      !!availability[`${day}-${addMinutesToTime(time, 15)}`];
+    !!availability[`${day}-${addMinutesToTime(time, 15)}`];
 
 // defaults to STEPS so existing callers don't break
 export function Stepper({ currentStep, steps = STEPS }) {
@@ -235,7 +235,7 @@ export function StepChooseTime({
 
   const availability = weekAvailability;
   const isCurrentWeek = weekStart.getTime() === todayStart.getTime();
-  const householdSize = form.householdMembers.length + 1;
+  const householdSize = form.household_size;
   const isLargeHousehold = householdSize >= 5;
   const bookingInterval = isLargeHousehold ? 30 : 15;
   const tinyBundles = form.applyingToTinyBundles === "yes";
@@ -479,23 +479,16 @@ export function StepReview({
   onConfirm,
   onTimerExpired,
 }) {
-  const fullName =
-    form.firstName || form.lastName
-      ? [form.firstName, form.lastName].filter(Boolean).join(" ")
-      : form.name || "";
-  const fullAddress = form.streetAddress
-    ? [form.streetAddress, form.city, form.province, form.postalCode]
-        .filter(Boolean)
-        .join(", ")
-    : form.address || "";
+  const full_name = [form.first_name, form.last_name].filter(Boolean).join(" ");
+  const full_address = [form.street_addr, form.city, "British Columbia", form.postal_code].filter(Boolean).join(", ");
   const rows = [
-    { label: "Name", value: fullName },
-    { label: "Address", value: fullAddress },
+    { label: "Name", value: full_name },
+    { label: "Address", value: full_address },
     { label: "Phone", value: form.phone },
-    { label: "Status in Canada", value: form.statusInCanada },
+    { label: "Status in Canada", value: form.status_in_canada },
     {
       label: "Tiny Bundles?",
-      value: form.applyingToTinyBundles === "yes" ? "Yes" : "No",
+      value: form.tiny_bundles_program === "yes" ? "Yes" : "No",
     },
     { label: "Preferred Language", value: form.language },
     { label: "Appointment", value: formatApptString(selectedSlot) },
