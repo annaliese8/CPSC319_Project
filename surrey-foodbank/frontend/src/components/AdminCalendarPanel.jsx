@@ -163,7 +163,8 @@ function AdminCalendarPanel({
     saveChanges,
     discardChanges,
     toggleBookingPanel,
-    changeBookingAppointment, // appointment to rebook (from ApplicantInfoPage)
+    changeBookingAppointment, 
+    isNewBooking, 
 }) {
 
     const today = new Date();
@@ -259,6 +260,7 @@ function AdminCalendarPanel({
                     weekStart={weekStart}
                     isBookingPanel={toggleBookingPanel}
                     changeBookingAppointment={changeBookingAppointment}
+                    isNewBooking={isNewBooking}
                 />
             </Box>
         </Paper>

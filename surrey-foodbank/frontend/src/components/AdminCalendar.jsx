@@ -662,6 +662,7 @@ function AdminCalendar({
     weekStart,
     isBookingPanel,
     changeBookingAppointment, // appointment being rebooked (from ApplicantInfoPage)
+    isNewBooking
 }) {
 
     const [appointmentData, setAppointmentData] = React.useState(null);
@@ -686,21 +687,23 @@ function AdminCalendar({
 
     // When arriving from "Change Booking", immediately open the booking panel
     // in rebooking mode with the existing appointment pre-filled
-    React.useEffect(() => {
-        if (changeBookingAppointment) {
-            setRebookingAppointment(changeBookingAppointment);
-            // When changing an appointment, the time slot fills with the applicant's existing appointment
-            setSelectedSlot({
-                day: changeBookingAppointment.day || days[0],
-                time: changeBookingAppointment.startTime || null,
-                weekStart,
-                date: changeBookingAppointment.date
-                    ? new Date(changeBookingAppointment.date)
-                    : new Date(weekStart)
-            });
-            setShowBookingPanel(true);
-        }
-    }, [changeBookingAppointment]);
+   React.useEffect(() => {
+    if (changeBookingAppointment) {
+        setRebookingAppointment(isNewBooking ? null : changeBookingAppointment);
+        const slotDay = changeBookingAppointment.day || days[0];
+        const slotTime = changeBookingAppointment.startTime || "9:00";
+        setSelectedSlot({
+            day: slotDay,
+            time: slotTime,
+            weekStart,
+            date: changeBookingAppointment.date
+                ? new Date(changeBookingAppointment.date)
+                : new Date(weekStart)
+        });
+        setHighlightedSlot({ day: slotDay, time: slotTime });
+        setShowBookingPanel(true);
+    }
+}, [changeBookingAppointment]);
 
     React.useEffect(() => {
         const demoEmail = localStorage.getItem("activeUser")

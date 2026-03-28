@@ -50,10 +50,17 @@ function Login() {
       return;
     }
     localStorage.setItem(
-      "activeUser",
-      JSON.stringify({ email: emailField.value }),
-    );
-    navigate("/applicant/profile");
+  "activeUser",
+  JSON.stringify({ email: emailField.value }),
+);
+
+// Check if registration form has been completed
+const applicantData = JSON.parse(
+  localStorage.getItem(`applicant_${emailField.value}`) || "{}"
+);
+const hasFilledForm = applicantData.firstName && applicantData.householdMembers;
+
+navigate(hasFilledForm ? "/applicant/profile" : "/applicant/register");
   };
 
   return (

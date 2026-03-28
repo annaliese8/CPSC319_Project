@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 export const STEPS = ["Personal Info", "Choose Time", "Review", "Thank You"];
 import logo from "../styles/full-logo.png";
 import {
@@ -27,13 +27,21 @@ export const DAYS_SHORT = ["Mon", "Tue", "Wed", "Thu", "Fri"];
 // Slots run 9:00 am – 3:00 pm in 15-minute increments
 const generateAllSlots = () => {
   const slots = [];
-  for (let h = 9; h < 15; h++)
+  for (let h = 0; h < 24; h++)
     for (let m = 0; m < 60; m += 15)
       slots.push(`${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`);
   return slots;
 };
 
-export const ALL_SLOTS = generateAllSlots();
+const ALL_SLOTS_FULL = generateAllSlots();
+
+// Normalize staff time format "9:00" -> "09:00" to match ALL_SLOTS_FULL
+const normalizeTime = (t) => {
+  const [h, m] = t.split(":").map(Number);
+  return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
+};
+
+export const ALL_SLOTS = ALL_SLOTS_FULL;
 export const ROW_TIMES = ALL_SLOTS.filter((_, i) => i % 2 === 0);
 
 export const formatTime = (time) => {
@@ -75,24 +83,21 @@ export const getWeekDates = (weekStart) =>
 export const generateAvailability = (weekDates = []) => {
   const map = {};
 
-  // Start with all slots available
-  DAYS_FULL.forEach((day) =>
-    ALL_SLOTS.forEach((time) => {
-      map[`${day}-${time}`] = true;
-    }),
-  );
+  // Build blocked set from staff, normalizing "9:00" -> "09:00"
+  const staffBlocked = (() => {
+    try {
+      return JSON.parse(localStorage.getItem("staffBlockedSlots") || "[]");
+    } catch { return []; }
+  })();
 
-  // Block slots marked unavailable by staff
-  try {
-    const staffBlocked = JSON.parse(
-      localStorage.getItem("staffBlockedSlots") || "[]",
-    );
-    staffBlocked.forEach(([day, time]) => {
-      if (map[`${day}-${time}`] !== undefined) map[`${day}-${time}`] = false;
-    });
-  } catch {
-    /* skip */
-  }
+  const blockedSet = new Set(staffBlocked.map(([d, t]) => `${d}-${normalizeTime(t)}`));
+
+  // Initialize: available only if NOT in staff blocked set
+  DAYS_FULL.forEach((day) =>
+    ALL_SLOTS_FULL.forEach((time) => {
+      map[`${day}-${time}`] = !blockedSet.has(`${day}-${time}`);
+    })
+  );
 
   // Block slots already booked by applicants
   for (let i = 0; i < localStorage.length; i++) {
@@ -102,21 +107,17 @@ export const generateAvailability = (weekDates = []) => {
       const data = JSON.parse(localStorage.getItem(key));
       if (!data?.day || !data?.startTime || !data?.duration) continue;
 
-      // If date is present, only block for the matching week
       if (data.date) {
         const bookedDateStr = new Date(data.date).toDateString();
-        if (!weekDates.some((d) => d.toDateString() === bookedDateStr))
-          continue;
+        if (!weekDates.some((d) => d.toDateString() === bookedDateStr)) continue;
       }
 
       const numSlots = data.duration / 15;
       for (let s = 0; s < numSlots; s++) {
-        const blockedTime = addMinutesToTime(data.startTime, s * 15);
+        const blockedTime = normalizeTime(addMinutesToTime(data.startTime, s * 15));
         map[`${data.day}-${blockedTime}`] = false;
       }
-    } catch {
-      /* skip */
-    }
+    } catch { /* skip */ }
   }
 
   return map;
@@ -239,13 +240,42 @@ export function StepChooseTime({
   const weekDates = getWeekDates(weekStart);
 
   const [weekAvailability, setWeekAvailability] = useState(() =>
-    generateAvailability(getWeekDates(weekStart)),
-  );
-  useEffect(() => {
-    setWeekAvailability(generateAvailability(getWeekDates(weekStart)));
-  }, [weekStart]);
+  generateAvailability(getWeekDates(weekStart)),
+);
+useEffect(() => {
+  setWeekAvailability(generateAvailability(getWeekDates(weekStart)));
+}, [weekStart]);
 
-  const availability = weekAvailability;
+const availability = weekAvailability;
+
+const visibleSlots = useMemo(() => {
+  try {
+    const staffBlocked = JSON.parse(localStorage.getItem("staffBlockedSlots") || "[]");
+    
+    // Build a set of blocked times (normalized) that are blocked on ALL 5 weekdays
+    // A time is "fully blocked" only if it's blocked for every Mon-Fri day
+    const blockedTimesPerDay = {};
+    DAYS_FULL.forEach(day => { blockedTimesPerDay[day] = new Set(); });
+    
+    staffBlocked.forEach(([day, time]) => {
+      if (blockedTimesPerDay[day]) {
+        blockedTimesPerDay[day].add(normalizeTime(time));
+      }
+    });
+
+    // A slot is visible if it's unblocked on AT LEAST ONE weekday
+    return ALL_SLOTS_FULL.filter(t =>
+      DAYS_FULL.some(day => !blockedTimesPerDay[day].has(t))
+    );
+  } catch {
+    return ALL_SLOTS_FULL.filter(t => {
+      const h = parseInt(t);
+      return h >= 9 && h < 15;
+    });
+  }
+}, [weekStart]);
+
+
 
   const isCurrentWeek = weekStart.getTime() === todayStart.getTime();
 
@@ -390,7 +420,7 @@ export function StepChooseTime({
               </tr>
             </thead>
             <tbody>
-              {ALL_SLOTS.map((time, rowIdx) => (
+              {visibleSlots.map((time, rowIdx) => (
                 <tr key={time}>
                   <td className="ba-cal-td time-col">
                     {rowIdx % 2 === 0 ? formatTime(time) : ""}

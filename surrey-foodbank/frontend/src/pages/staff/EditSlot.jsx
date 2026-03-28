@@ -14,9 +14,22 @@ const generateTimeSlots = () => {
   return slots;
 };
 
+const weekendDays = ["Sunday", "Saturday"];
+
 const generateInitBlockedSlots = () => {
   const blockedSlots = [];
   days.forEach((day) => {
+    // Block all 24 hours for weekend days
+    if (weekendDays.includes(day)) {
+      for (let hour = 0; hour < 24; hour++) {
+        blockedSlots.push([day, `${hour}:00`]);
+        blockedSlots.push([day, `${hour}:15`]);
+        blockedSlots.push([day, `${hour}:30`]);
+        blockedSlots.push([day, `${hour}:45`]);
+      }
+      return;
+    }
+    // Weekdays: block before 9am and after 3pm
     for (let hour = 0; hour < 9; hour++) {
       blockedSlots.push([day, `${hour}:00`]);
       blockedSlots.push([day, `${hour}:15`]);

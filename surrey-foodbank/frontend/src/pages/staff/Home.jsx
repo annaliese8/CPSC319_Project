@@ -116,6 +116,7 @@ function Home() {
   const changeBookingAppointment = location.state?.changeBooking
     ? location.state.appointment
     : null;
+    const isNewBooking = location.state?.isNewBooking ?? false;
 
   const handleLogout = () => navigate(`/${staffBase}/login`);
 
