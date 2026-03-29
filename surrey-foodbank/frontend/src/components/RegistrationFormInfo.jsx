@@ -8,6 +8,32 @@ import { useState, useEffect } from "react";
 import RegistrationFields from "./RegistrationFields";
 import { validateRegistrationForm } from "../utils/ValidateRegistrationForm";
 
+function toValidationForm(form) {
+  return {
+    firstName: form.first_name ?? "",
+    lastName: form.last_name ?? "",
+    streetAddress: form.street_addr ?? "",
+    city: form.city ?? "",
+    province: form.province ?? "",
+    postalCode: form.postal_code ?? "",
+    phone: form.phone ?? "",
+    statusInCanada: form.status_in_canada ?? "",
+    language: form.language ?? "",
+    applyingToTinyBundles: form.tiny_bundles_program ? "yes" : "no",
+  };
+}
+
+function toUiErrors(validationErrors) {
+  return {
+    ...validationErrors,
+    first_name: validationErrors.firstName,
+    last_name: validationErrors.lastName,
+    street_addr: validationErrors.streetAddress,
+    postal_code: validationErrors.postalCode,
+    status_in_canada: validationErrors.statusInCanada,
+  };
+}
+
 export default function RegistrationFormInfo({ appointment, onSave }) {
   // Helper function for setting appointment form fields
   // CHANGED: updated all field names to match Supabase DB column names
@@ -47,8 +73,8 @@ export default function RegistrationFormInfo({ appointment, onSave }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const errors = validateRegistrationForm(form);
-    setFormErrors(errors);
+    const errors = validateRegistrationForm(toValidationForm(form));
+    setFormErrors(toUiErrors(errors));
     if (Object.keys(errors).length) return;
 
     if (onSave) {
