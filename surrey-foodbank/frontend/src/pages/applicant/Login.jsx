@@ -7,70 +7,97 @@ import PasswordField from "../../components/PasswordField";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import Window from "../../components/Window";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import useTextField from "../../hooks/useTextField";
-// import { loadSignupDraft } from "../../components/BookingSteps";
+import { useState } from "react";
+import { getSupabaseClient } from "../../lib/supabaseClient";
+
+function getApiBaseUrl() {
+  const envBase = (import.meta.env.VITE_API_BASE_URL || "").trim();
+  if (envBase) return envBase.replace(/\/$/, "");
+  return import.meta.env.DEV ? "http://localhost:3000" : "";
+}
 
 function Login() {
-  // Email must be associated with an existing account
+  const [submitError, setSubmitError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const emailField = useTextField(
     "",
-    (value) => {
-      const users = JSON.parse(localStorage.getItem("users") || "[]");
-      return users.some((user) => user.email === value)
-        ? ""
-        : "An account with this address doesn't exist";
-    },
+    () => "",
     false,
   );
 
   // Password must match the one associated with the given email
   const passwordField = useTextField(
     "",
-    (value) => {
-      const users = JSON.parse(localStorage.getItem("users") || "[]");
-      const user = users.find((u) => u.email === emailField.value);
-      if (!user) return "";
-      return user.password === value ? "" : "Incorrect password";
-    },
+    () => "",
     false,
   );
 
   const navigate = useNavigate();
 
   // When the form is submitted, validate the fields.
-  // If no errors exist, set active user and navigate to applicant's profile page.
-  // If a signup draft exists (registration was never completed), resume it instead.
-  const handleSubmit = (e) => {
+  // If no errors exist, set active user and navigate to applicant's profile page
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isSubmitting) return;
+
+    setSubmitError("");
     const emailError = emailField.validate();
     const passwordError = passwordField.validate();
     const hasErrors = Boolean(emailError) || Boolean(passwordError);
     const hasEmptyFields = !emailField.value || !passwordField.value;
-    if (hasErrors || hasEmptyFields) return;
+    if (hasErrors || hasEmptyFields) {
+      setSubmitError("Please enter both email and password.");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    const supabase = getSupabaseClient();
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: emailField.value,
+      password: passwordField.value,
+    });
+
+    if (error || !data?.session) {
+      setSubmitError("Incorrect email or password. Please try again.");
+      setIsSubmitting(false);
+      return;
+    }
 
     localStorage.setItem(
       "activeUser",
       JSON.stringify({ email: emailField.value }),
     );
 
-    // // Resume incomplete registration if a draft was saved
-    // const draft = loadSignupDraft();
-    // if (draft) {
-    //   navigate("/applicant/register");
-    // } else {
-    //   navigate("/applicant/profile");
-    // }
+    const apiBase = getApiBaseUrl();
 
-    const applicantKey = `applicant_${email}`;
-    const stored = JSON.parse(localStorage.getItem(applicantKey) || "{}");
+    try {
+      const response = await fetch(`${apiBase}/api/applicant/registration-status`, {
+        headers: {
+          Authorization: `Bearer ${data.session.access_token}`,
+        },
+      });
 
-    const isRegistrationComplete = stored.registrationComplete;
+      const result = await response.json().catch(() => null);
+      if (!response.ok) {
+        setSubmitError(result?.error || "Unable to check registration status.");
+        setIsSubmitting(false);
+        return;
+      }
 
-    if (!isRegistrationComplete) {
+      setIsSubmitting(false);
+      if (result?.data?.completed) {
+        navigate("/applicant/profile");
+        return;
+      }
+
       navigate("/applicant/register");
-    } else {
-      navigate("/applicant/profile");
+    } catch (_err) {
+      setIsSubmitting(false);
+      setSubmitError("Unable to check registration status. Please try again.");
     }
   };
 
@@ -88,13 +115,13 @@ function Login() {
             value={emailField.value}
             onChange={emailField.onChange}
             error={emailField.isInvalid}
-            helperText={emailField.errorMessage}
+            helperText={emailField.errorMessage || "Use your account email"}
           />
           <PasswordField
             value={passwordField.value}
             onChange={passwordField.onChange}
-            error={passwordField.isInvalid}
-            helperText={passwordField.errorMessage}
+            error={Boolean(submitError)}
+            helperText={submitError || passwordField.errorMessage}
           />
           <Stack
             direction="row"
@@ -119,8 +146,9 @@ function Login() {
               variant="contained"
               size="large"
               sx={{ fontWeight: "bold" }}
+              disabled={isSubmitting}
             >
-              Log In
+              {isSubmitting ? "Logging in..." : "Log In"}
             </Button>
           </Stack>
         </Box>
