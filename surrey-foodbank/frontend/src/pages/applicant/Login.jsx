@@ -9,6 +9,7 @@ import Typography from "@mui/material/Typography";
 import Window from "../../components/Window";
 import { Link, useNavigate } from "react-router-dom";
 import useTextField from "../../hooks/useTextField";
+// import { loadSignupDraft } from "../../components/BookingSteps";
 
 function Login() {
   // Email must be associated with an existing account
@@ -22,6 +23,7 @@ function Login() {
     },
     false,
   );
+
   // Password must match the one associated with the given email
   const passwordField = useTextField(
     "",
@@ -34,26 +36,42 @@ function Login() {
     false,
   );
 
-
-
   const navigate = useNavigate();
 
   // When the form is submitted, validate the fields.
-  // If no errors exist, set active user and navigate to applicant's profile page
+  // If no errors exist, set active user and navigate to applicant's profile page.
+  // If a signup draft exists (registration was never completed), resume it instead.
   const handleSubmit = (e) => {
     e.preventDefault();
     const emailError = emailField.validate();
     const passwordError = passwordField.validate();
     const hasErrors = Boolean(emailError) || Boolean(passwordError);
     const hasEmptyFields = !emailField.value || !passwordField.value;
-    if (hasErrors || hasEmptyFields) {
-      return;
-    }
+    if (hasErrors || hasEmptyFields) return;
+
     localStorage.setItem(
       "activeUser",
       JSON.stringify({ email: emailField.value }),
     );
-    navigate("/applicant/profile");
+
+    // // Resume incomplete registration if a draft was saved
+    // const draft = loadSignupDraft();
+    // if (draft) {
+    //   navigate("/applicant/register");
+    // } else {
+    //   navigate("/applicant/profile");
+    // }
+
+    const applicantKey = `applicant_${email}`;
+    const stored = JSON.parse(localStorage.getItem(applicantKey) || "{}");
+
+    const isRegistrationComplete = stored.registrationComplete;
+
+    if (!isRegistrationComplete) {
+      navigate("/applicant/register");
+    } else {
+      navigate("/applicant/profile");
+    }
   };
 
   return (

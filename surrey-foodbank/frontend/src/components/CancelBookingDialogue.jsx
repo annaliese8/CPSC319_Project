@@ -38,6 +38,7 @@ function CancelBookingDialogue({
         data.duration = 0;
         data.dateLabel = "";
         data.timeLabel = "";
+        data.appointmentStatus = "";
         localStorage.setItem(key, JSON.stringify(data));
 
       }

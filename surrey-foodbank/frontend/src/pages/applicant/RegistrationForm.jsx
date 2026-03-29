@@ -1,52 +1,113 @@
 import { useState } from "react";
 import { useBookingStyles } from "./Bookingstyles";
-import { Stepper, StepPersonalInfo } from "../../components/BookingSteps";
+import {
+  Stepper,
+  StepPersonalInfo,
+  StepHouseholdMembers,
+  StepSignupReview,
+  SIGNUP_STEPS,
+} from "../../components/BookingSteps";
 import { useNavigate } from "react-router-dom";
 import ApplicantTopBar from "../../components/ApplicantTopBar";
 import { validateRegistrationForm } from "../../utils/ValidateRegistrationForm";
+import { validateHouseholdMembers } from "../../utils/ValidateHouseholdMembers";
+import { Alert, Snackbar, Typography } from "@mui/material";
 
 export default function Register() {
   useBookingStyles();
   const navigate = useNavigate();
   const handleLogout = () => navigate("/applicant/home");
 
+  const activeUser = JSON.parse(localStorage.getItem("activeUser") || "null");
+  const applicantKey = activeUser?.email
+    ? `applicant_${activeUser.email}`
+    : null;
+  const stored = applicantKey
+    ? JSON.parse(localStorage.getItem(applicantKey) || "{}")
+    : {};
+  const [step, setStep] = useState(0);
   const [form, setForm] = useState({
-    firstName: "",
-    lastName: "",
-    streetAddress: "",
-    city: "",
-    province: "British Columbia",
-    postalCode: "",
-    phone: "",
-    statusInCanada: "",
-    householdMembers: "",
-    applyingToTinyBundles: "no",
-    language: "English",
+    firstName: stored.firstName ?? "",
+    lastName: stored.lastName ?? "",
+    streetAddress: stored.streetAddress ?? "",
+    city: stored.city ?? "",
+    province: stored.province ?? "British Columbia",
+    postalCode: stored.postalCode ?? "",
+    phone: stored.phone ?? "",
+    statusInCanada: stored.statusInCanada ?? "",
+    applyingToTinyBundles: stored.applyingToTinyBundles ?? "no",
+    language: stored.language ?? "English",
   });
+  const [householdMembers, setHouseholdMembers] = useState(
+    stored.householdMembers ?? [],
+  );
   const [formErrors, setFormErrors] = useState({});
+  const [memberErrors, setMemberErrors] = useState({});
+  const [savedToast, setSavedToast] = useState(false);
+
+  // ── Step 0: Personal Info ──────────────────────────────────────────────────
 
   const handleFormChange = (field) => (e) => {
     setForm((f) => ({ ...f, [field]: e.target.value }));
-    setFormErrors((e) => ({ ...e, [field]: undefined }));
+    setFormErrors((err) => ({ ...err, [field]: undefined }));
   };
 
   const handlePersonalNext = () => {
-    // Check if form fields are valid and set errors
     const errors = validateRegistrationForm(form);
     setFormErrors(errors);
     if (Object.keys(errors).length) return;
 
-    // Persist to localStorage under the activeUser key so RegistrationFormInfo
-    // and BookAppointment can read the same data without relying solely on router state
-    const activeUser = JSON.parse(localStorage.getItem("activeUser") || "null");
-    const applicantKey = activeUser?.email
-      ? `applicant_${activeUser.email}`
-      : null;
+    // Save to applicant record on successful validation
     if (applicantKey) {
       const existing = JSON.parse(localStorage.getItem(applicantKey) || "{}");
       localStorage.setItem(
         applicantKey,
         JSON.stringify({ ...existing, ...form }),
+      );
+      setSavedToast(true);
+    }
+
+    setStep(1);
+  };
+
+  // ── Step 1: Household Members ─────────────────────────────────────────────────
+
+  const handleHouseholdNext = () => {
+    const errors = validateHouseholdMembers(householdMembers);
+    setMemberErrors(errors);
+    if (Object.keys(errors).length) return;
+    // Save household members to applicant record
+    if (applicantKey) {
+      const existing = JSON.parse(localStorage.getItem(applicantKey) || "{}");
+      localStorage.setItem(
+        applicantKey,
+        JSON.stringify({ ...existing, householdMembers }),
+      );
+      setSavedToast(true);
+    }
+
+    setStep(2);
+  };
+
+  // ── Save Progress ────────────────────────────────────────────────────────────
+
+  const handleSaveProgress = () => {
+    setSavedToast(true);
+  };
+
+  // ── Step 2: Review → straight to profile ──────────────────────────────────
+
+  const handleConfirm = () => {
+    if (applicantKey) {
+      const existing = JSON.parse(localStorage.getItem(applicantKey) || "{}");
+      localStorage.setItem(
+        applicantKey,
+        JSON.stringify({
+          ...existing,
+          ...form,
+          householdMembers,
+          registrationComplete: true,
+        }),
       );
     }
 
@@ -63,11 +124,13 @@ export default function Register() {
         phone: form.phone,
         statusInCanada: form.statusInCanada,
         applyingToTinyBundles: form.applyingToTinyBundles,
-        householdMembers: form.householdMembers,
         language: form.language,
+        householdMembers: householdMembers,
       },
     });
   };
+
+  // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
     <div className="ba-shell">
@@ -76,17 +139,55 @@ export default function Register() {
       <div className="ba-card-wrap">
         <div className="ba-card">
           <div className="ba-banner">
-            <h1>Registration</h1>
+            <Typography variant="h1">Registration</Typography>
           </div>
-          <Stepper currentStep={0} />
-          <StepPersonalInfo
-            form={form}
-            errors={formErrors}
-            onChange={handleFormChange}
-            onNext={handlePersonalNext}
-          />
+
+          <Stepper currentStep={step} steps={SIGNUP_STEPS} />
+
+          {step === 0 && (
+            <StepPersonalInfo
+              form={form}
+              errors={formErrors}
+              onChange={handleFormChange}
+              onNext={handlePersonalNext}
+            />
+          )}
+
+          {step === 1 && (
+            <StepHouseholdMembers
+              householdMembers={householdMembers}
+              onChange={setHouseholdMembers}
+              onBack={() => setStep(0)}
+              onNext={handleHouseholdNext}
+              errors={memberErrors}
+            />
+          )}
+
+          {step === 2 && (
+            <StepSignupReview
+              form={form}
+              householdMembers={householdMembers}
+              onBack={() => setStep(1)}
+              onConfirm={handleConfirm}
+            />
+          )}
         </div>
       </div>
+
+      <Snackbar
+        open={savedToast}
+        autoHideDuration={5000}
+        onClose={() => setSavedToast(false)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert
+          severity="success"
+          variant="filled"
+          sx={{ fontWeight: 600, fontSize: 14 }}
+        >
+          Progress saved
+        </Alert>
+      </Snackbar>
     </div>
   );
 }
