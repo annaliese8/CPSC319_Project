@@ -185,11 +185,10 @@ function AdminCalendar({
   weekStart,
   isBookingPanel,
   changeBookingAppointment, // appointment being rebooked (from ApplicantInfoPage)
+  appointments: appointmentsProp = [],
 }) {
   const [appointmentData, setAppointmentData] = React.useState(null);
-  const [appointments, setAppointments] = React.useState(() =>
-    loadAppointmentsFromStorage(),
-  );
+  const [appointments, setAppointments] = React.useState([]);
   const [selectedSlot, setSelectedSlot] = React.useState(null);
   const [highlightedSlot, setHighlightedSlot] = React.useState(null);
   const [showBookingPanel, setShowBookingPanel] = React.useState(false);
@@ -227,24 +226,26 @@ function AdminCalendar({
   }, [changeBookingAppointment]);
 
   React.useEffect(() => {
-    const demoEmail = localStorage.getItem("activeUser")
-      ? JSON.parse(localStorage.getItem("activeUser")).email
-      : "harnoor@example.com";
-    const storedData = localStorage.getItem(`applicant_${demoEmail}`);
-    if (storedData) {
-      setAppointmentData(JSON.parse(storedData));
-    } else {
-      setAppointmentData({
-        name: "Joshua Pemberton",
-        address: "123 Main Street, Surrey BC V3T 1A2",
-        statusInCanada: "Permanent Resident",
-        applyingToTinyBundles: "yes",
-        householdMembers: "2",
-        dateLabel: "Monday March 26, 2026",
-        timeLabel: "3:30pm – 3:45pm",
-      });
-    }
-  }, []);
+  const normalized = appointmentsProp.map((a) => ({
+  id: a.response_id,
+  response_id: a.response_id,
+  email: a.registrationformresponse?.email_address || "",
+  name: a.registrationformresponse
+    ? `${a.registrationformresponse.first_name} ${a.registrationformresponse.last_name}`
+    : "",
+  day: a.appointment_date
+    ? new Date(`${a.appointment_date}T12:00:00`).toLocaleDateString("en-US", { weekday: "long" })
+    : "",
+  date: a.appointment_date
+    ? new Date(`${a.appointment_date}T${a.appointment_time}`).toISOString()
+    : null,
+  startTime: a.appointment_time?.slice(0, 5) || "",
+  duration: 15,
+  appointmentStatus: a.appointment_status || "Booked",
+  appointment_id: a.appointment_id,
+}))
+  setAppointments(normalized)
+}, [appointmentsProp])
 
   const addBlockedSlot = (slot) => setBlockedSlots((prev) => [...prev, slot]);
   const removeBlockedSlot = (slot) =>

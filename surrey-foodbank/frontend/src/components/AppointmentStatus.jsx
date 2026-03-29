@@ -33,10 +33,11 @@ export default function AppointmentStatus({ appointment, onStatusChange }) {
 
     // Sync local status state whenever the appointment prop changes.
     useEffect(() => {
-        if (appointment?.appointmentStatus) {
-            setStatus(appointment.appointmentStatus);
-        }
-    }, [appointment]);
+     const status = appointment?.appointmentStatus || appointment?.appointment_status
+     if (status) {
+      setStatus(status)
+     }
+    }, [appointment])
 
     // Opens the dropdown menu
     const handleOpen = (event) => {
