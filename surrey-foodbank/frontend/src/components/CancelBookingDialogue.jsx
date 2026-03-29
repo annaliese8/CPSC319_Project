@@ -139,6 +139,8 @@ function CancelBookingDialogue({
   onClose,
   appointment,
   isStaff = false,
+  applicantEmail = null,
+  onConfirmCancel = null,
   onCancelComplete = null,
 }) {
   const navigate = useNavigate();
@@ -151,6 +153,7 @@ function CancelBookingDialogue({
         await deleteAppointment(appointmentId);
       } catch (err) {
         console.error("Failed to cancel appointment:", err.message);
+
       }
     }
 

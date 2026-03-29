@@ -1,4 +1,6 @@
-import { supabase } from '../lib/supabaseClient.js'
+import { getSupabaseAnonClient } from "../lib/supabase.js"
+
+const supabase = getSupabaseAnonClient()
 
 // ── Applicants ────────────────────────────────────────────────────────────────
 
