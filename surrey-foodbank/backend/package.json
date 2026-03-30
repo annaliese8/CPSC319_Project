@@ -1,7 +1,6 @@
 {
   "name": "backend",
   "version": "1.0.0",
-  "type": "module",
   "description": "",
   "main": "src/server.js",
   "scripts": {
@@ -12,10 +11,12 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
+  "type": "module",
   "dependencies": {
     "@supabase/supabase-js": "^2.100.0",
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",
+    "mailgun.js": "^12.7.1",
     "express": "^5.2.1"
   },
   "devDependencies": {

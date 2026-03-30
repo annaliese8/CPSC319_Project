@@ -11,6 +11,8 @@ import { useNavigate } from "react-router-dom";
 import ApplicantTopBar from "../../components/ApplicantTopBar";
 import { Typography } from "@mui/material";
 import { getSupabaseClient } from "../../lib/supabaseClient";
+import EmailClient from "../../../../backend/src/api/emailclient.js";
+
 
 function getApiBaseUrl() {
   const envBase = (import.meta.env.VITE_API_BASE_URL || "").trim();
@@ -27,6 +29,7 @@ function getApiBaseUrl() {
  */
 export default function BookAppointment() {
   useBookingStyles();
+  const emailClient = new EmailClient();
   const navigate = useNavigate();
   const handleLogout = () => navigate(`/applicant/home`);
 
@@ -127,17 +130,23 @@ export default function BookAppointment() {
       });
 
       const result = await response.json().catch(() => null);
+
       if (!response.ok) {
         setLoadError(result?.error || "Unable to save appointment.");
         setIsSaving(false);
         return;
       }
 
+      console.log("AHHH");
+      await emailClient.sendConfirmation("Joe", "nineranger@gmail.com", "DATE");
+      console.log("grrrrr");
+
       navigate("/applicant/profile", { replace: true });
     } catch (_error) {
       setLoadError("Unable to save appointment.");
       setIsSaving(false);
     }
+
   };
 
   const stepperStep = step + 1;

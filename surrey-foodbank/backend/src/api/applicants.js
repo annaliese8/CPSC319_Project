@@ -1,5 +1,7 @@
 import { getSupabaseAnonClient } from "../lib/supabase.js"
+import EmailClient from "./emailclient.js";
 const supabase = getSupabaseAnonClient()
+const emailClient = new EmailClient();
 
 export async function getApplicants() {
   const { data, error } = await supabase
@@ -64,15 +66,18 @@ export async function getAppointmentByResponseId(responseId) {
 }
 
 export async function createAppointment(appointmentData) {
+  console.log("sent?", appointmentData)
   const { data, error } = await supabase
     .from('appointments')
     .insert(appointmentData)
     .select()
   if (error) throw error
+  // await emailClient.sendConfirmation("Joe", "nineranger@gmail.com", "today")
   return data
 }
 
 export async function updateAppointment(appointmentId, updates) {
+  console.log("BBBBB", updates)
   const { data, error } = await supabase
     .from('appointments')
     .update(updates)
@@ -83,11 +88,13 @@ export async function updateAppointment(appointmentId, updates) {
 }
 
 export async function deleteAppointment(appointmentId) {
+  console.log(appointmentId, "AAAAAA")
   const { error } = await supabase
     .from('appointments')
     .delete()
     .eq('appointment_id', appointmentId)
   if (error) throw error
+  await emailClient.sendCancellation("Joe", "nineranger@gmail.com", "today")
 }
 
 /**

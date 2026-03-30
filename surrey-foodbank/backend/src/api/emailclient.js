@@ -1,16 +1,18 @@
-import FormData from "form-data"; // form-data v4.0.1
 import Mailgun from "mailgun.js"; // mailgun.js v11.1.0
 
+
 export default class EmailClient {
-    static faceEmail = "no-reply@sfb.ca"
-    static faceName = "Surrey Food Bank"
-    static mailgunApiKey = process.env.MAILGUN_API_KEY
+    faceEmail = "no-reply@sfb.ca"
+    faceName = "Surrey Food Bank"
+
+    async checkEmail(email) {
+    }
 
     static async sendSimpleMessage() {
         const mailgun = new Mailgun(FormData);
         const mg = mailgun.client({
             username: "api",
-            key: this.mailgunApiKey
+            key: process.env.MAILGUN_API_KEY
             // When you have an EU-domain, you must specify the endpoint:
             // url: "https://api.eu.mailgun.net"
         });
@@ -28,14 +30,11 @@ export default class EmailClient {
         }
     }
 
-
-    static async sendConfirmation(name, address, date) {
-        console.log(this.mailgunApiKey);
+    async sendConfirmation(name, address, date) {
         const mailgun = new Mailgun(FormData);
-
         const mg = mailgun.client({
             username: "api",
-            key: this.mailgunApiKey
+            key: process.env.MAILGUN_API_KEY
             // When you have an EU-domain, you must specify the endpoint:
             // url: "https://api.eu.mailgun.net"
         });
@@ -57,12 +56,12 @@ export default class EmailClient {
         }
     }
 
-    static async sendCancellation(name, address, date) {
+    async sendCancellation(name, address, date) {
         const mailgun = new Mailgun(FormData);
 
         const mg = mailgun.client({
             username: "api",
-            key: this.mailgunApiKey
+            key: process.env.MAILGUN_API_KEY
             // When you have an EU-domain, you must specify the endpoint:
             // url: "https://api.eu.mailgun.net"
         });
@@ -85,3 +84,5 @@ export default class EmailClient {
     }
 
 }
+
+const client = new EmailClient();
