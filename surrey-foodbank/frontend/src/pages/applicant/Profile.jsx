@@ -19,18 +19,62 @@ import {
   Place as PlaceIcon,
   FamilyRestroom as FamilyRestroomIcon,
 } from "@mui/icons-material";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import BookingInfo from "../../components/BookingInfo";
 import RegistrationFormInfo from "../../components/RegistrationFormInfo";
 import ApplicantTopBar from "../../components/ApplicantTopBar";
 import CancelBookingDialogue from "../../components/CancelBookingDialogue";
+import { getSupabaseClient } from "../../lib/supabaseClient";
+import { formatTime } from "../../components/BookingSteps";
+import { addMinutesToTime } from "../../utils/TimeUtils";
+import { INELIGIBLE_STATUS_OPTIONS } from "../../components/RegistrationFields";
+import IneligibleStatusDialog from "../../components/IneligibleStatusDialog";
+
+function getApiBaseUrl() {
+  const envBase = (import.meta.env.VITE_API_BASE_URL || "").trim();
+  if (envBase) return envBase.replace(/\/$/, "");
+  return import.meta.env.DEV ? "http://localhost:3000" : "";
+}
+
+function toAppointmentDisplay(appointment) {
+  if (!appointment?.date || !appointment?.startTime) {
+    return {
+      day: "",
+      startTime: "",
+      date: "",
+      duration: 0,
+      dateLabel: "",
+      timeLabel: "",
+    };
+  }
+
+  const duration = Number(appointment.duration || 15);
+  const date = new Date(appointment.date);
+
+  return {
+    day:
+      appointment.day ||
+      date.toLocaleDateString("en-US", { weekday: "long" }),
+    startTime: appointment.startTime,
+    date: appointment.date,
+    duration,
+    dateLabel: date.toLocaleDateString("en-US", {
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    }),
+    timeLabel: `${formatTime(appointment.startTime)} – ${formatTime(
+      addMinutesToTime(appointment.startTime, duration),
+    )}`,
+  };
+}
 import HouseholdMemberInfo from "../../components/HouseholdMemberInfo";
 import { validateHouseholdMembers } from "../../utils/ValidateHouseholdMembers";
 
 function Profile() {
   const navigate = useNavigate();
-  const location = useLocation();
 
   const [activeTab, setActiveTab] = useState("appointment");
   const [showCancelDialog, setShowCancelDialog] = useState(false);
@@ -64,61 +108,90 @@ function Profile() {
   const hasChanges =
     JSON.stringify(pendingHouseholdMembers) !==
     JSON.stringify(appointment.householdMembers ?? []);
+  const [submitError, setSubmitError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showIneligibleStatusDialog, setShowIneligibleStatusDialog] = useState(false);
+  const [ineligibleStatus, setIneligibleStatus] = useState("");
 
   // Load user and appointment data
   useEffect(() => {
-    const activeUser = JSON.parse(localStorage.getItem("activeUser") || "null");
-    if (!activeUser?.email) {
-      navigate("/applicant/login");
-      return;
-    }
+    let isMounted = true;
 
-    const storageKey = `applicant_${activeUser.email}`;
+    async function loadProfileData() {
+      const supabase = getSupabaseClient();
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
+      const userEmail = sessionData?.session?.user?.email || "";
 
-    // Prioritize location.state (just completed booking) over stored data
-    if (location.state) {
-      setAppointment((prev) => ({ ...prev, ...location.state }));
-      localStorage.setItem(
-        storageKey,
-        JSON.stringify({
-          ...JSON.parse(localStorage.getItem(storageKey) || "{}"),
-          ...location.state,
-        }),
-      );
-      // Clear location.state so refresh doesn't re-apply it
-      window.history.replaceState({}, "");
-      return;
-    }
-
-    // Otherwise load from localStorage
-    const storedData = JSON.parse(localStorage.getItem(storageKey) || "null");
-    if (storedData) {
-      setAppointment((prev) => ({ ...prev, ...storedData }));
-      return;
-    }
-
-    // Fallback to email-based name if no data exists
-    setAppointment((prev) => ({
-      ...prev,
-      name: activeUser.email.split("@")[0] || "",
-    }));
-  }, [navigate]);
-
-  // Listen for updates to localStorage from other tabs
-  useEffect(() => {
-    const handleStorageChange = (e) => {
-      const activeUser = JSON.parse(localStorage.getItem("activeUser"))?.email;
-      const storageKey = `applicant_${activeUser}`;
-
-      if (e.key === storageKey && e.newValue) {
-        setAppointment(JSON.parse(e.newValue));
+      if (!accessToken) {
+        navigate("/applicant/login", { replace: true });
+        return;
       }
-    };
-    window.addEventListener("storage", handleStorageChange);
+
+      const apiBase = getApiBaseUrl();
+
+      try {
+        const [registrationResponse, appointmentResponse] = await Promise.all([
+          fetch(`${apiBase}/api/applicant/registration`, {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          }),
+          fetch(`${apiBase}/api/applicant/appointment`, {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          }),
+        ]);
+
+        const result = await registrationResponse.json().catch(() => null);
+        const appointmentResult = await appointmentResponse.json().catch(() => null);
+        if (!isMounted) return;
+
+        if (!registrationResponse.ok) {
+          setSubmitError(result?.error || "Unable to load registration form data.");
+          setAppointment((prev) => ({
+            ...prev,
+            applicantEmail: userEmail,
+            name: userEmail.split("@")[0] || prev.name,
+          }));
+          return;
+        }
+
+        if (!appointmentResponse.ok) {
+          setSubmitError(
+            appointmentResult?.error ||
+            "Unable to load appointment data from database.",
+          );
+        }
+
+        const registration = result?.data?.registration || null;
+        const appointmentFromDb = toAppointmentDisplay(
+          appointmentResult?.data?.appointment || null,
+        );
+
+        setAppointment((prev) => ({
+          ...prev,
+          applicantEmail: userEmail,
+          ...appointmentFromDb,
+          ...(registration || {}),
+          name:
+            [registration?.first_name, registration?.last_name].filter(Boolean).join(" ") ||
+            userEmail.split("@")[0] ||
+            prev.name,
+        }));
+      } catch (_error) {
+        if (!isMounted) return;
+        setSubmitError("Unable to load registration form data.");
+      }
+    }
+
+    loadProfileData();
+
     return () => {
-      window.removeEventListener("storage", handleStorageChange);
+      isMounted = false;
     };
-  }, []);
+  }, [navigate]);
 
   // Keep in sync when appointment loads
   useEffect(() => {
@@ -129,8 +202,9 @@ function Profile() {
   const onChangeBooking = () => navigate(`/applicant/book-appointment`);
   const onBookAppointment = () => navigate(`/applicant/book-appointment`);
 
-  const handleLogout = () => {
-    localStorage.removeItem("activeUser");
+  const handleLogout = async () => {
+    const supabase = getSupabaseClient();
+    await supabase.auth.signOut();
     navigate("/applicant/login");
   };
 
@@ -139,46 +213,168 @@ function Profile() {
   };
 
   // Handles saving registration form data
-  const handleRegistrationSave = (updatedForm) => {
-    const activeUser = JSON.parse(localStorage.getItem("activeUser") || "null");
-    if (!activeUser?.email) return;
-    const storageKey = `applicant_${activeUser.email}`;
+  const handleRegistrationSave = async (updatedForm) => {
+    // Check if status in Canada is ineligible, and show dialog
+    if (INELIGIBLE_STATUS_OPTIONS.includes(updatedForm.status_in_canada)) {
+      setIneligibleStatus(updatedForm.status_in_canada);
+      setShowIneligibleStatusDialog(true);
+      return;
+    }
+    setSubmitError("");
+    setIsSubmitting(true);
 
-    // Merge with existing data to preserve booking fields
-    const existing = JSON.parse(localStorage.getItem(storageKey) || "{}");
-    const merged = { ...existing, ...updatedForm };
+    const supabase = getSupabaseClient();
+    const { data: sessionData } = await supabase.auth.getSession();
+    const accessToken = sessionData?.session?.access_token;
 
-    setAppointment(merged);
-    localStorage.setItem(storageKey, JSON.stringify(merged));
+    if (!accessToken) {
+      setIsSubmitting(false);
+      setSubmitError("Your session has expired. Please log in again.");
+      navigate("/applicant/login", { replace: true });
+      return false;
+    }
+
+    const apiBase = getApiBaseUrl();
+
+    const registerPayload = {
+      ...updatedForm,
+      tiny_bundles_program:
+        updatedForm?.tiny_bundles_program === true || updatedForm?.tiny_bundles_program === "yes"
+          ? "yes"
+          : "no",
+    };
+
+    delete registerPayload.householdMembers;
+
+    try {
+      const response = await fetch(`${apiBase}/api/applicant/register`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify(registerPayload),
+      });
+
+      const result = await response.json().catch(() => null);
+      if (!response.ok) {
+        setSubmitError(result?.error || "Unable to save registration form.");
+        setIsSubmitting(false);
+        return false;
+      }
+
+      setAppointment((prev) => ({
+        ...prev,
+        ...updatedForm,
+        name:
+          `${updatedForm.first_name || ""} ${updatedForm.last_name || ""}`.trim() ||
+          prev.name,
+      }));
+      setIsSubmitting(false);
+      return true;
+    } catch (_error) {
+      setSubmitError("Unable to save registration form.");
+      setIsSubmitting(false);
+      return false;
+    }
   };
 
-  const handleCancelComplete = () => {
-    // Update the local state to reflect the cancelled booking
-    if (appointment) {
-      setAppointment({
-        ...appointment,
+  const handleCancelComplete = async () => {
+    setSubmitError("");
+
+    const supabase = getSupabaseClient();
+    const { data: sessionData } = await supabase.auth.getSession();
+    const accessToken = sessionData?.session?.access_token;
+
+    if (!accessToken) {
+      setSubmitError("Your session has expired. Please log in again.");
+      navigate("/applicant/login", { replace: true });
+      return;
+    }
+
+    const apiBase = getApiBaseUrl();
+
+    try {
+      const response = await fetch(`${apiBase}/api/applicant/appointment`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      const result = await response.json().catch(() => null);
+      if (!response.ok) {
+        setSubmitError(result?.error || "Unable to cancel appointment.");
+        return;
+      }
+
+      setAppointment((prev) => ({
+        ...prev,
         day: "",
         startTime: "",
         date: "",
         duration: 0,
         dateLabel: "",
         timeLabel: "",
-      });
+        appointmentStatus: ""
+      }));
+    } catch (_error) {
+      setSubmitError("Unable to cancel appointment.");
     }
   };
 
-  // Saves household member changes to local storage
-  const handleHouseholdSave = () => {
+  // Saves household member changes to database
+  const handleHouseholdSave = async () => {
     const errors = validateHouseholdMembers(pendingHouseholdMembers);
     if (Object.keys(errors).length) {
       setMemberErrors(errors);
       return;
     }
+
+    setSubmitError("");
+    setIsSubmitting(true);
+
+    const supabase = getSupabaseClient();
+    const { data: sessionData } = await supabase.auth.getSession();
+    const accessToken = sessionData?.session?.access_token;
+
+    if (!accessToken) {
+      setIsSubmitting(false);
+      setSubmitError("Your session has expired. Please log in again.");
+      navigate("/applicant/login", { replace: true });
+      return;
+    }
+
+    const apiBase = getApiBaseUrl();
+
+    try {
+      const response = await fetch(`${apiBase}/api/applicant/household-members`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ householdMembers: pendingHouseholdMembers }),
+      });
+
+      const result = await response.json().catch(() => null);
+      if (!response.ok) {
+        setSubmitError(result?.error || "Unable to save household members.");
+        setIsSubmitting(false);
+        return;
+      }
+    } catch (_error) {
+      setSubmitError("Unable to save household members.");
+      setIsSubmitting(false);
+      return;
+    }
+
     setMemberErrors({});
-    handleRegistrationSave({
-      ...appointment,
+    setAppointment((prev) => ({
+      ...prev,
       householdMembers: pendingHouseholdMembers,
-    });
+    }));
+    setIsSubmitting(false);
   };
 
   // Reverts unsaved household member changes
@@ -248,15 +444,14 @@ function Profile() {
               onCancelBooking={onCancelBooking}
               onChangeBooking={onChangeBooking}
               onBookAppointment={onBookAppointment}
+              onStatusChange={null}
+              isStaffPage={false}
             />
             <CancelBookingDialogue
               open={showCancelDialog}
               onClose={() => setShowCancelDialog(false)}
               appointment={appointment}
               isStaff={false}
-              applicantEmail={
-                appointment?.email || appointment?.applicantEmail || null
-              }
               onCancelComplete={handleCancelComplete}
             />
           </Box>
@@ -281,9 +476,25 @@ function Profile() {
             <RegistrationFormInfo
               appointment={appointment}
               onSave={handleRegistrationSave}
+              isStaffPage={false}
             />
+            {isSubmitting ? (
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                Saving registration form...
+              </Typography>
+            ) : null}
+            {submitError ? (
+              <Typography variant="body2" color="error" sx={{ mt: 1 }}>
+                {submitError}
+              </Typography>
+            ) : null}
           </Box>
           <NextSteps />
+          <IneligibleStatusDialog
+            open={showIneligibleStatusDialog}
+            onClose={() => setShowIneligibleStatusDialog(false)}
+            status={ineligibleStatus}
+          />
         </Stack>
       )}
       {/* Shows Household Members when tab is active */}

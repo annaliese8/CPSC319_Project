@@ -1,8 +1,3 @@
-/**
- * Displays the applicant's registration form.
- * Renders as read-only by default, with Edit/Save/Discard controls to update their information.
- */
-
 import { Box, Button, Divider, Paper, Stack } from "@mui/material";
 import {
   Check as CheckIcon,
@@ -13,23 +8,48 @@ import { useState, useEffect } from "react";
 import RegistrationFields from "./RegistrationFields";
 import { validateRegistrationForm } from "../utils/ValidateRegistrationForm";
 
-export default function RegistrationFormInfo({ appointment, onSave }) {
+function toValidationForm(form) {
+  return {
+    firstName: form.first_name ?? "",
+    lastName: form.last_name ?? "",
+    streetAddress: form.street_addr ?? "",
+    city: form.city ?? "",
+    province: form.province ?? "",
+    postalCode: form.postal_code ?? "",
+    phone: form.phone ?? "",
+    statusInCanada: form.status_in_canada ?? "",
+    language: form.language ?? "",
+    applyingToTinyBundles: form.tiny_bundles_program ? "yes" : "no",
+  };
+}
+
+function toUiErrors(validationErrors) {
+  return {
+    ...validationErrors,
+    first_name: validationErrors.firstName,
+    last_name: validationErrors.lastName,
+    street_addr: validationErrors.streetAddress,
+    postal_code: validationErrors.postalCode,
+    status_in_canada: validationErrors.statusInCanada,
+  };
+}
+
+export default function RegistrationFormInfo({ appointment, onSave, isStaffPage }) {
   // Helper function for setting appointment form fields
+  // CHANGED: updated all field names to match Supabase DB column names
   const buildFormFromAppointment = (appt) => ({
-    email: appt?.email ?? "",
-    firstName: appt?.firstName ?? "",
-    lastName: appt?.lastName ?? "",
-    name: appt?.name ?? "",
+    email: appt?.email_address ?? appt?.email ?? "",
+    first_name: appt?.first_name ?? "",
+    last_name: appt?.last_name ?? "",
     phone: appt?.phone ?? "",
-    address: appt?.address ?? "",
-    streetAddress: appt?.streetAddress ?? "",
+    street_addr: appt?.street_addr ?? "",
     city: appt?.city ?? "",
-    postalCode: appt?.postalCode ?? "",
-    province: appt?.province ?? "",
-    statusInCanada: appt?.statusInCanada ?? "Temporary Resident (6 months+)",
-    applyingToTinyBundles: appt?.applyingToTinyBundles ?? "no",
+    province: appt?.province ?? "British Columbia",
+    postal_code: appt?.postal_code ?? "",
+    status_in_canada: appt?.status_in_canada ?? "Temporary Resident (6 months+)",
+    language: appt?.language ?? "English",
+    tiny_bundles_program: appt?.tiny_bundles_program ?? false,
     householdMembers: appt?.householdMembers ?? [],
-    language: appt?.language ?? "",
     day: appt?.day ?? "",
     startTime: appt?.startTime ?? "",
     duration: appt?.duration ?? 0,
@@ -51,15 +71,15 @@ export default function RegistrationFormInfo({ appointment, onSave }) {
   const onChange = (key) => (e) =>
     setForm((prev) => ({ ...prev, [key]: e.target.value }));
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Check if form fields are valid and set errors
-    const errors = validateRegistrationForm(form);
-    setFormErrors(errors);
+    const errors = validateRegistrationForm(toValidationForm(form));
+    setFormErrors(toUiErrors(errors));
     if (Object.keys(errors).length) return;
 
     if (onSave) {
-      onSave(form);
+      const didSave = await onSave(form);
+      if (!didSave) return;
     } else {
       console.log("Save changes", form);
     }
@@ -127,6 +147,7 @@ export default function RegistrationFormInfo({ appointment, onSave }) {
             onChange={onChange}
             errors={formErrors}
             isDisabled={isDisabled}
+            isStaffPage={isStaffPage}
           />
         </Stack>
       </Paper>

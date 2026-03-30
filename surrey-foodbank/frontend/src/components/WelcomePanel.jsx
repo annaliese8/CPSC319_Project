@@ -55,7 +55,7 @@ function WelcomePanel({ onEditSlots, onCancel, onSave, onBook }) {
                             sx={{ fontWeight: "bold", color: "common.white" }}>
                             Book Appointment
                         </Button>
-                        <Button variant="contained" color="secondary" onClick={handleEdit}
+                        <Button variant="contained" color="warning" onClick={handleEdit}
                             sx={{ fontWeight: "bold", color: "common.white" }}>
                             Edit Available Slots
                         </Button>

@@ -1,8 +1,3 @@
-/**
- * Form fields for the applicant registration form.
- * Used in the applicant booking flow, the profile page, and the staff booking panel.
- */
-
 import {
   Autocomplete,
   FormControl,
@@ -21,11 +16,16 @@ import {
 } from "@mui/material";
 import { Info as InfoIcon } from "@mui/icons-material";
 
-export const STATUS_OPTIONS = [
+export const ELIGIBLE_STATUS_OPTIONS = [
   "Canadian Citizen",
   "Permanent Resident",
   "Refugee/Protected Person",
-  "Temporary Resident (6 months+)",
+  "Temporary Resident (over 6 months)",
+];
+
+export const INELIGIBLE_STATUS_OPTIONS = [
+  "Temporary Resident (under 6 months)",
+  "Visitor"
 ];
 
 export const LANGUAGES = [
@@ -71,87 +71,113 @@ export default function RegistrationFields({
   onChange,
   errors = {},
   isDisabled = false,
+  isStaffPage
 }) {
+
+  const status_options = isStaffPage
+    ? ELIGIBLE_STATUS_OPTIONS
+    : [...ELIGIBLE_STATUS_OPTIONS, ...INELIGIBLE_STATUS_OPTIONS];
+
   return (
     <Stack spacing={2}>
-      {/* First Name */}
+      {/* First Name / Last Name */}
       <Stack direction="row" spacing={2}>
         <TextField
           label="First Name"
-          value={form.firstName}
-          error={!!errors.firstName}
-          helperText={errors.firstName || "eg. John"}
+          value={form.first_name ?? ""}
+          error={!!errors.first_name}
+          helperText={
+            isDisabled
+              ? ""
+              : errors.first_name || "eg. John"
+          }
           disabled={isDisabled}
           fullWidth
           size="small"
           required
-          onChange={onChange("firstName")}
+          onChange={onChange("first_name")}
         />
-        {/* Last Name */}
         <TextField
           label="Last Name"
-          value={form.lastName}
-          error={!!errors.lastName}
-          helperText={errors.lastName || "eg. Doe"}
+          value={form.last_name ?? ""}
+          error={!!errors.last_name}
+          helperText={
+            isDisabled
+              ? ""
+              : errors.last_name || "eg. Doe"
+          }
           disabled={isDisabled}
           fullWidth
           size="small"
           required
-          onChange={onChange("lastName")}
+          onChange={onChange("last_name")}
         />
       </Stack>
 
       {/* Street Address */}
       <TextField
         label="Street Address"
-        value={form.streetAddress}
-        error={!!errors.streetAddress}
-        helperText={errors.streetAddress || "eg. 123 Main Street"}
+        value={form.street_addr ?? ""}
+        error={!!errors.street_addr}
+        helperText={
+          isDisabled
+            ? ""
+            : errors.street_addr || "eg. 123 Main Street"
+        }
         disabled={isDisabled}
         fullWidth
         size="small"
         required
-        onChange={onChange("streetAddress")}
+        onChange={onChange("street_addr")}
       />
-      {/* City */}
+
+      {/* City / Postal Code */}
       <Stack direction="row" spacing={2}>
         <TextField
           label="City"
-          value={form.city}
+          value={form.city ?? ""}
           error={!!errors.city}
-          helperText={errors.city || "eg. Surrey"}
+          helperText={
+            isDisabled
+              ? ""
+              : errors.city || "eg. Surrey"
+          }
           disabled={isDisabled}
           fullWidth
           size="small"
           required
           onChange={onChange("city")}
         />
-        {/* Postal Code */}
         <TextField
           label="Postal Code"
-          value={form.postalCode}
-          error={!!errors.postalCode}
-          helperText={errors.postalCode || "eg. A1A 1A1"}
+          value={form.postal_code ?? ""}
+          error={!!errors.postal_code}
+          helperText={
+            isDisabled
+              ? ""
+              : errors.postal_code || "eg. A1A 1A1"
+          }
           disabled={isDisabled}
           fullWidth
           size="small"
           required
-          onChange={onChange("postalCode")}
+          onChange={onChange("postal_code")}
         />
       </Stack>
 
       <Stack direction="row" spacing={2}>
-        {/* Province */}
+        {/* Province — not in DB, kept as UI-only field with empty default */}
         <FormControl
           disabled={isDisabled}
           fullWidth
           size="small"
-          required
           error={!!errors.province}
         >
-          <InputLabel>Province</InputLabel>
+          <InputLabel id="province-label">Province</InputLabel>
           <Select
-            value={form.province}
+            id="province"
+            labelId="province-label"
+            value={form.province ?? ""}
             label="Province"
             onChange={onChange("province")}
           >
@@ -163,12 +189,17 @@ export default function RegistrationFields({
           </Select>
           <FormHelperText>{errors.province || ""}</FormHelperText>
         </FormControl>
+
         {/* Phone Number */}
         <TextField
           label="Phone Number"
-          value={form.phone}
+          value={form.phone ?? ""}
           error={!!errors.phone}
-          helperText={errors.phone || "eg. 604-123-4567"}
+          helperText={
+            isDisabled
+              ? ""
+              : errors.phone || "eg. 604-123-4567"
+          }
           disabled={isDisabled}
           fullWidth
           size="small"
@@ -176,11 +207,12 @@ export default function RegistrationFields({
           onChange={onChange("phone")}
         />
       </Stack>
+
       <Stack direction="row" spacing={2}>
-        {/* Language */}
+        {/* Language — not in DB, kept as UI-only field */}
         <Autocomplete
           options={LANGUAGES}
-          value={form.language}
+          value={form.language ?? ""}
           disabled={isDisabled}
           onChange={(_, newValue) =>
             onChange("language")({ target: { value: newValue ?? "" } })
@@ -195,7 +227,6 @@ export default function RegistrationFields({
               error={!!errors.language}
               helperText={errors.language}
               fullWidth
-              required
             />
           )}
           size="small"
@@ -203,29 +234,33 @@ export default function RegistrationFields({
           autoHighlight
           freeSolo
         />
+
         {/* Status in Canada */}
         <FormControl
           disabled={isDisabled}
           fullWidth
           size="small"
           required
-          error={!!errors.statusInCanada}
+          error={!!errors.status_in_canada}
         >
-          <InputLabel>Status in Canada</InputLabel>
+          <InputLabel id="status-in-canada-label">Status in Canada</InputLabel>
           <Select
-            value={form.statusInCanada}
+            id="status-in-canada"
+            labelId="status-in-canada-label"
+            value={form.status_in_canada ?? ""}
             label="Status in Canada"
-            onChange={onChange("statusInCanada")}
+            onChange={onChange("status_in_canada")}
           >
-            {STATUS_OPTIONS.map((status) => (
+            {status_options.map((status) => (
               <MenuItem key={status} value={status}>
                 {status}
               </MenuItem>
             ))}
           </Select>
-          <FormHelperText>{errors.statusInCanada || ""}</FormHelperText>
+          <FormHelperText>{errors.status_in_canada || ""}</FormHelperText>
         </FormControl>
       </Stack>
+
       {/* Tiny Bundles */}
       <FormControl>
         <Stack
@@ -283,8 +318,12 @@ export default function RegistrationFields({
           </Tooltip>
           <RadioGroup
             row
-            value={form.applyingToTinyBundles || "no"}
-            onChange={onChange("applyingToTinyBundles")}
+            value={form.tiny_bundles_program === true ? "yes" : "no"}
+            onChange={(e) =>
+              onChange("tiny_bundles_program")({
+                target: { value: e.target.value === "yes" },
+              })
+            }
           >
             <FormControlLabel
               value="yes"

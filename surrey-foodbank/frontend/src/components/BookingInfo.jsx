@@ -1,13 +1,23 @@
 import React from "react";
 import { Typography, Box, Paper, Button, Divider, Stack } from "@mui/material";
+import AppointmentStatus from "./AppointmentStatus";
 
 export default function BookingInfo({
   appointment,
   onCancelBooking,
   onChangeBooking,
   onBookAppointment,
+  onStatusChange,
+  isStaffPage,
 }) {
-  const hasAppointment = !!appointment?.day && !!appointment?.startTime;
+  // CHANGED: check DB fields (appointment_date/appointment_time) with fallback to old fields
+  const hasAppointment =
+    !!(appointment?.appointment_date || appointment?.day) &&
+    !!(appointment?.appointment_time || appointment?.startTime);
+
+  // CHANGED: display DB fields with fallback to old label fields
+  const dateDisplay = appointment?.appointment_date ?? appointment?.dateLabel ?? "";
+  const timeDisplay = appointment?.appointment_time ?? appointment?.timeLabel ?? "";
 
   return (
     <Box>
@@ -32,36 +42,44 @@ export default function BookingInfo({
           {hasAppointment ? (
             <>
               <Typography
-                color="secondary"
+                color="primary"
                 variant="h5"
                 size="large"
                 sx={{ fontWeight: 700 }}
               >
-                {appointment.dateLabel}
+                {dateDisplay}
               </Typography>
               <Typography color="primary" variant="h6" sx={{ fontWeight: 600 }}>
-                {appointment.timeLabel}
+                {timeDisplay}
               </Typography>
-              </>
+              {/* If it's a staff page, render the appointment status component */}
+              {isStaffPage && (
+                <Box sx={{ mt: 1 }}>
+                  <AppointmentStatus
+                    appointment={appointment}
+                    onStatusChange={onStatusChange}
+                  />
+                </Box>
+              )}
+            </>
           ) : (
             <Button
               variant="contained"
               onClick={onBookAppointment}
               sx={{
                 fontWeight: 700,
-                backgroundColor: "#4cc5dc",
+                backgroundColor: "#E8112E",
                 color: "common.white",
                 fontSize: "1.2rem",
                 px: 4,
                 py: 1.5,
-                "&:hover": { backgroundColor: "#005070" },
+                "&:hover": { backgroundColor: "#D5102A" },
               }}
             >
               Book an Appointment
             </Button>
           )}
         </Paper>
-
         {hasAppointment && (
           <>
             <Divider sx={{ my: 2 }} />
@@ -91,7 +109,7 @@ export default function BookingInfo({
                 Change Booking
               </Button>
             </Stack>
-            </>
+          </>
         )}
       </Paper>
     </Box>

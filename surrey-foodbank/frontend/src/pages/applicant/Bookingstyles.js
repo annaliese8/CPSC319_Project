@@ -73,11 +73,11 @@ export const bookingStyles = `
   .ba-step-circle {
     width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--gray-300);
     background: var(--white); display: flex; align-items: center; justify-content: center;
-    font-size: 12px; font-weight: 600; color: var(--gray-500); position: relative; z-index: 1; transition: var(--transition);
+    font-size: 12px; font-weight: 600; color: #6B7785; position: relative; z-index: 1; transition: var(--transition);
   }
   .ba-step.done .ba-step-circle { background: var(--teal); border-color: var(--teal); color: var(--white); }
   .ba-step.active .ba-step-circle { background: var(--white); border-color: var(--teal); color: var(--teal); box-shadow: 0 0 0 3px rgba(42,127,158,.15); }
-  .ba-step-label { font-size: 11px; color: var(--gray-500); font-weight: 500; white-space: nowrap; letter-spacing: .3px; }
+  .ba-step-label { font-size: 11px; color: #6B7785; font-weight: 500; white-space: nowrap; letter-spacing: .3px; }
   .ba-step.done .ba-step-label, .ba-step.active .ba-step-label { color: var(--teal); font-weight: 600; }
 
   /* ── Step body ── */
@@ -152,7 +152,7 @@ export const bookingStyles = `
   .ba-cal-btn:hover { background: var(--gray-200); }
   .ba-cal-btn.today { background: var(--teal); border-color: var(--teal); color: var(--white); }
   .ba-cal-range { font-size: 14px; font-weight: 600; color: var(--gray-700); min-width: 180px; text-align: center; }
-  .ba-cal-legend { display: flex; gap: 16px; justify-content: flex-end; margin-bottom: 10px; font-size: 12px; color: var(--gray-600); }
+  .ba-cal-legend { display: flex; gap: 16px; justify-content: flex-end; margin-bottom: 10px; font-size: 12px; color: #6D757E; }
   .ba-cal-legend span { display: flex; align-items: center; gap: 5px; }
   .ba-legend-dot { width: 12px; height: 12px; border-radius: 3px; }
   .ba-legend-dot.avail { background: var(--teal-light); }
@@ -169,7 +169,7 @@ export const bookingStyles = `
   .ba-cal-td { border-bottom: 1px solid var(--gray-100); border-right: 1px solid var(--gray-100); padding: 0; vertical-align: top; }
   .ba-cal-td:last-child { border-right: none; }
   .ba-cal-td.time-col {
-    background: var(--gray-50); font-size: 11px; color: var(--gray-600); font-weight: 500;
+    background: var(--gray-50); font-size: 11px; color: #66747F; font-weight: 500;
     text-align: right; padding: 3px 8px 3px 4px; border-right: 1px solid var(--gray-200);
     white-space: nowrap; vertical-align: middle;
   }
@@ -208,6 +208,7 @@ export const bookingStyles = `
   /* ── Buttons & footer ── */
   .ba-footer { display: flex; justify-content: space-between; align-items: center; padding: 20px 40px 28px; border-top: 1px solid var(--gray-200); }
   .ba-btn { padding: 10px 28px; border-radius: 8px; font-size: 14px; font-weight: 600; font-family: 'DM Sans', sans-serif; cursor: pointer; border: none; transition: var(--transition); }
+  .ba-btn:disabled { opacity: 0.5; cursor: not-allowed; }
   .ba-btn-primary { background: var(--teal); color: var(--white); }
   .ba-btn-primary:hover { background: #236e89; }
   .ba-btn-secondary { background: var(--gray-100); border: 1px solid var(--gray-300); color: var(--gray-700); }

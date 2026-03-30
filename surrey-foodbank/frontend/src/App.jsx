@@ -1,6 +1,5 @@
 import { ThemeProvider } from "@mui/material/styles";
 import theme from "./styles/theme";
-
 import { Routes, Route, Navigate} from "react-router-dom";
 import StaffLogin from "./pages/staff/Login";
 import StaffHome from "./pages/staff/Home";
@@ -14,7 +13,13 @@ import ApplicantBookAppointment from "./pages/applicant/BookAppointment";
 import ApplicantProfile from "./pages/applicant/Profile";
 
 const staffBase = import.meta.env.VITE_STAFF_BASE;
-console.log("Staff base path:", staffBase);
+
+function StaffRoute({ children }) {
+  if (!localStorage.getItem("staffAuth")) {
+    return <Navigate to={`/${staffBase}/login`} replace />;
+  }
+  return children;
+}
 
 function App() {
   return (
@@ -23,30 +28,21 @@ function App() {
         <Routes>
 
           <Route path="/" element={<Navigate to="/applicant/home" replace />} />
-          {/* Staff routes */}
 
           {/* Secret staff admin */}
           <Route path={`/${staffBase}/login`} element={<StaffLogin />} />
-          
-          <Route path="/staff/home" element={<StaffHome />} />
-          <Route path="/staff/applicant-info" element={<StaffApplicantInfo />} />
-          <Route path="/staff/applicant-database" element={<StaffApplicantDatabase />} />
+
+          {/* Staff routes — protected by localStorage session */}
+          <Route path="/staff/home" element={<StaffRoute><StaffHome /></StaffRoute>} />
+          <Route path="/staff/applicant-info" element={<StaffRoute><StaffApplicantInfo /></StaffRoute>} />
+          <Route path="/staff/applicant-database" element={<StaffRoute><StaffApplicantDatabase /></StaffRoute>} />
          
           {/* Applicant routes */}
           <Route path="/applicant/login" element={<ApplicantLogin />} />
           <Route path="/applicant/home" element={<ApplicantHome />} />
-          <Route
-            path="/applicant/create-account"
-            element={<ApplicantCreateAccount />}
-          />
-          <Route
-            path="/applicant/register"
-            element={<ApplicantRegistrationForm />}
-          />
-          <Route
-            path="/applicant/book-appointment"
-            element={<ApplicantBookAppointment />}
-          />
+          <Route path="/applicant/create-account" element={<ApplicantCreateAccount />} />
+          <Route path="/applicant/register" element={<ApplicantRegistrationForm />} />
+          <Route path="/applicant/book-appointment" element={<ApplicantBookAppointment />} />
           <Route path="/applicant/profile" element={<ApplicantProfile />} />
         </Routes>
       </ThemeProvider>
