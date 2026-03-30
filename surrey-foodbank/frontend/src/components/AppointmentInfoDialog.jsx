@@ -17,17 +17,23 @@ function AppointmentInfoDialog({
   onClose,
   appointment,
   onDelete,
-  onStatusChange
+  onStatusChange,
 }) {
   const navigate = useNavigate();
 
   const handleMoreDetails = () => {
-    // Pass data via router state for now (no backend yet)
     navigate("/staff/applicant-info", { state: { appointment } });
   };
 
+  const dateLabel = appointment?.date
+    ? new Date(appointment.date).toLocaleDateString("en-US", {
+        weekday: "long", month: "long", day: "numeric", year: "numeric",
+      })
+    : ""
+
+  const timeLabel = appointment?.startTime || ""
+
   return (
-    // Creates a dialog box to interact with when clicked on the appointment in calendar
     <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
       <DialogTitle
         sx={{
@@ -44,18 +50,16 @@ function AppointmentInfoDialog({
           <CloseIcon />
         </IconButton>
       </DialogTitle>
-
-      {/* Shows appointment details here */}
       <DialogContent>
         <Box sx={{ textAlign: "center", py: 2 }}>
           <Typography variant="h5" sx={{ fontWeight: 700 }}>
             {appointment?.name}
           </Typography>
           <Typography variant="body1" sx={{ m: 2 }}>
-            {appointment?.dateLabel}
+            {dateLabel}
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            {appointment?.timeLabel}
+            {timeLabel}
           </Typography>
           <AppointmentStatus
             appointment={appointment}
@@ -63,7 +67,6 @@ function AppointmentInfoDialog({
           />
         </Box>
       </DialogContent>
-
       <DialogActions sx={{ px: 3, pb: 2, justifyContent: "space-between" }}>
         <Button
           variant="contained"
@@ -73,7 +76,6 @@ function AppointmentInfoDialog({
         >
           Delete Booking
         </Button>
-
         <Button
           variant="contained"
           color="secondary"
