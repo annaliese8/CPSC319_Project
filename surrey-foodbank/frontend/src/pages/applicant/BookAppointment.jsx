@@ -104,7 +104,7 @@ export default function BookAppointment() {
     setIsSaving(true);
     setLoadError("");
 
-    const duration = Number(form.householdMembers.length + 1) >= 5 ? 30 : 15;
+    const duration = Number((form.householdMembers?.length ?? 0) + 1) >= 5 ? 30 : 15;
     const payload = {
       day: selectedSlot.date.toLocaleDateString("en-US", { weekday: "long" }),
       date: selectedSlot.date.toISOString(),

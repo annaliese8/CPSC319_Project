@@ -10,6 +10,7 @@ function AdminCalendarPanel({
   toggleBookingPanel,
   changeBookingAppointment, // appointment to rebook (from ApplicantInfoPage)
   appointments = [],
+  isNewBooking, 
 }) {
   const today = new Date();
   const startOfWeek = new Date(today);
@@ -76,26 +77,20 @@ function AdminCalendarPanel({
 
       <Divider sx={{ my: 1 }} />
 
-      {/* Legend */}
-      <Stack
-        direction="row"
-        spacing={1.5}
-        sx={{ mb: 1, justifyContent: "center" }}
-      >
-        <LegendChip label="Available" sx={{ bgcolor: "secondary.main" }} />
-        <LegendChip
-          label="Booked"
-          sx={{ bgcolor: "primary.main", color: "common.white" }}
-        />
-        {isEditing ? (
-          <LegendChip
-            label="Blocked"
-            sx={{ bgcolor: "warning.main", color: "common.white" }}
-          />
-        ) : (
-          ""
-        )}
-      </Stack>
+            {/* Legend */}
+            <Stack direction="row" spacing={1.5} sx={{ mb: 1, justifyContent: "center" }}>
+                <LegendChip label="Available" sx={{ bgcolor: "secondary.main" }} />
+                <LegendChip
+                    label="Booked"
+                    sx={{ bgcolor: "primary.main", color: "common.white" }}
+                />
+                {isEditing ? (
+                    <LegendChip
+                        label="Blocked"
+                        sx={{ bgcolor: "warning.main", color: "common.white" }}
+                    />
+                ) : ""}
+            </Stack>
 
       {/* Calendar */}
       <Box
@@ -114,6 +109,7 @@ function AdminCalendarPanel({
           isBookingPanel={toggleBookingPanel}
           changeBookingAppointment={changeBookingAppointment}
           appointments={appointments}
+          isNewBooking={isNewBooking}
         />
       </Box>
     </Paper>

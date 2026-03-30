@@ -10,6 +10,8 @@ import {
   HOUSEHOLD_LAST_NAME_COLUMN,
   HOUSEHOLD_CATEGORY_COLUMN,
   APPOINTMENT_RESPONSE_ID_COLUMN,
+  APPOINTMENT_STATUS_COLUMN,
+  APPOINTMENT_DATE_COLUMN,
 } from "../lib/supabase.js"
 
 const router = express.Router()
@@ -83,9 +85,12 @@ router.get("/appointments/by-applicant/:id", async (req, res) => {
       .from(APPOINTMENT_TABLE)
       .select("*")
       .eq(APPOINTMENT_RESPONSE_ID_COLUMN, req.params.id)
-      .single()
-    if (error && error.code !== "PGRST116") throw error
-    return res.status(200).json({ ok: true, data: data ?? null })
+      .not(APPOINTMENT_STATUS_COLUMN, "eq", "cancelled")
+      .not(APPOINTMENT_STATUS_COLUMN, "eq", "blocked")
+      .order(APPOINTMENT_DATE_COLUMN, { ascending: false })
+      .limit(1)
+    if (error) throw error
+    return res.status(200).json({ ok: true, data: data?.[0] ?? null })
   } catch (err) {
     return res.status(500).json({ error: err.message || "Unable to fetch appointment." })
   }

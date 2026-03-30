@@ -464,7 +464,7 @@ function MemberCard({ member, idx, onField, onRemove, errors }) {
 // ── HouseholdMemberInfo ───────────────────────────────────────────────────────
 
 export default function HouseholdMemberInfo({
-  householdMembers,
+  householdMembers = [],
   onChange,
   errors = {},
 }) {

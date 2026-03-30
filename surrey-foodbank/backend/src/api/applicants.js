@@ -1,5 +1,5 @@
-import { getSupabaseAnonClient } from "../lib/supabase.js"
-const supabase = getSupabaseAnonClient()
+import { getSupabaseServiceClient } from "../lib/supabase.js"
+const supabase = getSupabaseServiceClient()
 
 export async function getApplicants() {
   const { data, error } = await supabase
@@ -36,17 +36,11 @@ export async function getAppointments() {
 }
 
 export async function getAppointmentsByDateRange(startDate, endDate) {
+  // No JOIN — only appointment columns needed to render the calendar grid.
+  // Applicant details (name, email) are lazy-loaded when the info dialog opens.
   const { data, error } = await supabase
     .from('appointments')
-    .select(`
-      *,
-      registrationformresponse (
-        first_name,
-        last_name,
-        email_address,
-        phone
-      )
-    `)
+    .select('*')
     .gte('appointment_date', startDate)
     .lte('appointment_date', endDate)
   if (error) throw error
@@ -58,9 +52,12 @@ export async function getAppointmentByResponseId(responseId) {
     .from('appointments')
     .select('*')
     .eq('response_id', responseId)
-    .single()
-  if (error && error.code !== 'PGRST116') throw error // PGRST116 = no rows found
-  return data ?? null
+    .not('appointment_status', 'eq', 'cancelled')
+    .not('appointment_status', 'eq', 'blocked')
+    .order('appointment_date', { ascending: false })
+    .limit(1)
+  if (error) throw error
+  return data?.[0] ?? null
 }
 
 export async function createAppointment(appointmentData) {

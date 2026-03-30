@@ -202,8 +202,9 @@ function Profile() {
   const onChangeBooking = () => navigate(`/applicant/book-appointment`);
   const onBookAppointment = () => navigate(`/applicant/book-appointment`);
 
-  const handleLogout = () => {
-    localStorage.removeItem("activeUser");
+  const handleLogout = async () => {
+    const supabase = getSupabaseClient();
+    await supabase.auth.signOut();
     navigate("/applicant/login");
   };
 
@@ -451,7 +452,7 @@ function Profile() {
               onClose={() => setShowCancelDialog(false)}
               appointment={appointment}
               isStaff={false}
-              onConfirmCancel={handleCancelComplete}
+              onCancelComplete={handleCancelComplete}
             />
           </Box>
           <NextSteps />

@@ -293,19 +293,19 @@ import HouseholdMemberInfo from "../../components/HouseholdMemberInfo";
 import { validateHouseholdMembers } from "../../utils/ValidateHouseholdMembers";
 import { updateApplicant } from "../../api/applicantsAPI";
 import { getAppointmentByResponseId, updateAppointment } from "../../api/appointmentsAPI"
-import { getHouseholdMembers } from "../../api/applicantsAPI"
+  import { getHouseholdMembers } from "../../api/applicantsAPI"
 
 export default function ApplicantInfoPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const handleBack = () => navigate("/staff/applicant-database");
+
   const [appointment, setAppointment] = useState(location.state?.appointment);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
-  // CHANGED: store DB appointment record separately
   const [dbAppointment, setDbAppointment] = useState(null);
 
   const [pendingHouseholdMembers, setPendingHouseholdMembers] = useState(
-    appointment?.householdMembers ?? [],
+    appointment?.householdMembers ?? []
   );
   const [memberErrors, setMemberErrors] = useState({});
 
@@ -313,69 +313,80 @@ export default function ApplicantInfoPage() {
     JSON.stringify(pendingHouseholdMembers) !==
     JSON.stringify(appointment?.householdMembers ?? []);
 
-  // Keep in sync when appointment loads
   useEffect(() => {
     setPendingHouseholdMembers(appointment?.householdMembers ?? []);
   }, [appointment?.householdMembers]);
 
   // CHANGED: load appointment record from DB using response_id
-  useEffect(() => {
-    const responseId = appointment?.id
-    if (!responseId) return
+useEffect(() => {
+  const responseId = appointment?.id
+  if (!responseId) return
 
-    getAppointmentByResponseId(responseId)
-      .then((data) => { if (data) setDbAppointment(data) })
-      .catch((err) => console.error("Failed to load appointment:", err.message))
+  getAppointmentByResponseId(responseId)
+    .then((data) => { if (data) setDbAppointment(data) })
+    .catch((err) => console.error("Failed to load appointment:", err.message))
 
-    getHouseholdMembers(responseId)
-      .then((result) => {
-        const members = result?.data ?? []
-        setAppointment((prev) => ({ ...prev, householdMembers: members }))
-        setPendingHouseholdMembers(members)
-      })
-      .catch((err) => console.error("Failed to load household members:", err.message))
+  getHouseholdMembers(responseId)
+    .then((result) => {
+      const members = result?.data ?? []
+      setAppointment((prev) => ({ ...prev, householdMembers: members }))
+      setPendingHouseholdMembers(members)
+    })
+    .catch((err) => console.error("Failed to load household members:", err.message))
 
-    fetch(`${import.meta.env.VITE_BACKEND_URL || "http://localhost:3000"}/api/applicants/${responseId}`)
-      .then((res) => res.json())
-      .then((result) => {
-        const reg = result?.data ?? null
-        if (!reg) return
-        setAppointment((prev) => ({
-          ...prev,
-          first_name: reg.first_name || "",
-          last_name: reg.last_name || "",
-          email: reg.email_address || "",
-          phone: reg.phone || "",
-          street_addr: reg.street_addr || "",
-          city: reg.city || "",
-          postal_code: reg.postal_code || "",
-          status_in_canada: reg.status_in_canada || "",
-          tiny_bundles_program: reg.tiny_bundles_program || false,
-        }))
-      })
-      .catch((err) => console.error("Failed to load registration:", err.message))
-  }, [appointment?.id])
+  fetch(`${import.meta.env.VITE_BACKEND_URL || "http://localhost:3000"}/api/applicants/${responseId}`)
+    .then((res) => res.json())
+    .then((result) => {
+      const reg = result?.data ?? null
+      if (!reg) return
+      setAppointment((prev) => ({
+        ...prev,
+        first_name: reg.first_name || "",
+        last_name: reg.last_name || "",
+        email: reg.email_address || "",
+        phone: reg.phone || "",
+        street_addr: reg.street_addr || "",
+        city: reg.city || "",
+        postal_code: reg.postal_code || "",
+        status_in_canada: reg.status_in_canada || "",
+        tiny_bundles_program: reg.tiny_bundles_program || false,
+      }))
+    })
+    .catch((err) => console.error("Failed to load registration:", err.message))
+}, [appointment?.id])
 
-  const onCancelBooking = () => {
-    setShowCancelDialog(true);
-  };
+  const onCancelBooking = () => setShowCancelDialog(true);
 
-  // CHANGED: clear dbAppointment on cancel complete
-  const handleCancelComplete = () => {
-    setDbAppointment(null);
-  };
+  const handleCancelComplete = () => setDbAppointment(null);
 
   const onChangeBooking = () => {
     navigate("/staff/home", {
       state: {
         changeBooking: true,
-        appointment: appointment,
+        appointment: {
+          ...appointment,
+          response_id: appointment?.id,
+          appointment_id: dbAppointment?.appointment_id,
+        },
+      },
+    });
+  };
+
+  const onBookAppointment = () => {
+    navigate("/staff/home", {
+      state: {
+        changeBooking: true,
+        appointment: {
+          ...appointment,
+          response_id: appointment?.id,
+        },
+        isNewBooking: true,
       },
     });
   };
 
   const handleSavePersonalInfo = async (updatedData) => {
-    const applicantId = appointment?.id;
+    const applicantId = appointment?.id ?? appointment?.response_id;
     if (!applicantId) {
       console.error("No applicant id found — cannot save to database");
       return;
@@ -392,26 +403,45 @@ export default function ApplicantInfoPage() {
         status_in_canada: updatedData.status_in_canada,
         tiny_bundles_program: updatedData.tiny_bundles_program,
       };
-      Object.keys(dbData).forEach((k) => dbData[k] === undefined && delete dbData[k]);
-
+      // Remove undefined keys
+      Object.keys(dbData).forEach(
+        (k) => dbData[k] === undefined && delete dbData[k]
+      );
       await updateApplicant(applicantId, dbData);
       setAppointment((prev) => ({ ...prev, ...updatedData }));
+      return true;
     } catch (err) {
       console.error("Failed to save applicant info:", err.message);
+      return false;
     }
   };
 
-  const handleHouseholdSave = () => {
+  // Save household members directly to the DB via the dedicated endpoint
+  const handleHouseholdSave = async () => {
     const errors = validateHouseholdMembers(pendingHouseholdMembers);
     if (Object.keys(errors).length) {
       setMemberErrors(errors);
       return;
     }
     setMemberErrors({});
-    handleSavePersonalInfo({
-      ...appointment,
-      householdMembers: pendingHouseholdMembers,
-    });
+
+    const responseId = appointment?.id ?? appointment?.response_id;
+    if (!responseId) {
+      console.error("No responseId — cannot save household members");
+      return;
+    }
+
+    try {
+      const result = await saveHouseholdMembers(
+        responseId,
+        pendingHouseholdMembers
+      );
+      const saved = result?.data ?? pendingHouseholdMembers;
+      setAppointment((prev) => ({ ...prev, householdMembers: saved }));
+      setPendingHouseholdMembers(saved);
+    } catch (err) {
+      console.error("Failed to save household members:", err.message);
+    }
   };
 
   const handleHouseholdDiscard = () => {
@@ -419,27 +449,25 @@ export default function ApplicantInfoPage() {
     setMemberErrors({});
   };
 
-  // CHANGED: update appointment_status in DB instead of localStorage
   const handleStatusChange = async (newStatus) => {
-    const appointmentId = dbAppointment?.appointment_id
-    if (!appointmentId) {
-      console.error("No appointment_id found — cannot update status")
-      return
-    }
-    try {
-      await updateAppointment(appointmentId, { appointment_status: newStatus })
-      setDbAppointment((prev) => ({ ...prev, appointment_status: newStatus }))
-    } catch (err) {
-      console.error("Failed to update status:", err.message)
-    }
+  const appointmentId = dbAppointment?.appointment_id
+  if (!appointmentId) {
+    console.error("No appointment_id found — cannot update status")
+    return
   }
+  try {
+    await updateAppointment(appointmentId, { appointment_status: newStatus })
+    setDbAppointment((prev) => ({ ...prev, appointment_status: newStatus }))
+  } catch (err) {
+    console.error("Failed to update status:", err.message)
+  }
+}
 
-  // Merge DB appointment fields into the appointment object for BookingInfo
   const mergedAppointment = {
-    ...appointment,
-    ...dbAppointment,
-    appointmentStatus: dbAppointment?.appointment_status || appointment?.appointmentStatus || "",
-  }
+  ...appointment,
+  ...dbAppointment,
+  appointmentStatus: dbAppointment?.appointment_status || appointment?.appointmentStatus || "",
+}
 
   return (
     <Box sx={{ minHeight: "100vh" }}>
@@ -478,7 +506,10 @@ export default function ApplicantInfoPage() {
             sx={{ justifyContent: "center", alignItems: "stretch" }}
           >
             <Box sx={{ flex: 1 }}>
-              <Typography variant="h4" sx={{ fontWeight: 800, color: "primary.main", mb: 2 }}>
+              <Typography
+                variant="h4"
+                sx={{ fontWeight: 800, color: "primary.main", mb: 2 }}
+              >
                 Registration Form Responses
               </Typography>
               <RegistrationFormInfo
@@ -487,24 +518,37 @@ export default function ApplicantInfoPage() {
                 isStaffPage={true}
               />
             </Box>
+
             <Stack>
               <Box sx={{ flex: 1 }}>
-                <Typography variant="h4" sx={{ fontWeight: 800, color: "primary.main", mb: 2 }}>
+                <Typography
+                  variant="h4"
+                  sx={{ fontWeight: 800, color: "primary.main", mb: 2 }}
+                >
                   Booking Information
                 </Typography>
                 <BookingInfo
                   appointment={mergedAppointment}
                   onCancelBooking={onCancelBooking}
                   onChangeBooking={onChangeBooking}
+                  onBookAppointment={onBookAppointment}
                   onStatusChange={handleStatusChange}
                   isStaffPage={true}
                 />
               </Box>
+
               <Divider sx={{ my: 3 }} />
-              <Typography variant="h4" sx={{ fontWeight: 800, color: "primary.main", mb: 2 }}>
+
+              <Typography
+                variant="h4"
+                sx={{ fontWeight: 800, color: "primary.main", mb: 2 }}
+              >
                 Household Members
               </Typography>
-              <Paper variant="outlined" sx={{ p: 4, borderRadius: 2, bgcolor: "grey.25" }}>
+              <Paper
+                variant="outlined"
+                sx={{ p: 4, borderRadius: 2, bgcolor: "grey.25" }}
+              >
                 <Stack spacing={2}>
                   {hasChanges && (
                     <>
@@ -524,7 +568,11 @@ export default function ApplicantInfoPage() {
                           color="primary"
                           size="large"
                           startIcon={<CheckIcon />}
-                          sx={{ fontWeight: 800, color: "common.white", flex: 1 }}
+                          sx={{
+                            fontWeight: 800,
+                            color: "common.white",
+                            flex: 1,
+                          }}
                           onClick={handleHouseholdSave}
                         >
                           Save Changes

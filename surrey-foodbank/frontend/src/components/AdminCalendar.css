@@ -20,7 +20,7 @@
   flex: fit-content;
   overflow-y: scroll;
   margin-right: -18px;
-  max-height: 550px;
+  max-height: 620px;
   border-radius: 10px;
   font-family: 'DM Sans', sans-serif;
   /*Keep Text inside from being Selectable (for click and drag)*/
@@ -74,7 +74,7 @@
 
 .admin-calendar-row {
   display: flex;
-  height: 20px;
+  height: 28px;
   padding-bottom: 1px;
 }
 
@@ -89,7 +89,6 @@
 
 .slot {
   flex: 1;
-  max-height: 20px;
   border-left: 1px solid #eee;
   border-top: 1px solid #eee;
   cursor: pointer;

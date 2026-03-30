@@ -31,7 +31,10 @@ function ApplicantDatabase() {
   const [error, setError] = useState(null);
 
   const staffBase = import.meta.env.VITE_STAFF_BASE;
-  const handleLogout = () => navigate(`/${staffBase}/login`);
+  const handleLogout = () => {
+    localStorage.removeItem("staffAuth");
+    navigate(`/${staffBase}/login`);
+  };
 
   useEffect(() => {
     getApplicants()
