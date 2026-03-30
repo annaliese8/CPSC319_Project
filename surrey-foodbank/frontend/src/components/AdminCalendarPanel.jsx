@@ -9,6 +9,7 @@ function AdminCalendarPanel({
   discardChanges,
   toggleBookingPanel,
   changeBookingAppointment, // appointment to rebook (from ApplicantInfoPage)
+  appointments = [],
 }) {
   const today = new Date();
   const startOfWeek = new Date(today);
@@ -112,6 +113,7 @@ function AdminCalendarPanel({
           weekStart={weekStart}
           isBookingPanel={toggleBookingPanel}
           changeBookingAppointment={changeBookingAppointment}
+          appointments={appointments}
         />
       </Box>
     </Paper>

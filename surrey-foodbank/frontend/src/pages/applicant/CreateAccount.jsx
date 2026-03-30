@@ -19,8 +19,9 @@ import Typography from "@mui/material/Typography";
 import logo from "../../styles/full-logo.png";
 
 import useTextField from "../../hooks/useTextField";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { getSupabaseClient } from "../../lib/supabaseClient";
 
 const EMAIL_FORMAT_HINT = "e.g. yourname@example.com";
 
@@ -229,13 +230,13 @@ function CreateAccount() {
     primary: { fontSize: "1.2rem" },
     secondary: { fontSize: "1.05rem" },
   };
+  const [submitError, setSubmitError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const emailField = useTextField("", (value) => {
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value))
-      return "Please enter a valid email address in the format: yourname@example.com";
-    const users = JSON.parse(localStorage.getItem("users") || "[]");
-    if (users.some((user) => user.email === value))
-      return "An account with this email address already exists";
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return "Please enter a valid email address in the format: yourname@example.com";
+    // const users = JSON.parse(localStorage.getItem("users") || "[]");
+    // if (users.some((user) => user.email === value)) return "An account with this email address already exists";
     return "";
   });
 
@@ -254,8 +255,9 @@ function CreateAccount() {
   }, [passwordField.value]);
 
   const navigate = useNavigate();
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setSubmitError("");
 
     const hasErrors =
       Boolean(emailField.validate()) ||
@@ -267,10 +269,48 @@ function CreateAccount() {
 
     if (hasErrors || hasEmptyField) {
       return;
-    } else {
-      const users = JSON.parse(localStorage.getItem("users") || "[]");
+    }
+
+    setIsSubmitting(true);
+
+    const supabase = getSupabaseClient();
+    const { data, error } = await supabase.auth.signUp({
+      email: emailField.value,
+      password: passwordField.value,
+      options: {
+        data: {
+          role: "applicant",
+        },
+      },
+    });
+
+    if (error) {
+      setSubmitError(error.message || "Unable to create account. Please try again.");
+      setIsSubmitting(false);
+      return;
+    }
+
+    const users = JSON.parse(localStorage.getItem("users") || "[]");
+    if (!users.some((user) => user.email === emailField.value)) {
       users.push({ email: emailField.value, password: passwordField.value });
       localStorage.setItem("users", JSON.stringify(users));
+    }
+
+    // Insert applicant role directly into your Supabase table
+    const { error: insertError } = await supabase
+      .from("logininformation") // replace with your actual table name
+      .insert([
+        {
+          email_address: emailField.value,
+          role: "applicant",
+        },
+      ]);
+
+    if (insertError) {
+      setSubmitError(insertError.message || "Account created, but role setup failed.");
+      setIsSubmitting(false);
+      return;
+    }
 
       const applicantKey = `applicant_${emailField.value}`;
       if (!localStorage.getItem(applicantKey)) {
@@ -284,10 +324,11 @@ function CreateAccount() {
             phone: "",
             streetAddress: "",
             city: "",
-            province: "",
+            province: "British Columbia",
             postalCode: "",
             address: "",
             statusInCanada: "",
+            language: "English",
             applyingToTinyBundles: "no",
             householdMembers: [],
             day: "",
@@ -299,12 +340,57 @@ function CreateAccount() {
         );
       }
 
-      localStorage.setItem(
-        "activeUser",
-        JSON.stringify({ email: emailField.value }),
-      );
-      navigate("/applicant/register");
+    localStorage.setItem(
+      "activeUser",
+      JSON.stringify({ email: emailField.value }),
+    );
+
+    let session = data?.session || null;
+    if (!session) {
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+        email: emailField.value,
+        password: passwordField.value,
+      });
+
+      if (signInError || !signInData?.session) {
+        setSubmitError("Account created. Please verify your email if needed, then log in to continue.");
+        setIsSubmitting(false);
+        navigate("/applicant/login");
+        return;
+      }
+
+      session = signInData.session;
     }
+
+    if (!session?.access_token) {
+      setSubmitError("Account created, but sign-in was not completed. Please log in to continue.");
+      setIsSubmitting(false);
+      navigate("/applicant/login");
+      return;
+    }
+
+    setIsSubmitting(false);
+    navigate("/applicant/register");
+
+    // if (data?.session?.access_token) {
+    //   const apiBase = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
+    //   await fetch(`${apiBase}/api/auth/register-sync`, {
+    //     method: "POST",
+    //     headers: {
+    //       "Content-Type": "application/json",
+    //       Authorization: `Bearer ${data.session.access_token}`,
+    //     },
+    //     body: JSON.stringify({ role: "applicant" }),
+    //   });
+
+    //   localStorage.setItem(
+    //     "activeUser",
+    //     JSON.stringify({ email: emailField.value }),
+    //   );
+    //   navigate("/applicant/register");
+    //   setIsSubmitting(false);
+    //   return;
+    // }
   };
 
   return (
@@ -539,15 +625,15 @@ function CreateAccount() {
                       Already have an account?
                     </Typography>
                   </Link>
-                  <Button
-                    type="submit"
-                    variant="contained"
-                    size="large"
-                    sx={{ fontWeight: "bold" }}
-                  >
+                  <Button type="submit" variant="contained" size="large" sx={{ fontWeight: "bold" }} disabled={isSubmitting}>
                     Create Account
                   </Button>
                 </Stack>
+                {submitError ? (
+                  <Typography variant="body2" color="error" sx={{ mt: 1 }}>
+                    {submitError}
+                  </Typography>
+                ) : null}
               </Box>
             </Box>
           </Box>
