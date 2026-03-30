@@ -77,15 +77,15 @@ function ApplicantDatabase() {
     if (a.first_name) return "Registered";
     return "Pending";
   };
- 
+
   const statusColor = (s) =>
     s === "Booked" ? "success" : s === "Registered" ? "warning" : "default";
- 
+
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
       <title>Applicant Database | Surrey Food Bank</title>
       <StaffTopBar onLogout={handleLogout} />
- 
+
       <Box sx={{ p: { xs: 2, md: 4 } }}>
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
           <Typography variant="h4" fontWeight="bold">
@@ -95,7 +95,7 @@ function ApplicantDatabase() {
             {filtered.length} result{filtered.length !== 1 ? "s" : ""}
           </Typography>
         </Box>
- 
+
         <TextField
           label="Search applicant database"
           fullWidth
@@ -118,7 +118,7 @@ function ApplicantDatabase() {
             ),
           }}
         />
- 
+
         {loading ? (
           <Typography color="text.secondary" align="center" sx={{ mt: 4 }}>
             Loading applicants...
@@ -182,7 +182,7 @@ function ApplicantDatabase() {
                       <TableCell>
                         {applicant.dateLabel && applicant.timeLabel
                           ? `${applicant.dateLabel} · ${applicant.timeLabel}`
-                          : <em style={{ color: "#aaa" }}>No appointment booked</em>}
+                          : <em style={{ color: "#757575" }}>No appointment booked</em>}
                       </TableCell>
                       <TableCell>
                         <Chip
@@ -205,5 +205,5 @@ function ApplicantDatabase() {
     </Box>
   );
 }
- 
+
 export default ApplicantDatabase;

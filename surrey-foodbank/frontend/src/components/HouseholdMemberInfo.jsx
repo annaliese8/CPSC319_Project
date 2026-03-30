@@ -67,19 +67,19 @@ export const AGE_GROUPS = [
 
 // Deterministic avatar colour from member id
 const AVATAR_PALETTE = [
-  "#4f8ef7",
-  "#e05c7a",
-  "#3dbfa0",
-  "#f5a623",
+  "#3E8321",
+  "#D9365C",
+  "#0A7E80",
+  "#A66908",
   "#9b59b6",
-  "#27ae60",
-  "#e67e22",
-  "#2980b9",
+  "#DA16A6",
+  "#B35E14",
+  "#2752B4",
 ];
 const getAvatarColor = (id) =>
   AVATAR_PALETTE[
-    id.split("").reduce((a, c) => a + c.charCodeAt(0), 0) %
-      AVATAR_PALETTE.length
+  id.split("").reduce((a, c) => a + c.charCodeAt(0), 0) %
+  AVATAR_PALETTE.length
   ];
 
 const getInitials = (firstName, lastName) =>
@@ -442,9 +442,9 @@ function MemberCard({ member, idx, onField, onRemove, errors }) {
             ageGroup={member.ageGroup}
             onAgeGroup={(val) => onField("ageGroup", val)}
             ageGroupError={errors?.ageGroup}
-            // dobError={errors?.dob}
-            // dob={member.dob}
-            // onDob={(val) => onField("dob", val)}
+          // dobError={errors?.dob}
+          // dob={member.dob}
+          // onDob={(val) => onField("dob", val)}
           />
 
           {/* <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}>

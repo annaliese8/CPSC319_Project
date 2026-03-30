@@ -71,7 +71,7 @@ function EmailFormatGuide() {
     },
     {
       text: ".com",
-      color: "#e65100",
+      color: "#C24400",
       bg: "#fff3e0",
       label: "Domain ending",
       detail:
@@ -151,9 +151,9 @@ function EmailFormatGuide() {
         </Stack>
         <Typography
           variant="caption"
-          sx={{ color: "text.disabled", whiteSpace: "nowrap" }}
+          sx={{ color: "#6F6F71", whiteSpace: "nowrap" }}
         >
-          Hover on each part for help
+          Hover over each part for help
         </Typography>
       </Stack>
     </Paper>
