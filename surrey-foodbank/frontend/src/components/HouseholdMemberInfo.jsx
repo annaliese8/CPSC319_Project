@@ -163,6 +163,7 @@ function AgeGroupPicker({
                     fontSize: 15,
                     color: selected ? color : "#333 ",
                     lineHeight: 1.2,
+
                   }}
                 >
                   {label}
@@ -172,6 +173,7 @@ function AgeGroupPicker({
                     fontSize: 14,
                     color: selected ? color : "#444 ",
                     fontWeight: 500,
+                    textAlign: "center"
                   }}
                 >
                   {range}

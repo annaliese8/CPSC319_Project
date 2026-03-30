@@ -573,7 +573,7 @@ export function StepHouseholdMembers({
 }) {
   return (
     <Box className="ba-body">
-      <Typography variant="h2">Household Members</Typography>
+      <Typography variant="h2">Additional Household Members</Typography>
 
       <HouseholdMemberInfo
         householdMembers={householdMembers}

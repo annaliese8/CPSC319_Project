@@ -8,7 +8,6 @@ import {
 } from "@mui/material";
 import logo from "../styles/full-logo.png";
 
-
 // Used as a common top bar for the admin page
 function ApplicantTopBar({ onLogout }) {
 
@@ -28,14 +27,14 @@ function ApplicantTopBar({ onLogout }) {
                   style={{ height: 40 }} />
               </a>
 
-              <Typography variant="h4" sx={{ ml: 2 }}>
+              <Typography variant="h4" sx={{ pl: 1, fontSize: { xs: 20, sm: 28, md: 32 }, }}>
                 Appointment System
               </Typography>
             </Stack>
           </Stack>
 
           {/* Right group */}
-          <Button onClick={onLogout} color="primary" variant="text" sx={{ fontSize: 14, fontWeight: 800, textTransform: 'none' }}>
+          <Button onClick={onLogout} color="primary" variant="text" sx={{ fontSize: 14, fontWeight: 800, textTransform: 'none', whiteSpace: "nowrap", }}>
             Log Out
           </Button>
         </Toolbar>
