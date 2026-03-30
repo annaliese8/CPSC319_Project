@@ -23,6 +23,7 @@ import {
   deleteBlockedSlots,
 } from "../api/appointmentsAPI";
 import { getApplicant, getApplicantByEmail, createApplicant } from "../api/applicantsAPI";
+import { STATUS_OPTIONS } from "./AppointmentStatus.jsx";
 
 const days = [
   "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday",
@@ -43,6 +44,44 @@ const generateTimeSlots = (startHour, endHour) => {
 };
 
 const visibleTimeSlots = generateTimeSlots(VISIBLE_START_HOUR, VISIBLE_END_HOUR);
+
+// Map MUI color names → actual hex values to render dots without MUI theme overhead
+const STATUS_DOT_COLORS = {
+  info:    "#0288d1", // Booked
+  primary: "#1976d2", // Checked In
+  success: "#2e7d32", // Complete
+  error:   "#d32f2f", // No Show
+  default: "#9e9e9e",
+};
+
+// Normalize DB status strings to match STATUS_OPTIONS labels
+const normalizeStatus = (status) => {
+  if (!status) return "";
+  const s = status.trim();
+  if (s.toLowerCase() === "checked-in" || s.toLowerCase() === "checked in") return "Checked In";
+  // Capitalize first letter of each word for any other variants
+  return s;
+};
+
+function StatusDot({ status }) {
+  const option = STATUS_OPTIONS.find((o) => o.label === normalizeStatus(status));
+  const color = STATUS_DOT_COLORS[option?.color ?? "default"];
+  return (
+    <span
+      style={{
+        position: "absolute",
+        top: 3,
+        right: 3,
+        width: 7,
+        height: 7,
+        borderRadius: "50%",
+        backgroundColor: color,
+        pointerEvents: "none",
+        flexShrink: 0,
+      }}
+    />
+  );
+}
 
 const dbTimeToGrid = (dbTime) => {
   const [h, m] = dbTime.split(":");
@@ -166,6 +205,7 @@ function AdminCalendar({
   const [savedBlocked, setSavedBlocked] = useState([]);
   const [blockedSlots, setBlockedSlots] = useState([]);
 
+  // O(1) lookup sets — rebuilt only when their source arrays change
   const savedBlockedSet = React.useMemo(
     () => new Set(savedBlocked.map((s) => `${s.date}|${s.time}`)),
     [savedBlocked]
@@ -188,6 +228,23 @@ function AdminCalendar({
       }
     });
     return set;
+  }, [appointments, weekStartStr, weekEndStr]);
+
+  // Map "YYYY-MM-DD|H:MM" → appointment object for O(1) status dot lookup
+  const slotAppointmentMap = React.useMemo(() => {
+    const map = new Map();
+    appointments.forEach((apt) => {
+      if (!apt.date || apt.date < weekStartStr || apt.date > weekEndStr) return;
+      const [aptH, aptM] = apt.startTime.split(":").map(Number);
+      const aptStart = aptH * 60 + aptM;
+      for (let offset = 0; offset < apt.duration; offset += 15) {
+        const slotMins = aptStart + offset;
+        const h = Math.floor(slotMins / 60);
+        const m = slotMins % 60;
+        map.set(`${apt.date}|${h}:${m.toString().padStart(2, "0")}`, apt);
+      }
+    });
+    return map;
   }, [appointments, weekStartStr, weekEndStr]);
   const [appointmentData, setAppointmentData] = useState(null);
   const [selectedSlot, setSelectedSlot] = useState(null);
@@ -641,6 +698,8 @@ function AdminCalendar({
                   />
                 );
               } else {
+                const slotKey = `${dateForDay(day)}|${time}`;
+                const slotAppt = booked ? slotAppointmentMap.get(slotKey) : null;
                 return (
                   <div
                     key={day + time}
@@ -650,6 +709,7 @@ function AdminCalendar({
                       : booked ? "admin-booked"
                       : "admin-available"
                     }`}
+                    style={{ position: "relative" }}
                     onClick={() => handleSlotClick(day, time)}
                     tabIndex={0}
                     role="button"
@@ -660,7 +720,9 @@ function AdminCalendar({
                         handleSlotClick(day, time);
                       }
                     }}
-                  />
+                  >
+                    {slotAppt && <StatusDot status={slotAppt.appointmentStatus} />}
+                  </div>
                 );
               }
             })}
@@ -704,3 +766,4 @@ function AdminCalendar({
 }
 
 export default AdminCalendar;
+// Claude.ai was used to assist with formatting and runtime errors
