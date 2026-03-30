@@ -28,6 +28,8 @@ import CancelBookingDialogue from "../../components/CancelBookingDialogue";
 import { getSupabaseClient } from "../../lib/supabaseClient";
 import { formatTime } from "../../components/BookingSteps";
 import { addMinutesToTime } from "../../utils/TimeUtils";
+import { INELIGIBLE_STATUS_OPTIONS } from "../../components/RegistrationFields";
+import IneligibleStatusDialog from "../../components/IneligibleStatusDialog";
 
 function getApiBaseUrl() {
   const envBase = (import.meta.env.VITE_API_BASE_URL || "").trim();
@@ -108,6 +110,8 @@ function Profile() {
     JSON.stringify(appointment.householdMembers ?? []);
   const [submitError, setSubmitError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showIneligibleStatusDialog, setShowIneligibleStatusDialog] = useState(false);
+  const [ineligibleStatus, setIneligibleStatus] = useState("");
 
   // Load user and appointment data
   useEffect(() => {
@@ -157,7 +161,7 @@ function Profile() {
         if (!appointmentResponse.ok) {
           setSubmitError(
             appointmentResult?.error ||
-              "Unable to load appointment data from database.",
+            "Unable to load appointment data from database.",
           );
         }
 
@@ -209,6 +213,12 @@ function Profile() {
 
   // Handles saving registration form data
   const handleRegistrationSave = async (updatedForm) => {
+    // Check if status in Canada is ineligible, and show dialog
+    if (INELIGIBLE_STATUS_OPTIONS.includes(updatedForm.status_in_canada)) {
+      setIneligibleStatus(updatedForm.status_in_canada);
+      setShowIneligibleStatusDialog(true);
+      return;
+    }
     setSubmitError("");
     setIsSubmitting(true);
 
@@ -465,6 +475,7 @@ function Profile() {
             <RegistrationFormInfo
               appointment={appointment}
               onSave={handleRegistrationSave}
+              isStaffPage={false}
             />
             {isSubmitting ? (
               <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
@@ -478,6 +489,11 @@ function Profile() {
             ) : null}
           </Box>
           <NextSteps />
+          <IneligibleStatusDialog
+            open={showIneligibleStatusDialog}
+            onClose={() => setShowIneligibleStatusDialog(false)}
+            status={ineligibleStatus}
+          />
         </Stack>
       )}
       {/* Shows Household Members when tab is active */}

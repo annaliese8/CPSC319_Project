@@ -153,7 +153,7 @@ export default function BookingInfo({
           {hasAppointment ? (
             <>
               <Typography
-                color="secondary"
+                color="primary"
                 variant="h5"
                 size="large"
                 sx={{ fontWeight: 700 }}
@@ -179,12 +179,12 @@ export default function BookingInfo({
               onClick={onBookAppointment}
               sx={{
                 fontWeight: 700,
-                backgroundColor: "#4cc5dc",
+                backgroundColor: "#E8112E",
                 color: "common.white",
                 fontSize: "1.2rem",
                 px: 4,
                 py: 1.5,
-                "&:hover": { backgroundColor: "#005070" },
+                "&:hover": { backgroundColor: "#D5102A" },
               }}
             >
               Book an Appointment

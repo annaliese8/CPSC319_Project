@@ -293,7 +293,7 @@ import HouseholdMemberInfo from "../../components/HouseholdMemberInfo";
 import { validateHouseholdMembers } from "../../utils/ValidateHouseholdMembers";
 import { updateApplicant } from "../../api/applicantsAPI";
 import { getAppointmentByResponseId, updateAppointment } from "../../api/appointmentsAPI"
-  import { getHouseholdMembers } from "../../api/applicantsAPI"
+import { getHouseholdMembers } from "../../api/applicantsAPI"
 
 export default function ApplicantInfoPage() {
   const navigate = useNavigate();
@@ -319,42 +319,42 @@ export default function ApplicantInfoPage() {
   }, [appointment?.householdMembers]);
 
   // CHANGED: load appointment record from DB using response_id
-useEffect(() => {
-  const responseId = appointment?.id
-  if (!responseId) return
+  useEffect(() => {
+    const responseId = appointment?.id
+    if (!responseId) return
 
-  getAppointmentByResponseId(responseId)
-    .then((data) => { if (data) setDbAppointment(data) })
-    .catch((err) => console.error("Failed to load appointment:", err.message))
+    getAppointmentByResponseId(responseId)
+      .then((data) => { if (data) setDbAppointment(data) })
+      .catch((err) => console.error("Failed to load appointment:", err.message))
 
-  getHouseholdMembers(responseId)
-    .then((result) => {
-      const members = result?.data ?? []
-      setAppointment((prev) => ({ ...prev, householdMembers: members }))
-      setPendingHouseholdMembers(members)
-    })
-    .catch((err) => console.error("Failed to load household members:", err.message))
+    getHouseholdMembers(responseId)
+      .then((result) => {
+        const members = result?.data ?? []
+        setAppointment((prev) => ({ ...prev, householdMembers: members }))
+        setPendingHouseholdMembers(members)
+      })
+      .catch((err) => console.error("Failed to load household members:", err.message))
 
-  fetch(`${import.meta.env.VITE_BACKEND_URL || "http://localhost:3000"}/api/applicants/${responseId}`)
-    .then((res) => res.json())
-    .then((result) => {
-      const reg = result?.data ?? null
-      if (!reg) return
-      setAppointment((prev) => ({
-        ...prev,
-        first_name: reg.first_name || "",
-        last_name: reg.last_name || "",
-        email: reg.email_address || "",
-        phone: reg.phone || "",
-        street_addr: reg.street_addr || "",
-        city: reg.city || "",
-        postal_code: reg.postal_code || "",
-        status_in_canada: reg.status_in_canada || "",
-        tiny_bundles_program: reg.tiny_bundles_program || false,
-      }))
-    })
-    .catch((err) => console.error("Failed to load registration:", err.message))
-}, [appointment?.id])
+    fetch(`${import.meta.env.VITE_BACKEND_URL || "http://localhost:3000"}/api/applicants/${responseId}`)
+      .then((res) => res.json())
+      .then((result) => {
+        const reg = result?.data ?? null
+        if (!reg) return
+        setAppointment((prev) => ({
+          ...prev,
+          first_name: reg.first_name || "",
+          last_name: reg.last_name || "",
+          email: reg.email_address || "",
+          phone: reg.phone || "",
+          street_addr: reg.street_addr || "",
+          city: reg.city || "",
+          postal_code: reg.postal_code || "",
+          status_in_canada: reg.status_in_canada || "",
+          tiny_bundles_program: reg.tiny_bundles_program || false,
+        }))
+      })
+      .catch((err) => console.error("Failed to load registration:", err.message))
+  }, [appointment?.id])
 
   const onCancelBooking = () => {
     setShowCancelDialog(true);
@@ -421,25 +421,25 @@ useEffect(() => {
 
   // CHANGED: update appointment_status in DB instead of localStorage
   const handleStatusChange = async (newStatus) => {
-  const appointmentId = dbAppointment?.appointment_id
-  if (!appointmentId) {
-    console.error("No appointment_id found — cannot update status")
-    return
+    const appointmentId = dbAppointment?.appointment_id
+    if (!appointmentId) {
+      console.error("No appointment_id found — cannot update status")
+      return
+    }
+    try {
+      await updateAppointment(appointmentId, { appointment_status: newStatus })
+      setDbAppointment((prev) => ({ ...prev, appointment_status: newStatus }))
+    } catch (err) {
+      console.error("Failed to update status:", err.message)
+    }
   }
-  try {
-    await updateAppointment(appointmentId, { appointment_status: newStatus })
-    setDbAppointment((prev) => ({ ...prev, appointment_status: newStatus }))
-  } catch (err) {
-    console.error("Failed to update status:", err.message)
-  }
-}
 
   // Merge DB appointment fields into the appointment object for BookingInfo
   const mergedAppointment = {
-  ...appointment,
-  ...dbAppointment,
-  appointmentStatus: dbAppointment?.appointment_status || appointment?.appointmentStatus || "",
-}
+    ...appointment,
+    ...dbAppointment,
+    appointmentStatus: dbAppointment?.appointment_status || appointment?.appointmentStatus || "",
+  }
 
   return (
     <Box sx={{ minHeight: "100vh" }}>
@@ -484,6 +484,7 @@ useEffect(() => {
               <RegistrationFormInfo
                 appointment={appointment || null}
                 onSave={handleSavePersonalInfo}
+                isStaffPage={true}
               />
             </Box>
             <Stack>

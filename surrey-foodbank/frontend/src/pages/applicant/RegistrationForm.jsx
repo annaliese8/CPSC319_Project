@@ -11,6 +11,8 @@ import { useNavigate } from "react-router-dom";
 import ApplicantTopBar from "../../components/ApplicantTopBar";
 import { validateRegistrationForm } from "../../utils/ValidateRegistrationForm";
 import { getSupabaseClient } from "../../lib/supabaseClient";
+import { INELIGIBLE_STATUS_OPTIONS } from "../../components/RegistrationFields";
+import IneligibleStatusDialog from "../../components/IneligibleStatusDialog";
 
 function getApiBaseUrl() {
   const envBase = (import.meta.env.VITE_API_BASE_URL || "").trim();
@@ -95,6 +97,8 @@ export default function Register() {
   // ── Step 0: Personal Info ──────────────────────────────────────────────────
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
+  const [showIneligibleStatusDialog, setShowIneligibleStatusDialog] = useState(false);
+  const [ineligibleStatus, setIneligibleStatus] = useState("");
 
   useEffect(() => {
     let isMounted = true;
@@ -130,6 +134,12 @@ export default function Register() {
     setFormErrors(toUiErrors(errors));
     if (Object.keys(errors).length) return;
 
+    // Check if status in Canada is ineligible, and show dialog
+    if (INELIGIBLE_STATUS_OPTIONS.includes(form.status_in_canada)) {
+      setIneligibleStatus(form.status_in_canada);
+      setShowIneligibleStatusDialog(true);
+      return;
+    }
     setIsSubmitting(true);
 
     const supabase = getSupabaseClient();
@@ -399,6 +409,11 @@ export default function Register() {
           Progress saved
         </Alert>
       </Snackbar>
+      <IneligibleStatusDialog
+        open={showIneligibleStatusDialog}
+        onClose={() => setShowIneligibleStatusDialog(false)}
+        status={ineligibleStatus}
+      />
     </div>
   );
 }

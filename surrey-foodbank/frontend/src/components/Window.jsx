@@ -14,12 +14,14 @@ function Window({ title, width = "40%", children }) {
           justifyContent: "center",
           alignItems: "center",
           minHeight: "100vh",
+          px: 2
         }}
       >
         <Paper
           sx={{
             borderRadius: 2,
-            width: width,
+            width: "100%",
+            maxWidth: 700,
             overflow: "hidden",
           }}
         >
@@ -33,7 +35,7 @@ function Window({ title, width = "40%", children }) {
             <Typography
               sx={{
                 color: "white",
-                fontSize: 30,
+                fontSize: { xs: 25, sm: 30 },
                 fontWeight: "bold",
               }}
             >

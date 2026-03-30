@@ -170,6 +170,7 @@ export function StepPersonalInfo({ form, onChange, onNext, errors, isSubmitting 
         onChange={onChange}
         errors={errors}
         isDisabled={isSubmitting}
+        isStaffPage={false}
       />
       <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 3 }}>
         <Button
@@ -362,7 +363,7 @@ export function StepChooseTime({
                   >
                     {DAYS_SHORT[i]}
                     <br />
-                    <span style={{ fontWeight: 400, color: "var(--gray-500)" }}>
+                    <span style={{ fontWeight: 400, color: "#66747F" }}>
                       {formatDateShort(weekDates[i])}
                     </span>
                   </th>
@@ -446,7 +447,7 @@ export function StepChooseTime({
               textAlign: "center",
               marginTop: 10,
               fontSize: 13,
-              color: "var(--gray-500)",
+              color: "#6B7785",
             }}
           >
             Click an available slot to select your appointment time.
@@ -460,10 +461,7 @@ export function StepChooseTime({
         <button
           className="ba-btn ba-btn-primary"
           onClick={onNext}
-          style={{
-            opacity: selectedSlot ? 1 : 0.5,
-            cursor: selectedSlot ? "pointer" : "not-allowed",
-          }}
+          disabled={!selectedSlot}
         >
           Next →
         </button>
@@ -575,7 +573,7 @@ export function StepHouseholdMembers({
 }) {
   return (
     <Box className="ba-body">
-      <Typography variant="h2">Household Members</Typography>
+      <Typography variant="h2">Additional Household Members</Typography>
 
       <HouseholdMemberInfo
         householdMembers={householdMembers}
@@ -654,7 +652,7 @@ export function StepSignupReview({
 
         <Typography variant="subtitle1" sx={{ fontWeight: 700, mt: 3, mb: 1 }}>
           Additional Household Members{" "}
-          <span style={{ fontWeight: 400, color: "var(--gray-500)" }}>
+          <span style={{ fontWeight: 400, color: "#66747F" }}>
             ({householdMembers.length})
           </span>
         </Typography>
@@ -662,7 +660,7 @@ export function StepSignupReview({
         {householdMembers.length === 0 ? (
           <Typography
             variant="body2"
-            sx={{ color: "var(--gray-500)", fontStyle: "italic" }}
+            sx={{ color: "#66747F", fontStyle: "italic" }}
           >
             No additional household members added.
           </Typography>

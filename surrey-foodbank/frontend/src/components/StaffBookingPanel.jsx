@@ -49,19 +49,19 @@ export default function StaffBookingPanel({
       const date = selectedSlot.date
         ? new Date(selectedSlot.date)
         : (() => {
-            const dayIndex = [
-              "Sunday",
-              "Monday",
-              "Tuesday",
-              "Wednesday",
-              "Thursday",
-              "Friday",
-              "Saturday",
-            ].indexOf(selectedSlot.day);
-            const d = new Date(selectedSlot.weekStart);
-            d.setDate(d.getDate() + dayIndex);
-            return d;
-          })();
+          const dayIndex = [
+            "Sunday",
+            "Monday",
+            "Tuesday",
+            "Wednesday",
+            "Thursday",
+            "Friday",
+            "Saturday",
+          ].indexOf(selectedSlot.day);
+          const d = new Date(selectedSlot.weekStart);
+          d.setDate(d.getDate() + dayIndex);
+          return d;
+        })();
       setEditableDate(date.toISOString().split("T")[0]);
       setStartTime(selectedSlot.time);
       setEndTime(addMinutesToTime(selectedSlot.time, 15));
@@ -337,10 +337,10 @@ export default function StaffBookingPanel({
           InputProps={
             isRebooking
               ? {
-                  endAdornment: (
-                    <LockIcon sx={{ fontSize: 16, color: "text.disabled" }} />
-                  ),
-                }
+                endAdornment: (
+                  <LockIcon sx={{ fontSize: 16, color: "text.disabled" }} />
+                ),
+              }
               : {}
           }
         />
@@ -354,6 +354,7 @@ export default function StaffBookingPanel({
           }}
           errors={formErrors}
           isDisabled={isRebooking}
+          isStaffPage={true}
         />
 
         <Stack direction="row" spacing={1.5} sx={{ mt: 3 }}>
