@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import "./AdminCalendar.css";
 import AppointmentInfoDialog from "./AppointmentInfoDialog.jsx";
 import StaffBookingPanel from "./StaffBookingPanel.jsx";
@@ -25,8 +25,11 @@ import {
 import { getApplicant, getApplicantByEmail, createApplicant } from "../api/applicantsAPI";
 
 const days = [
-  "Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday",
+  "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday",
 ];
+
+const VISIBLE_START_HOUR = 9;
+const VISIBLE_END_HOUR = 13;
 
 const generateTimeSlots = (startHour, endHour) => {
   const slots = [];
@@ -39,7 +42,7 @@ const generateTimeSlots = (startHour, endHour) => {
   return slots;
 };
 
-const fullTimeSlots = generateTimeSlots(0, 24);
+const visibleTimeSlots = generateTimeSlots(VISIBLE_START_HOUR, VISIBLE_END_HOUR);
 
 const dbTimeToGrid = (dbTime) => {
   const [h, m] = dbTime.split(":");
@@ -58,11 +61,35 @@ const toDateStr = (date) => {
   return `${y}-${mo}-${d}`;
 };
 
+const isDisplayTime = (time) =>
+  time.slice(-2) === "00" || time.slice(-2) === "30";
+
+/**
+ * Expand a single DB blocked row (which may span multiple hours via duration)
+ * into individual 15-min grid slots.
+ */
+const expandBlockedRow = (row) => {
+  const [th, tm] = row.appointment_time.split(":").map(Number);
+  const startMins = th * 60 + tm;
+  const [dh, dm] = (row.duration || "00:15:00").split(":").map(Number);
+  const durationMins = dh * 60 + dm;
+  const slots = [];
+  for (let offset = 0; offset < durationMins; offset += 15) {
+    const slotMins = startMins + offset;
+    const h = Math.floor(slotMins / 60);
+    const m = slotMins % 60;
+    slots.push({
+      appointment_id: row.appointment_id,
+      date: row.appointment_date,
+      time: `${h}:${m.toString().padStart(2, "0")}`,
+    });
+  }
+  return slots;
+};
+
 const normaliseAppointment = (a) => ({
   appointment_id: a.appointment_id,
   response_id: a.response_id,
-  // name and email are NOT fetched with the calendar query (no JOIN).
-  // They are lazy-loaded when the AppointmentInfoDialog opens.
   email: "",
   name: "",
   day: a.appointment_date
@@ -84,13 +111,7 @@ function ConflictModal({ conflicts, onConfirm, onCancel }) {
   return (
     <Dialog open maxWidth="xs" fullWidth>
       <DialogTitle
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          gap: 1,
-          color: "warning.main",
-          fontWeight: 800,
-        }}
+        sx={{ display: "flex", alignItems: "center", gap: 1, color: "warning.main", fontWeight: 800 }}
       >
         <WarningAmberIcon /> Cancel Existing Appointments?
       </DialogTitle>
@@ -103,7 +124,7 @@ function ConflictModal({ conflicts, onConfirm, onCancel }) {
           {conflicts.map((appt, i) => (
             <ListItem key={i} disableGutters>
               <ListItemText
-                primary={appt.name}
+                primary={appt.name || `Response #${appt.response_id}`}
                 secondary={`${appt.date} at ${appt.startTime}`}
               />
             </ListItem>
@@ -114,24 +135,15 @@ function ConflictModal({ conflicts, onConfirm, onCancel }) {
         </Typography>
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2, justifyContent: "space-between" }}>
-        <Button variant="outlined" onClick={onCancel}>
-          Go Back
-        </Button>
-        <Button
-          variant="contained"
-          color="warning"
-          onClick={onConfirm}
-          sx={{ fontWeight: 800, color: "common.white" }}
-        >
+        <Button variant="outlined" onClick={onCancel}>Go Back</Button>
+        <Button variant="contained" color="warning" onClick={onConfirm}
+          sx={{ fontWeight: 800, color: "common.white" }}>
           Confirm &amp; Cancel Appointments
         </Button>
       </DialogActions>
     </Dialog>
   );
 }
-
-const VISIBLE_START_HOUR = 9;
-const VISIBLE_END_HOUR = 13;
 
 function AdminCalendar({
   isEditing,
@@ -147,12 +159,36 @@ function AdminCalendar({
   weekEndDate.setDate(weekStart.getDate() + 6);
   const weekEndStr = toDateStr(weekEndDate);
 
-  const weekCache = React.useRef({});
+  // Persistent cache across week navigations — avoids re-fetching visited weeks
+  const weekCache = useRef({});
 
   const [appointments, setAppointments] = useState([]);
   const [savedBlocked, setSavedBlocked] = useState([]);
   const [blockedSlots, setBlockedSlots] = useState([]);
 
+  const savedBlockedSet = React.useMemo(
+    () => new Set(savedBlocked.map((s) => `${s.date}|${s.time}`)),
+    [savedBlocked]
+  );
+  const blockedSlotsSet = React.useMemo(
+    () => new Set(blockedSlots.map((s) => `${s.date}|${s.time}`)),
+    [blockedSlots]
+  );
+  const bookedSet = React.useMemo(() => {
+    const set = new Set();
+    appointments.forEach((apt) => {
+      if (!apt.date || apt.date < weekStartStr || apt.date > weekEndStr) return;
+      const [aptH, aptM] = apt.startTime.split(":").map(Number);
+      const aptStart = aptH * 60 + aptM;
+      for (let offset = 0; offset < apt.duration; offset += 15) {
+        const slotMins = aptStart + offset;
+        const h = Math.floor(slotMins / 60);
+        const m = slotMins % 60;
+        set.add(`${apt.date}|${h}:${m.toString().padStart(2, "0")}`);
+      }
+    });
+    return set;
+  }, [appointments, weekStartStr, weekEndStr]);
   const [appointmentData, setAppointmentData] = useState(null);
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [highlightedSlot, setHighlightedSlot] = useState(null);
@@ -165,50 +201,15 @@ function AdminCalendar({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Build visible weekend slots for the displayed week and ensure they exist
-  // as blocked rows in the DB so the applicant calendar can read them.
-  const ensureWeekendsBlocked = useCallback(
-    async (existingBlocked) => {
-      // One blocked row per weekend day covering the full visible window (4 h).
-      // Using a single row instead of 16 × 15-min rows keeps the DB lean and
-      // speeds up the date-range fetch.
-      const weekendIndices = [0, 6]; // Sunday and Saturday relative to weekStart
-      const daysToBlock = [];
-      for (const idx of weekendIndices) {
-        const date = new Date(weekStart);
-        date.setDate(weekStart.getDate() + idx);
-        const dateStr = toDateStr(date);
-        const alreadyBlocked = existingBlocked.some((b) => b.date === dateStr);
-        if (!alreadyBlocked) daysToBlock.push(dateStr);
-      }
-      if (daysToBlock.length === 0) return;
-      const rows = daysToBlock.map((dateStr) => ({
-        appointment_date: dateStr,
-        appointment_time: "09:00:00",
-        duration: "04:00:00",
-      }));
-      try {
-        await createBlockedSlots(rows);
-      } catch (err) {
-        console.warn("Could not auto-block weekends:", err.message);
-      }
-    },
-    [weekStart]
-  );
-
-  const loadWeekData = useCallback(async () => {
-    // Serve from cache when available (navigation between already-loaded weeks)
-    if (weekCache.current[weekStartStr]) {
+  const loadWeekData = useCallback(async ({ forceRefresh = false } = {}) => {
+    if (!forceRefresh && weekCache.current[weekStartStr]) {
       const { blocked, booked } = weekCache.current[weekStartStr];
       setSavedBlocked(blocked);
       setBlockedSlots(blocked);
       setAppointments(booked);
       setLoading(false);
-      // Weekends were already blocked when this week was first loaded — no need
-      // to re-check from the cache path.
       return;
     }
-
     setLoading(true);
     setError(null);
     try {
@@ -217,22 +218,7 @@ function AdminCalendar({
       const booked = [];
       for (const row of data) {
         if (row.appointment_status === "blocked") {
-          // Expand duration-based blocked rows into individual 15-min display slots
-          const [th, tm] = row.appointment_time.split(":").map(Number);
-          const startMins = th * 60 + tm;
-          const durStr = row.duration || "00:15:00";
-          const [dh, dm] = durStr.split(":").map(Number);
-          const durationMins = dh * 60 + dm;
-          for (let offset = 0; offset < durationMins; offset += 15) {
-            const slotMins = startMins + offset;
-            const h = Math.floor(slotMins / 60);
-            const m = slotMins % 60;
-            blocked.push({
-              appointment_id: row.appointment_id,
-              date: row.appointment_date,
-              time: `${h}:${m.toString().padStart(2, "0")}`,
-            });
-          }
+          blocked.push(...expandBlockedRow(row));
         } else if (row.appointment_status !== "cancelled") {
           booked.push(normaliseAppointment(row));
         }
@@ -241,25 +227,21 @@ function AdminCalendar({
       setSavedBlocked(blocked);
       setBlockedSlots(blocked);
       setAppointments(booked);
-
-      // Fire-and-forget: block weekends in the background without delaying render
-      ensureWeekendsBlocked(blocked);
     } catch (err) {
       setError("Failed to load appointments: " + err.message);
     } finally {
       setLoading(false);
     }
-  }, [weekStartStr, weekEndStr, ensureWeekendsBlocked]);
+  }, [weekStartStr, weekEndStr]);
 
   useEffect(() => {
     loadWeekData();
   }, [loadWeekData]);
 
-  // Open rebooking panel when arriving from ApplicantInfoPage
   useEffect(() => {
     if (changeBookingAppointment) {
       setRebookingAppointment(changeBookingAppointment);
-      const slotDay = changeBookingAppointment.day || days[1]; // default Monday
+      const slotDay = changeBookingAppointment.day || days[1];
       const slotTime = changeBookingAppointment.startTime || "9:00";
       setSelectedSlot({
         day: slotDay,
@@ -274,46 +256,39 @@ function AdminCalendar({
     }
   }, [changeBookingAppointment]);
 
-  const isBlocked = (day, time) => {
-    const source = isEditing ? blockedSlots : savedBlocked;
-    return source.some((s) => {
-      const slotDay = new Date(`${s.date}T12:00:00`).toLocaleDateString(
-        "en-US",
-        { weekday: "long" }
-      );
-      return slotDay === day && s.time === time;
+  // Pre-compute day→date map once per week (avoids Date construction in render loop)
+  const dayDateMap = React.useMemo(() => {
+    const map = {};
+    days.forEach((day, i) => {
+      const d = new Date(weekStart);
+      d.setDate(weekStart.getDate() + i);
+      map[day] = toDateStr(d);
     });
+    return map;
+  }, [weekStart]);
+
+  const dateForDay = (day) => dayDateMap[day];
+
+  const isBlocked = (day, time) => {
+    const date = dateForDay(day);
+    const set = isEditing ? blockedSlotsSet : savedBlockedSet;
+    return set.has(`${date}|${time}`);
   };
 
-  const isSlotBooked = (day, time) =>
-    appointments.some((apt) => {
-      if (apt.day !== day || !apt.date) return false;
-      if (apt.date < weekStartStr || apt.date > weekEndStr) return false;
-      const [aptH, aptM] = apt.startTime.split(":").map(Number);
-      const [slotH, slotM] = time.split(":").map(Number);
-      const aptStart = aptH * 60 + aptM;
-      const slotMins = slotH * 60 + slotM;
-      return slotMins >= aptStart && slotMins < aptStart + apt.duration;
-    });
+  const isSlotBooked = (day, time) => {
+    const date = dateForDay(day);
+    return bookedSet.has(`${date}|${time}`);
+  };
 
   const addBlockedSlot = (day, time) => {
-    const dayIndex = days.indexOf(day);
-    const date = new Date(weekStart);
-    date.setDate(weekStart.getDate() + dayIndex);
-    const dateStr = toDateStr(date);
-    if (!blockedSlots.some((s) => s.date === dateStr && s.time === time)) {
-      setBlockedSlots((prev) => [
-        ...prev,
-        { appointment_id: null, date: dateStr, time },
-      ]);
+    const dateStr = dateForDay(day);
+    if (!blockedSlotsSet.has(`${dateStr}|${time}`)) {
+      setBlockedSlots((prev) => [...prev, { appointment_id: null, date: dateStr, time }]);
     }
   };
 
   const removeBlockedSlot = (day, time) => {
-    const dayIndex = days.indexOf(day);
-    const date = new Date(weekStart);
-    date.setDate(weekStart.getDate() + dayIndex);
-    const dateStr = toDateStr(date);
+    const dateStr = dateForDay(day);
     setBlockedSlots((prev) =>
       prev.filter((s) => !(s.date === dateStr && s.time === time))
     );
@@ -323,11 +298,6 @@ function AdminCalendar({
     setIsBlocking(false);
     setIsUnblocking(false);
   };
-
-  const visibleTimeSlots = generateTimeSlots(VISIBLE_START_HOUR, VISIBLE_END_HOUR);
-
-  const isDisplayTime = (time) =>
-    time.slice(-2) === "00" || time.slice(-2) === "30";
 
   const handleSave = async () => {
     const newlyBlocked = blockedSlots.filter(
@@ -345,42 +315,48 @@ function AdminCalendar({
 
   const commitSave = async (cancelledAppts = []) => {
     setError(null);
-    try {
-      const removed = savedBlocked.filter(
-        (b) =>
-          !blockedSlots.some((s) => s.date === b.date && s.time === b.time)
-      );
-      if (removed.length > 0) {
-        const ids = removed.map((b) => b.appointment_id).filter(Boolean);
-        if (ids.length > 0) await deleteBlockedSlots(ids);
-      }
 
-      const added = blockedSlots.filter(
-        (s) =>
-          !savedBlocked.some((b) => b.date === s.date && b.time === s.time)
-      );
+    const removed = savedBlocked.filter(
+      (b) => !blockedSlots.some((s) => s.date === b.date && s.time === b.time)
+    );
+    const added = blockedSlots.filter(
+      (s) => !savedBlocked.some((b) => b.date === s.date && b.time === s.time)
+    );
+
+    // Apply to local state immediately so UI is instant
+    const newSavedBlocked = blockedSlots.map((s) => ({ ...s }));
+    const newBooked = cancelledAppts.length > 0
+      ? appointments.filter(
+          (a) => !cancelledAppts.some((c) => c.appointment_id === a.appointment_id)
+        )
+      : appointments;
+    setSavedBlocked(newSavedBlocked);
+    if (cancelledAppts.length > 0) setAppointments(newBooked);
+    weekCache.current[weekStartStr] = { blocked: newSavedBlocked, booked: newBooked };
+    clearMouseTrackers();
+
+    // Persist all changes in parallel
+    try {
+      const ops = [];
+      if (removed.length > 0) {
+        const ids = [...new Set(removed.map((b) => b.appointment_id).filter(Boolean))];
+        if (ids.length > 0) ops.push(deleteBlockedSlots(ids));
+      }
       if (added.length > 0) {
         const rows = added.map((s) => ({
           appointment_date: s.date,
           appointment_time: gridTimeToDb(s.time),
           duration: "00:15:00",
         }));
-        await createBlockedSlots(rows);
+        ops.push(createBlockedSlots(rows));
       }
-
-      await Promise.all(
-        cancelledAppts.map((apt) =>
-          updateAppointment(apt.appointment_id, {
-            appointment_status: "cancelled",
-          })
-        )
+      cancelledAppts.forEach((apt) =>
+        ops.push(updateAppointment(apt.appointment_id, { appointment_status: "cancelled" }))
       );
-
-      delete weekCache.current[weekStartStr];
-      await loadWeekData();
-      clearMouseTrackers();
+      await Promise.all(ops);
     } catch (err) {
-      setError("Failed to save: " + err.message);
+      delete weekCache.current[weekStartStr];
+      setError("Save failed — please refresh: " + err.message);
     }
   };
 
@@ -391,7 +367,6 @@ function AdminCalendar({
   };
 
   const handleModalCancel = () => setPendingConflicts(null);
-
   const handleDiscard = () => {
     setBlockedSlots(savedBlocked);
     clearMouseTrackers();
@@ -399,20 +374,21 @@ function AdminCalendar({
 
   const handleStatusChange = async (newStatus) => {
     if (!appointmentData?.appointment_id) return;
+    const id = appointmentData.appointment_id;
+    setAppointmentData((prev) => ({ ...prev, appointmentStatus: newStatus }));
+    setAppointments((prev) =>
+      prev.map((a) => a.appointment_id === id ? { ...a, appointmentStatus: newStatus } : a)
+    );
     try {
-      await updateAppointment(appointmentData.appointment_id, {
-        appointment_status: newStatus,
-      });
-      setAppointmentData((prev) => ({ ...prev, appointmentStatus: newStatus }));
-      setAppointments((prev) =>
-        prev.map((a) =>
-          a.appointment_id === appointmentData.appointment_id
-            ? { ...a, appointmentStatus: newStatus }
-            : a
-        )
-      );
+      await updateAppointment(id, { appointment_status: newStatus });
+      if (weekCache.current[weekStartStr]) {
+        weekCache.current[weekStartStr].booked = weekCache.current[weekStartStr].booked.map(
+          (a) => a.appointment_id === id ? { ...a, appointmentStatus: newStatus } : a
+        );
+      }
     } catch (err) {
       setError("Failed to update status: " + err.message);
+      delete weekCache.current[weekStartStr];
     }
   };
 
@@ -438,28 +414,36 @@ function AdminCalendar({
     if (!isEditing && !isBlocked(day, time) && !isSlotBooked(day, time)) {
       handleBookingPanel(day, time);
     } else if (!isEditing && isSlotBooked(day, time)) {
-      const appt = appointments.find((apt) => {
-        if (apt.day !== day || !apt.date) return false;
-        if (apt.date < weekStartStr || apt.date > weekEndStr) return false;
-        const [aptH, aptM] = apt.startTime.split(":").map(Number);
-        const [slotH, slotM] = time.split(":").map(Number);
-        const aptStart = aptH * 60 + aptM;
-        const slotMins = slotH * 60 + slotM;
-        return slotMins >= aptStart && slotMins < aptStart + apt.duration;
-      });
+      const date = dateForDay(day);
+      const key = `${date}|${time}`;
+      const appt = appointments.find((apt) => bookedSet.has(key) && apt.date === date &&
+        (() => {
+          const [aptH, aptM] = apt.startTime.split(":").map(Number);
+          const [slotH, slotM] = time.split(":").map(Number);
+          const aptStart = aptH * 60 + aptM;
+          const slotMins = slotH * 60 + slotM;
+          return slotMins >= aptStart && slotMins < aptStart + apt.duration;
+        })()
+      );
       if (appt) {
         setAppointmentData(appt);
         setOpenInfoDialog(true);
-        // Lazy-load applicant name/email — the calendar query has no JOIN
-        if (appt.response_id) {
+        // Lazy-load name/email only if not already present
+        if (appt.response_id && !appt.name) {
           getApplicant(appt.response_id)
             .then((reg) => {
               if (!reg) return;
-              setAppointmentData((prev) => ({
-                ...prev,
-                name: `${reg.first_name || ""} ${reg.last_name || ""}`.trim(),
-                email: reg.email_address || "",
-              }));
+              // Also cache it on the appointments array so re-opens are instant
+              const fullName = `${reg.first_name || ""} ${reg.last_name || ""}`.trim();
+              const email = reg.email_address || "";
+              setAppointments((prev) =>
+                prev.map((a) =>
+                  a.appointment_id === appt.appointment_id
+                    ? { ...a, name: fullName, email }
+                    : a
+                )
+              );
+              setAppointmentData((prev) => ({ ...prev, name: fullName, email }));
             })
             .catch(() => {});
         }
@@ -467,111 +451,138 @@ function AdminCalendar({
     }
   };
 
-  // When confirming a brand-new booking from the staff panel, look up the
-  // applicant by email to get their response_id, then insert the appointment.
   const handleConfirmBooking = async (newData) => {
+    const dayIndex = days.indexOf(newData.day);
+    const date = new Date(weekStart);
+    date.setDate(weekStart.getDate() + dayIndex);
+    const dateStr = toDateStr(date);
+
+    let responseId = newData.response_id ?? null;
+    if (!responseId && newData.email) {
+      try {
+        const applicant = await getApplicantByEmail(newData.email);
+        responseId = applicant?.response_id ?? null;
+      } catch { /* non-fatal */ }
+    }
+    if (!responseId && newData.email) {
+      try {
+        const newApplicant = await createApplicant({
+          first_name: newData.first_name || newData.firstName || "",
+          last_name: newData.last_name || newData.lastName || "",
+          email_address: newData.email,
+          phone: newData.phone || null,
+          street_addr: newData.street_addr || newData.streetAddress || null,
+          city: newData.city || null,
+          postal_code: newData.postal_code || newData.postalCode || null,
+          status_in_canada: newData.status_in_canada || newData.statusInCanada || null,
+          tiny_bundles_program: newData.tiny_bundles_program ?? (newData.applyingToTinyBundles === "yes"),
+        });
+        responseId = newApplicant?.response_id ?? null;
+      } catch (err) {
+        console.warn("Could not create registration:", err.message);
+      }
+    }
+
+    const optimisticAppt = {
+      appointment_id: null,
+      response_id: responseId,
+      email: newData.email || "",
+      name: `${newData.first_name || newData.firstName || ""} ${newData.last_name || newData.lastName || ""}`.trim(),
+      day: newData.day,
+      date: dateStr,
+      startTime: newData.startTime,
+      duration: newData.duration || 15,
+      appointmentStatus: "Booked",
+    };
+    setAppointments((prev) => [...prev, optimisticAppt]);
+    delete weekCache.current[weekStartStr];
+
+    setShowBookingPanel(false);
+    setSelectedSlot(null);
+    setRebookingAppointment(null);
+    setHighlightedSlot(null);
+
     try {
-      // 1. Resolve response_id: prefer what's already on newData, else look up by email
-      let responseId = newData.response_id ?? null;
-      if (!responseId && newData.email) {
-        try {
-          const applicant = await getApplicantByEmail(newData.email);
-          responseId = applicant?.response_id ?? null;
-        } catch {
-          // Non-fatal
-        }
-      }
-
-      // 2. If still no match, create a new registration entry from the form data
-      if (!responseId && newData.email) {
-        try {
-          const newApplicant = await createApplicant({
-            first_name: newData.first_name || newData.firstName || "",
-            last_name: newData.last_name || newData.lastName || "",
-            email_address: newData.email,
-            phone: newData.phone || null,
-            street_addr: newData.street_addr || newData.streetAddress || null,
-            city: newData.city || null,
-            postal_code: newData.postal_code || newData.postalCode || null,
-            status_in_canada: newData.status_in_canada || newData.statusInCanada || null,
-            tiny_bundles_program: newData.tiny_bundles_program ?? (newData.applyingToTinyBundles === "yes"),
-          });
-          responseId = newApplicant?.response_id ?? null;
-        } catch (err) {
-          console.warn("Could not create registration:", err.message);
-        }
-      }
-
       await createAppointment({
         response_id: responseId,
-        appointment_date: newData.date,
+        appointment_date: dateStr,
         appointment_time: gridTimeToDb(newData.startTime),
         duration: newData.duration === 30 ? "00:30:00" : "00:15:00",
         appointment_status: "Booked",
       });
-      delete weekCache.current[weekStartStr];
-      await loadWeekData();
     } catch (err) {
       setError("Failed to book appointment: " + err.message);
-    } finally {
-      setShowBookingPanel(false);
-      setSelectedSlot(null);
-      setRebookingAppointment(null);
-      setHighlightedSlot(null);
+      setAppointments((prev) => prev.filter((a) => a !== optimisticAppt));
     }
   };
 
   const handleConfirmRebooking = async (newData) => {
-    try {
-      const oldId = rebookingAppointment?.appointment_id;
+    const oldId = rebookingAppointment?.appointment_id;
+    const dayIndex = days.indexOf(newData.day);
+    const date = new Date(weekStart);
+    date.setDate(weekStart.getDate() + dayIndex);
+    const dateStr = toDateStr(date);
 
-      if (oldId) {
-        await updateAppointment(oldId, { appointment_status: "cancelled" });
-      }
-      await createAppointment({
-        response_id:
-          newData.response_id ?? rebookingAppointment?.response_id ?? null,
-        appointment_date: newData.date,
-        appointment_time: gridTimeToDb(newData.startTime),
-        duration: newData.duration === 30 ? "00:30:00" : "00:15:00",
-        appointment_status: "Booked",
-      });
-      delete weekCache.current[weekStartStr];
-      await loadWeekData();
+    setAppointments((prev) => [
+      ...prev.filter((a) => a.appointment_id !== oldId),
+      {
+        appointment_id: null,
+        response_id: newData.response_id ?? rebookingAppointment?.response_id ?? null,
+        email: rebookingAppointment?.email || "",
+        name: rebookingAppointment?.name || "",
+        day: newData.day,
+        date: dateStr,
+        startTime: newData.startTime,
+        duration: newData.duration || 15,
+        appointmentStatus: "Booked",
+      },
+    ]);
+    delete weekCache.current[weekStartStr];
+
+    setShowBookingPanel(false);
+    setSelectedSlot(null);
+    setRebookingAppointment(null);
+    setHighlightedSlot(null);
+
+    try {
+      await Promise.all([
+        oldId ? updateAppointment(oldId, { appointment_status: "cancelled" }) : Promise.resolve(),
+        createAppointment({
+          response_id: newData.response_id ?? rebookingAppointment?.response_id ?? null,
+          appointment_date: dateStr,
+          appointment_time: gridTimeToDb(newData.startTime),
+          duration: newData.duration === 30 ? "00:30:00" : "00:15:00",
+          appointment_status: "Booked",
+        }),
+      ]);
     } catch (err) {
-      setError("Failed to rebook appointment: " + err.message);
-    } finally {
-      setShowBookingPanel(false);
-      setSelectedSlot(null);
-      setRebookingAppointment(null);
-      setHighlightedSlot(null);
+      setError("Failed to rebook: " + err.message);
+      delete weekCache.current[weekStartStr];
     }
   };
 
   const handleDeleteAppointment = async (apt) => {
+    setAppointments((prev) =>
+      prev.filter((a) => a.appointment_id !== apt.appointment_id)
+    );
+    if (weekCache.current[weekStartStr]) {
+      weekCache.current[weekStartStr].booked =
+        weekCache.current[weekStartStr].booked.filter(
+          (a) => a.appointment_id !== apt.appointment_id
+        );
+    }
+    setOpenInfoDialog(false);
     try {
       await deleteAppointment(apt.appointment_id);
-      setAppointments((prev) =>
-        prev.filter((a) => a.appointment_id !== apt.appointment_id)
-      );
     } catch (err) {
-      setError("Failed to delete appointment: " + err.message);
-    } finally {
-      setOpenInfoDialog(false);
+      setError("Failed to delete: " + err.message);
+      delete weekCache.current[weekStartStr];
     }
   };
 
-  useEffect(() => {
-    if (saveChanges) handleSave();
-  }, [saveChanges]);
-
-  useEffect(() => {
-    if (discardChanges) handleDiscard();
-  }, [discardChanges]);
-
-  useEffect(() => {
-    if (isBookingPanel > 0) handleBookingPanel(days[1], "9:00"); // default to Monday 9am
-  }, [isBookingPanel]);
+  useEffect(() => { if (saveChanges) handleSave(); }, [saveChanges]);
+  useEffect(() => { if (discardChanges) handleDiscard(); }, [discardChanges]);
+  useEffect(() => { if (isBookingPanel > 0) handleBookingPanel(days[1], "9:00"); }, [isBookingPanel]);
 
   if (loading) return <div className="calendar-area">Loading...</div>;
 
@@ -587,17 +598,13 @@ function AdminCalendar({
         />
       )}
 
-      {/* Calendar header */}
       <div className="calendar-header-wrapper">
         <div className="calendar-header">
           <div className="time-column"></div>
           {days.map((day, index) => {
             const date = new Date(weekStart);
             date.setDate(weekStart.getDate() + index);
-            const formatted = date.toLocaleDateString("en-US", {
-              month: "short",
-              day: "numeric",
-            });
+            const formatted = date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
             return (
               <div key={day} className="day-header">
                 {day}
@@ -608,7 +615,6 @@ function AdminCalendar({
         </div>
       </div>
 
-      {/* Calendar grid */}
       <div className="calendar">
         {visibleTimeSlots.map((time) => (
           <div key={time} className="admin-calendar-row">
@@ -618,35 +624,20 @@ function AdminCalendar({
             {days.map((day) => {
               const blocked = isBlocked(day, time);
               const booked = isSlotBooked(day, time);
-              const isHighlighted =
-                highlightedSlot?.day === day && highlightedSlot?.time === time;
+              const isHighlighted = highlightedSlot?.day === day && highlightedSlot?.time === time;
 
               if (isEditing) {
                 return (
                   <div
                     key={day + time}
-                    className={`slot ${
-                      blocked
-                        ? "unavailable-vis"
-                        : booked
-                        ? "admin-booked"
-                        : "admin-available"
-                    }`}
-                    onMouseDown={() => {
-                      if (!blocked) setIsBlocking(true);
-                      else setIsUnblocking(true);
-                    }}
+                    className={`slot ${blocked ? "unavailable-vis" : booked ? "admin-booked" : "admin-available"}`}
+                    onMouseDown={() => { if (!blocked) setIsBlocking(true); else setIsUnblocking(true); }}
                     onMouseUp={clearMouseTrackers}
                     onMouseOver={() => {
                       if (isBlocking && !blocked) addBlockedSlot(day, time);
-                      if (isUnblocking && blocked)
-                        removeBlockedSlot(day, time);
+                      if (isUnblocking && blocked) removeBlockedSlot(day, time);
                     }}
-                    onClick={() =>
-                      !blocked
-                        ? addBlockedSlot(day, time)
-                        : removeBlockedSlot(day, time)
-                    }
+                    onClick={() => !blocked ? addBlockedSlot(day, time) : removeBlockedSlot(day, time)}
                   />
                 );
               } else {
@@ -654,24 +645,15 @@ function AdminCalendar({
                   <div
                     key={day + time}
                     className={`slot ${
-                      blocked
-                        ? "unavailable-invis"
-                        : isHighlighted
-                        ? "admin-selected"
-                        : booked
-                        ? "admin-booked"
-                        : "admin-available"
+                      blocked ? "unavailable-invis"
+                      : isHighlighted ? "admin-selected"
+                      : booked ? "admin-booked"
+                      : "admin-available"
                     }`}
                     onClick={() => handleSlotClick(day, time)}
                     tabIndex={0}
                     role="button"
-                    aria-label={`${
-                      blocked
-                        ? "Unavailable"
-                        : booked
-                        ? "Booked"
-                        : "Available"
-                    } slot: ${day} at ${time}`}
+                    aria-label={`${blocked ? "Unavailable" : booked ? "Booked" : "Available"} slot: ${day} at ${time}`}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" || e.key === " ") {
                         e.preventDefault();
@@ -710,9 +692,7 @@ function AdminCalendar({
           }
           existingAppointments={
             rebookingAppointment && !isNewBooking
-              ? appointments.filter(
-                  (a) => a.response_id !== rebookingAppointment.response_id
-                )
+              ? appointments.filter((a) => a.response_id !== rebookingAppointment.response_id)
               : appointments
           }
           rebookingAppointment={rebookingAppointment}
