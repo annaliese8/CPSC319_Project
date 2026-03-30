@@ -27,8 +27,8 @@ function AppointmentInfoDialog({
 
   const dateLabel = appointment?.date
     ? new Date(appointment.date).toLocaleDateString("en-US", {
-        weekday: "long", month: "long", day: "numeric", year: "numeric",
-      })
+      weekday: "long", month: "long", day: "numeric", year: "numeric",
+    })
     : ""
 
   const timeLabel = appointment?.startTime || ""
@@ -78,7 +78,7 @@ function AppointmentInfoDialog({
         </Button>
         <Button
           variant="contained"
-          color="secondary"
+          color="primary"
           onClick={handleMoreDetails}
           sx={{ fontWeight: 800, color: "common.white" }}
         >

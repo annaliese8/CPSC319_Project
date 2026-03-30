@@ -28,11 +28,6 @@ export const INELIGIBLE_STATUS_OPTIONS = [
   "Visitor"
 ];
 
-export const STATUS_OPTIONS = [
-  ...ELIGIBLE_STATUS_OPTIONS,
-  ...INELIGIBLE_STATUS_OPTIONS,
-]
-
 export const LANGUAGES = [
   "English",
   "Arabic",
@@ -76,7 +71,13 @@ export default function RegistrationFields({
   onChange,
   errors = {},
   isDisabled = false,
+  isStaffPage
 }) {
+
+  const status_options = isStaffPage
+    ? ELIGIBLE_STATUS_OPTIONS
+    : [...ELIGIBLE_STATUS_OPTIONS, ...INELIGIBLE_STATUS_OPTIONS];
+
   return (
     <Stack spacing={2}>
       {/* First Name / Last Name */}
@@ -250,7 +251,7 @@ export default function RegistrationFields({
             label="Status in Canada"
             onChange={onChange("status_in_canada")}
           >
-            {STATUS_OPTIONS.map((status) => (
+            {status_options.map((status) => (
               <MenuItem key={status} value={status}>
                 {status}
               </MenuItem>

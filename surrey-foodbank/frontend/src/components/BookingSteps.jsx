@@ -170,6 +170,7 @@ export function StepPersonalInfo({ form, onChange, onNext, errors, isSubmitting 
         onChange={onChange}
         errors={errors}
         isDisabled={isSubmitting}
+        isStaffPage={false}
       />
       <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 3 }}>
         <Button

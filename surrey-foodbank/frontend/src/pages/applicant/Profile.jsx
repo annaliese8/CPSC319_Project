@@ -475,6 +475,7 @@ function Profile() {
             <RegistrationFormInfo
               appointment={appointment}
               onSave={handleRegistrationSave}
+              isStaffPage={false}
             />
             {isSubmitting ? (
               <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
