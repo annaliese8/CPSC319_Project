@@ -7,60 +7,98 @@ import PasswordField from "../../components/PasswordField";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import Window from "../../components/Window";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import useTextField from "../../hooks/useTextField";
+import { useState } from "react";
+import { getSupabaseClient } from "../../lib/supabaseClient";
+
+function getApiBaseUrl() {
+  const envBase = (import.meta.env.VITE_API_BASE_URL || "").trim();
+  if (envBase) return envBase.replace(/\/$/, "");
+  return import.meta.env.DEV ? "http://localhost:3000" : "";
+}
 
 function Login() {
-  // Email must be associated with an existing account
+  const [submitError, setSubmitError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const emailField = useTextField(
     "",
-    (value) => {
-      const users = JSON.parse(localStorage.getItem("users") || "[]");
-      return users.some((user) => user.email === value)
-        ? ""
-        : "An account with this address doesn't exist";
-    },
+    () => "",
     false,
   );
+
   // Password must match the one associated with the given email
   const passwordField = useTextField(
     "",
-    (value) => {
-      const users = JSON.parse(localStorage.getItem("users") || "[]");
-      const user = users.find((u) => u.email === emailField.value);
-      if (!user) return "";
-      return user.password === value ? "" : "Incorrect password";
-    },
+    () => "",
     false,
   );
-
-
 
   const navigate = useNavigate();
 
   // When the form is submitted, validate the fields.
   // If no errors exist, set active user and navigate to applicant's profile page
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isSubmitting) return;
+
+    setSubmitError("");
     const emailError = emailField.validate();
     const passwordError = passwordField.validate();
     const hasErrors = Boolean(emailError) || Boolean(passwordError);
     const hasEmptyFields = !emailField.value || !passwordField.value;
     if (hasErrors || hasEmptyFields) {
+      setSubmitError("Please enter both email and password.");
       return;
     }
+
+    setIsSubmitting(true);
+
+    const supabase = getSupabaseClient();
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: emailField.value,
+      password: passwordField.value,
+    });
+
+    if (error || !data?.session) {
+      setSubmitError("Incorrect email or password. Please try again.");
+      setIsSubmitting(false);
+      return;
+    }
+
     localStorage.setItem(
-  "activeUser",
-  JSON.stringify({ email: emailField.value }),
-);
+      "activeUser",
+      JSON.stringify({ email: emailField.value }),
+    );
 
-// Check if registration form has been completed
-const applicantData = JSON.parse(
-  localStorage.getItem(`applicant_${emailField.value}`) || "{}"
-);
-const hasFilledForm = applicantData.firstName && applicantData.householdMembers;
+    const apiBase = getApiBaseUrl();
 
-navigate(hasFilledForm ? "/applicant/profile" : "/applicant/register");
+    try {
+      const response = await fetch(`${apiBase}/api/applicant/registration-status`, {
+        headers: {
+          Authorization: `Bearer ${data.session.access_token}`,
+        },
+      });
+
+      const result = await response.json().catch(() => null);
+      if (!response.ok) {
+        setSubmitError(result?.error || "Unable to check registration status.");
+        setIsSubmitting(false);
+        return;
+      }
+
+      setIsSubmitting(false);
+      if (result?.data?.completed) {
+        navigate("/applicant/profile");
+        return;
+      }
+
+      navigate("/applicant/register");
+    } catch (_err) {
+      setIsSubmitting(false);
+      setSubmitError("Unable to check registration status. Please try again.");
+    }
   };
 
   return (
@@ -77,13 +115,13 @@ navigate(hasFilledForm ? "/applicant/profile" : "/applicant/register");
             value={emailField.value}
             onChange={emailField.onChange}
             error={emailField.isInvalid}
-            helperText={emailField.errorMessage}
+            helperText={emailField.errorMessage || "Use your account email"}
           />
           <PasswordField
             value={passwordField.value}
             onChange={passwordField.onChange}
-            error={passwordField.isInvalid}
-            helperText={passwordField.errorMessage}
+            error={Boolean(submitError)}
+            helperText={submitError || passwordField.errorMessage}
           />
           <Stack
             direction="row"
@@ -108,8 +146,9 @@ navigate(hasFilledForm ? "/applicant/profile" : "/applicant/register");
               variant="contained"
               size="large"
               sx={{ fontWeight: "bold" }}
+              disabled={isSubmitting}
             >
-              Log In
+              {isSubmitting ? "Logging in..." : "Log In"}
             </Button>
           </Stack>
         </Box>

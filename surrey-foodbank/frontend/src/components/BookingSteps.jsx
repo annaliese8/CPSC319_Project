@@ -1,16 +1,10 @@
 import { useState, useEffect, useMemo } from "react";
 export const STEPS = ["Personal Info", "Choose Time", "Review", "Thank You"];
 import logo from "../styles/full-logo.png";
-import {
-  Autocomplete,
-  Box,
-  Button,
-  Stack,
-  TextField,
-  Typography,
-} from "@mui/material";
-import NavigateNextIcon from '@mui/icons-material/NavigateNext';
+import { Box, Button, Stack, Typography } from "@mui/material";
+import NavigateNextIcon from "@mui/icons-material/NavigateNext";
 import RegistrationFields from "./RegistrationFields";
+import HouseholdMemberInfo, { AGE_GROUPS } from "./HouseholdMemberInfo";
 import { addMinutesToTime } from "../utils/TimeUtils";
 
 // claude ai was used to write, debug and validate code for this entire page
@@ -24,12 +18,13 @@ export const DAYS_FULL = [
 ];
 export const DAYS_SHORT = ["Mon", "Tue", "Wed", "Thu", "Fri"];
 
-// Slots run 9:00 am – 3:00 pm in 15-minute increments
 const generateAllSlots = () => {
   const slots = [];
   for (let h = 0; h < 24; h++)
     for (let m = 0; m < 60; m += 15)
-      slots.push(`${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`);
+      slots.push(
+        `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`,
+      );
   return slots;
 };
 
@@ -80,6 +75,7 @@ export const getWeekDates = (weekStart) =>
     d.setDate(weekStart.getDate() + i);
     return d;
   });
+
 export const generateAvailability = (weekDates = []) => {
   const map = {};
 
@@ -106,12 +102,10 @@ export const generateAvailability = (weekDates = []) => {
     try {
       const data = JSON.parse(localStorage.getItem(key));
       if (!data?.day || !data?.startTime || !data?.duration) continue;
-
       if (data.date) {
         const bookedDateStr = new Date(data.date).toDateString();
         if (!weekDates.some((d) => d.toDateString() === bookedDateStr)) continue;
       }
-
       const numSlots = data.duration / 15;
       for (let s = 0; s < numSlots; s++) {
         const blockedTime = normalizeTime(addMinutesToTime(data.startTime, s * 15));
@@ -119,7 +113,6 @@ export const generateAvailability = (weekDates = []) => {
       }
     } catch { /* skip */ }
   }
-
   return map;
 };
 
@@ -155,10 +148,11 @@ export const isSlotAvailable = (availability, day, time, interval = 15) =>
     : !!availability[`${day}-${time}`] &&
     !!availability[`${day}-${addMinutesToTime(time, 15)}`];
 
-export function Stepper({ currentStep }) {
+// defaults to STEPS so existing callers don't break
+export function Stepper({ currentStep, steps = STEPS }) {
   return (
     <div className="ba-stepper">
-      {STEPS.map((label, i) => {
+      {steps.map((label, i) => {
         const status =
           i < currentStep ? "done" : i === currentStep ? "active" : "pending";
         return (
@@ -174,9 +168,7 @@ export function Stepper({ currentStep }) {
   );
 }
 
-// StepPersonalInfo
-
-export function StepPersonalInfo({ form, onChange, onNext, errors }) {
+export function StepPersonalInfo({ form, onChange, onNext, errors, isSubmitting = false }) {
   return (
     <Box className="ba-body">
       <Typography variant="h2">
@@ -186,18 +178,24 @@ export function StepPersonalInfo({ form, onChange, onNext, errors }) {
         form={form}
         onChange={onChange}
         errors={errors}
-        isDisabled={false}
+        isDisabled={isSubmitting}
       />
       <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 3 }}>
-        <Button variant="contained" color="primary" onClick={onNext} sx={{ fontWeight: "bold" }} endIcon={<NavigateNextIcon />}>
-          Next
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={onNext}
+          disabled={isSubmitting}
+          sx={{ fontWeight: "bold" }}
+          endIcon={<NavigateNextIcon />}
+        >
+          {isSubmitting ? "Saving..." : "Next"}
         </Button>
       </Box>
     </Box>
   );
 }
 
-// Timer
 const TIMER_SECONDS = 5 * 60;
 
 function TimerBar({ secondsLeft }) {
@@ -226,7 +224,6 @@ function TimerBar({ secondsLeft }) {
   );
 }
 
-// StepChooseTime
 export function StepChooseTime({
   form,
   selectedSlot,
@@ -238,7 +235,6 @@ export function StepChooseTime({
   const todayStart = getWeekStart(new Date());
   const [weekStart, setWeekStart] = useState(todayStart);
   const weekDates = getWeekDates(weekStart);
-
   const [weekAvailability, setWeekAvailability] = useState(() =>
   generateAvailability(getWeekDates(weekStart)),
 );
@@ -275,11 +271,8 @@ const visibleSlots = useMemo(() => {
   }
 }, [weekStart]);
 
-
-
   const isCurrentWeek = weekStart.getTime() === todayStart.getTime();
-
-  const householdSize = Number(form.householdMembers) || 1;
+  const householdSize = form.household_size;
   const isLargeHousehold = householdSize >= 5;
   const bookingInterval = isLargeHousehold ? 30 : 15;
   const tinyBundles = form.applyingToTinyBundles === "yes";
@@ -313,7 +306,8 @@ const visibleSlots = useMemo(() => {
     if (!selectedSlot || selectedSlot.day !== day) return false;
     if (isLargeHousehold)
       return (
-        time === selectedSlot.time || time === addMinutesToTime(selectedSlot.time, 15)
+        time === selectedSlot.time ||
+        time === addMinutesToTime(selectedSlot.time, 15)
       );
     return time === selectedSlot.time;
   };
@@ -322,7 +316,6 @@ const visibleSlots = useMemo(() => {
     <>
       <div className="ba-body">
         <h2>Select a Date and Time for your appointment</h2>
-
         {tinyBundles && (
           <p
             style={{
@@ -350,8 +343,6 @@ const visibleSlots = useMemo(() => {
             slot will reserve that slot and the following 15 minutes.
           </p>
         )}
-
-        {/* Week nav */}
         <div className="ba-cal-header">
           <div style={{ display: "flex", gap: 8, minWidth: 170 }}>
             <button className="ba-cal-btn" onClick={() => shiftWeek(-7)}>
@@ -381,8 +372,6 @@ const visibleSlots = useMemo(() => {
             </button>
           </div>
         </div>
-
-        {/* Legend */}
         <div className="ba-cal-legend">
           <span>
             <div className="ba-legend-dot avail" /> Available
@@ -391,8 +380,6 @@ const visibleSlots = useMemo(() => {
             <div className="ba-legend-dot booked" /> Unavailable
           </span>
         </div>
-
-        {/* Grid */}
         <div className="ba-cal-grid">
           <table className="ba-cal-table" style={{ tableLayout: "fixed" }}>
             <colgroup>
@@ -441,7 +428,6 @@ const visibleSlots = useMemo(() => {
                         <div
                           className={`ba-slot ${selected ? "selected" : avail ? "avail" : "unavail"}`}
                           onClick={() => handleSlotClick(day, time)}
-                          // Makes the calendar accessible with keyboard controls
                           tabIndex={0}
                           role="button"
                           aria-label={`${selected ? "Appointment selected" : avail ? "Available" : "Unavailable"} slot: ${day} at ${time}`}
@@ -460,8 +446,6 @@ const visibleSlots = useMemo(() => {
             </tbody>
           </table>
         </div>
-
-        {/* Selected pill / hint */}
         {selectedSlot ? (
           <div
             style={{ display: "flex", justifyContent: "center", marginTop: 14 }}
@@ -473,7 +457,9 @@ const visibleSlots = useMemo(() => {
                 </div>
                 <div className="ba-pill-time">
                   {formatTime(selectedSlot.time)} –{" "}
-                  {formatTime(addMinutesToTime(selectedSlot.time, bookingInterval))}
+                  {formatTime(
+                    addMinutesToTime(selectedSlot.time, bookingInterval),
+                  )}
                   &nbsp;·&nbsp;
                   {selectedSlot.date.toLocaleDateString("en-US", {
                     weekday: "short",
@@ -482,7 +468,11 @@ const visibleSlots = useMemo(() => {
                   })}
                 </div>
               </div>
-              <button className="ba-pill-clear" aria-label="Deselect appointment slot" onClick={onClearSlot}>
+              <button
+                className="ba-pill-clear"
+                aria-label="Deselect appointment slot"
+                onClick={onClearSlot}
+              >
                 ✕
               </button>
             </div>
@@ -500,7 +490,6 @@ const visibleSlots = useMemo(() => {
           </p>
         )}
       </div>
-
       <div className="ba-footer">
         <button className="ba-btn ba-btn-secondary" onClick={onBack}>
           ← Back
@@ -520,7 +509,6 @@ const visibleSlots = useMemo(() => {
   );
 }
 
-// StepReview
 export function StepReview({
   form,
   selectedSlot,
@@ -528,49 +516,29 @@ export function StepReview({
   onConfirm,
   onTimerExpired,
 }) {
-  const householdSize = Number(form.householdMembers) || 1;
-  const interval = householdSize >= 5 ? 30 : 15;
-
-  const fullName =
-    form.firstName || form.lastName
-      ? [form.firstName, form.lastName].filter(Boolean).join(" ")
-      : form.name || "";
-
-  const fullAddress = form.streetAddress
-    ? [form.streetAddress, form.city, form.province, form.postalCode]
-      .filter(Boolean)
-      .join(", ")
-    : form.address || "";
-
+  const full_name = [form.first_name, form.last_name].filter(Boolean).join(" ");
+  const full_address = [form.street_addr, form.city, "British Columbia", form.postal_code].filter(Boolean).join(", ");
   const rows = [
-    { label: "Name", value: fullName },
-    { label: "Address", value: fullAddress },
+    { label: "Name", value: full_name },
+    { label: "Address", value: full_address },
     { label: "Phone", value: form.phone },
-    { label: "Status in Canada", value: form.statusInCanada },
-    { label: "Household Size", value: form.householdMembers },
+    { label: "Status in Canada", value: form.status_in_canada },
     {
       label: "Tiny Bundles?",
-      value: form.applyingToTinyBundles === "yes" ? "Yes" : "No",
+      value: form.tiny_bundles_program === "yes" ? "Yes" : "No",
     },
-    {
-      label: "Preferred Language",
-      value: form.language,
-    },
+    { label: "Preferred Language", value: form.language },
     { label: "Appointment", value: formatApptString(selectedSlot) },
   ];
-
-  // Timer
   const [secondsLeft, setSecondsLeft] = useState(TIMER_SECONDS);
-
   useEffect(() => {
     if (secondsLeft <= 0) {
-      onTimerExpired(); // parent clears slot and navigates back to calendar
+      onTimerExpired();
       return;
     }
     const id = setTimeout(() => setSecondsLeft((s) => s - 1), 1000);
     return () => clearTimeout(id);
   }, [secondsLeft]);
-
   return (
     <>
       <div className="ba-body">
@@ -584,10 +552,7 @@ export function StepReview({
           ))}
         </div>
       </div>
-
-      {/* Timer shown on review so user knows how long they have to confirm */}
       <TimerBar secondsLeft={secondsLeft} />
-
       <div
         className="ba-footer"
         style={{ justifyContent: "center", gap: 16, marginTop: 12 }}
@@ -629,6 +594,166 @@ export function StepThankYou({ selectedSlot, onDone }) {
       <div className="ba-footer" style={{ justifyContent: "flex-end" }}>
         <button className="ba-btn ba-btn-done" onClick={onDone}>
           Done
+        </button>
+      </div>
+    </>
+  );
+}
+
+export const SIGNUP_STEPS = ["Personal Info", "Household Members", "Review"];
+export const BOOKING_STEPS = ["Choose Time", "Review", "Thank You"];
+
+export function StepHouseholdMembers({
+  householdMembers,
+  onChange,
+  onBack,
+  onNext,
+  errors,
+}) {
+  return (
+    <Box className="ba-body">
+      <Typography variant="h2">Household Members</Typography>
+
+      <HouseholdMemberInfo
+        householdMembers={householdMembers}
+        onChange={onChange}
+        errors={errors}
+      />
+
+      <Box sx={{ display: "flex", justifyContent: "space-between", mt: 1 }}>
+        <Button
+          variant="outlined"
+          onClick={onBack}
+          sx={{ textTransform: "none", fontWeight: 600 }}
+        >
+          ← Back
+        </Button>
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={onNext}
+          sx={{ fontWeight: "bold", textTransform: "none" }}
+          endIcon={<NavigateNextIcon />}
+        >
+          Next
+        </Button>
+      </Box>
+    </Box>
+  );
+}
+
+/**
+ * StepSignupReview
+ */
+export function StepSignupReview({
+  form,
+  householdMembers,
+  onBack,
+  onConfirm,
+}) {
+  const fullName = [form.first_name, form.last_name].filter(Boolean).join(" ");
+  const fullAddress = [form.street_addr, form.city, form.province, form.postal_code]
+    .filter(Boolean)
+    .join(", ");
+
+  const personalRows = [
+    { label: "Name", value: fullName },
+    { label: "Address", value: fullAddress },
+    { label: "Phone", value: form.phone },
+    { label: "Status in Canada", value: form.status_in_canada },
+    {
+      label: "Tiny Bundles?",
+      value:
+        form.tiny_bundles_program === true
+          ? "Yes"
+          : form.tiny_bundles_program === false
+            ? "No"
+            : "",
+    },
+    { label: "Preferred Language", value: form.language },
+  ];
+
+  return (
+    <>
+      <div className="ba-body">
+        <h2>Please confirm your information</h2>
+        <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
+          Personal Information
+        </Typography>
+        <div className="ba-review-grid">
+          {personalRows.map(({ label, value }) => (
+            <div key={label} className="ba-review-row">
+              <div className="ba-review-label">{label}</div>
+              <div className="ba-review-val">{value}</div>
+            </div>
+          ))}
+        </div>
+
+        <Typography variant="subtitle1" sx={{ fontWeight: 700, mt: 3, mb: 1 }}>
+          Additional Household Members{" "}
+          <span style={{ fontWeight: 400, color: "var(--gray-500)" }}>
+            ({householdMembers.length})
+          </span>
+        </Typography>
+
+        {householdMembers.length === 0 ? (
+          <Typography
+            variant="body2"
+            sx={{ color: "var(--gray-500)", fontStyle: "italic" }}
+          >
+            No additional household members added.
+          </Typography>
+        ) : (
+          householdMembers.map((m, i) => {
+            const ageGroupConfig = AGE_GROUPS.find((g) => g.key === m.ageGroup);
+            return (
+              <div
+                key={m.id}
+                className="ba-review-grid"
+                style={{
+                  marginBottom: 10,
+                  borderBottom:
+                    i < householdMembers.length
+                      ? "1px solid var(--gray-200)"
+                      : "none",
+                }}
+              >
+                <div className="ba-review-row">
+                  <div className="ba-review-label">Name</div>
+                  <div className="ba-review-val">
+                    {[m.firstName, m.lastName].filter(Boolean).join(" ")}
+                  </div>
+                </div>
+                <div className="ba-review-row">
+                  <div className="ba-review-label">Age Group</div>
+                  <div className="ba-review-val">
+                    {ageGroupConfig
+                      ? `${ageGroupConfig.label} (${ageGroupConfig.range})`
+                      : "—"}
+                  </div>
+                </div>
+                {/* {m.dob && (
+                  <div className="ba-review-row">
+                    <div className="ba-review-label">Date of Birth</div>
+                    <div className="ba-review-val">
+                      {new Date(m.dob + "T00:00:00").toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}
+                    </div>
+                  </div>
+                )} */}
+              </div>
+            );
+          })
+        )}
+      </div>
+      <div
+        className="ba-footer"
+        style={{ justifyContent: "center", gap: 16, marginTop: 12 }}
+      >
+        <button className="ba-btn ba-btn-secondary" onClick={onBack}>
+          ← Back
+        </button>
+        <button className="ba-btn ba-btn-confirm" onClick={onConfirm}>
+          Confirm Registration
         </button>
       </div>
     </>

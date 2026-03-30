@@ -1,17 +1,22 @@
 // Claude.AI was used in page formatting and debugging
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useBookingStyles } from "./Bookingstyles";
 import {
   Stepper,
   StepChooseTime,
   StepReview,
   StepThankYou,
-  formatTime,
 } from "../../components/BookingSteps";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import ApplicantTopBar from "../../components/ApplicantTopBar";
-import { Language } from "@mui/icons-material";
-import { addMinutesToTime } from "../../utils/TimeUtils";
+import { Typography } from "@mui/material";
+import { getSupabaseClient } from "../../lib/supabaseClient";
+
+function getApiBaseUrl() {
+  const envBase = (import.meta.env.VITE_API_BASE_URL || "").trim();
+  if (envBase) return envBase.replace(/\/$/, "");
+  return import.meta.env.DEV ? "http://localhost:3000" : "";
+}
 
 /**
  * BookAppointment
@@ -23,20 +28,64 @@ import { addMinutesToTime } from "../../utils/TimeUtils";
 export default function BookAppointment() {
   useBookingStyles();
   const navigate = useNavigate();
-  const location = useLocation();
   const handleLogout = () => navigate(`/applicant/home`);
 
-  // Prefer localStorage data (saved via RegistrationFormInfo) over router state,
-  // with router state as a fallback so the page never hard-crashes
-  const activeUser = JSON.parse(localStorage.getItem("activeUser") || "null");
-  const applicantKey = activeUser?.email
-    ? `applicant_${activeUser.email}`
-    : null;
-  const savedForm = applicantKey
-    ? JSON.parse(localStorage.getItem(applicantKey) || "null")
-    : null;
+  const [form, setForm] = useState({});
+  const [accessToken, setAccessToken] = useState("");
+  const [loadError, setLoadError] = useState("");
+  const [isLoadingForm, setIsLoadingForm] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
 
-  const form = savedForm ?? location.state ?? {};
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadRegistration() {
+      const supabase = getSupabaseClient();
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+
+      if (!token) {
+        navigate("/applicant/login", { replace: true });
+        return;
+      }
+
+      if (isMounted) {
+        setAccessToken(token);
+      }
+
+      const apiBase = getApiBaseUrl();
+      try {
+        const response = await fetch(`${apiBase}/api/applicant/registration`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const result = await response.json().catch(() => null);
+        if (!isMounted) return;
+
+        if (!response.ok) {
+          setLoadError(result?.error || "Unable to load registration details.");
+          return;
+        }
+
+        setForm(result?.data?.registration || {});
+      } catch (_error) {
+        if (!isMounted) return;
+        setLoadError("Unable to load registration details.");
+      } finally {
+        if (isMounted) {
+          setIsLoadingForm(false);
+        }
+      }
+    }
+
+    loadRegistration();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [navigate]);
 
   // Navigation
   const [step, setStep] = useState(0);
@@ -49,46 +98,46 @@ export default function BookAppointment() {
   // Confirm
   const handleConfirm = () => next();
 
-  const handleDone = () => {
-    const duration = Number(form.householdMembers) >= 5 ? 30 : 15;
+  const handleDone = async () => {
+    if (!selectedSlot || !accessToken) return;
+
+    setIsSaving(true);
+    setLoadError("");
+
+    const duration = Number(form.householdMembers.length + 1) >= 5 ? 30 : 15;
     const payload = {
-      email: activeUser?.email,
-      firstName: form.firstName,
-      lastName: form.lastName,
-      name: `${form.firstName} ${form.lastName}`,
-      phone: form.phone,
-      streetAddress: form.streetAddress,
-      city: form.city,
-      postalCode: form.postalCode,
-      province: form.province,
-      statusInCanada: form.statusInCanada,
-      applyingToTinyBundles: form.applyingToTinyBundles,
-      householdMembers: form.householdMembers,
-      language: form.language,
       day: selectedSlot.date.toLocaleDateString("en-US", { weekday: "long" }),
       date: selectedSlot.date.toISOString(),
       startTime: selectedSlot.time,
       duration,
-      dateLabel: selectedSlot.date.toLocaleDateString("en-US", {
-        weekday: "long",
-        month: "long",
-        day: "numeric",
-        year: "numeric",
-      }),
-      timeLabel: `${formatTime(selectedSlot.time)} – ${formatTime(addMinutesToTime(selectedSlot.time, selectedSlot.interval ?? 15))}`,
+      appointmentStatus: "Booked"
     };
+    
 
-    if (applicantKey) {
-      const existing = JSON.parse(localStorage.getItem(applicantKey) || "{}");
-      localStorage.setItem(
-        applicantKey,
-        JSON.stringify({ ...existing, ...payload }),
-      );
+    const apiBase = getApiBaseUrl();
+
+    try {
+      const response = await fetch(`${apiBase}/api/applicant/appointment`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const result = await response.json().catch(() => null);
+      if (!response.ok) {
+        setLoadError(result?.error || "Unable to save appointment.");
+        setIsSaving(false);
+        return;
+      }
+
+      navigate("/applicant/profile", { replace: true });
+    } catch (_error) {
+      setLoadError("Unable to save appointment.");
+      setIsSaving(false);
     }
-
-    navigate("/applicant/profile", {
-      state: payload,
-    });
   };
 
   const stepperStep = step + 1;
@@ -105,14 +154,24 @@ export default function BookAppointment() {
             <h1>Book an Appointment</h1>
           </div>
           <Stepper currentStep={stepperStep} />
+          {isLoadingForm ? (
+            <Typography sx={{ px: 3, py: 2 }} color="text.secondary">
+              Loading registration details...
+            </Typography>
+          ) : null}
+          {loadError ? (
+            <Typography sx={{ px: 3, pb: 2 }} color="error">
+              {loadError}
+            </Typography>
+          ) : null}
           {step === 0 && (
             <StepChooseTime
               form={form}
               selectedSlot={selectedSlot}
               onSelectSlot={setSelectedSlot}
               onClearSlot={() => setSelectedSlot(null)}
-              onBack={() => navigate("/applicant/profile", { state: form })}
-              onNext={selectedSlot ? next : undefined}
+              onBack={() => navigate("/applicant/profile")}
+              onNext={selectedSlot && !isLoadingForm ? next : undefined}
             />
           )}
 
@@ -130,7 +189,14 @@ export default function BookAppointment() {
           )}
 
           {step === 2 && (
-            <StepThankYou selectedSlot={selectedSlot} onDone={handleDone} />
+            <>
+              <StepThankYou selectedSlot={selectedSlot} onDone={handleDone} />
+              {isSaving ? (
+                <Typography sx={{ px: 3, pb: 2 }} color="text.secondary">
+                  Saving appointment...
+                </Typography>
+              ) : null}
+            </>
           )}
         </div>
       </div>
