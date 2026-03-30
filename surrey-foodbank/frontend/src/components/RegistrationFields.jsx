@@ -16,11 +16,16 @@ import {
 } from "@mui/material";
 import { Info as InfoIcon } from "@mui/icons-material";
 
-export const STATUS_OPTIONS = [
+export const ELIGIBLE_STATUS_OPTIONS = [
   "Canadian Citizen",
   "Permanent Resident",
   "Refugee/Protected Person",
-  "Temporary Resident (6 months+)",
+  "Temporary Resident (over 6 months)",
+];
+
+export const INELIGIBLE_STATUS_OPTIONS = [
+  "Temporary Resident (under 6 months)",
+  "Visitor"
 ];
 
 export const LANGUAGES = [
@@ -66,7 +71,13 @@ export default function RegistrationFields({
   onChange,
   errors = {},
   isDisabled = false,
+  isStaffPage
 }) {
+
+  const status_options = isStaffPage
+    ? ELIGIBLE_STATUS_OPTIONS
+    : [...ELIGIBLE_STATUS_OPTIONS, ...INELIGIBLE_STATUS_OPTIONS];
+
   return (
     <Stack spacing={2}>
       {/* First Name / Last Name */}
@@ -75,7 +86,11 @@ export default function RegistrationFields({
           label="First Name"
           value={form.first_name ?? ""}
           error={!!errors.first_name}
-          helperText={errors.first_name || "eg. John"}
+          helperText={
+            isDisabled
+              ? ""
+              : errors.first_name || "eg. John"
+          }
           disabled={isDisabled}
           fullWidth
           size="small"
@@ -86,7 +101,11 @@ export default function RegistrationFields({
           label="Last Name"
           value={form.last_name ?? ""}
           error={!!errors.last_name}
-          helperText={errors.last_name || "eg. Doe"}
+          helperText={
+            isDisabled
+              ? ""
+              : errors.last_name || "eg. Doe"
+          }
           disabled={isDisabled}
           fullWidth
           size="small"
@@ -100,7 +119,11 @@ export default function RegistrationFields({
         label="Street Address"
         value={form.street_addr ?? ""}
         error={!!errors.street_addr}
-        helperText={errors.street_addr || "eg. 123 Main Street"}
+        helperText={
+          isDisabled
+            ? ""
+            : errors.street_addr || "eg. 123 Main Street"
+        }
         disabled={isDisabled}
         fullWidth
         size="small"
@@ -114,7 +137,11 @@ export default function RegistrationFields({
           label="City"
           value={form.city ?? ""}
           error={!!errors.city}
-          helperText={errors.city || "eg. Surrey"}
+          helperText={
+            isDisabled
+              ? ""
+              : errors.city || "eg. Surrey"
+          }
           disabled={isDisabled}
           fullWidth
           size="small"
@@ -125,7 +152,11 @@ export default function RegistrationFields({
           label="Postal Code"
           value={form.postal_code ?? ""}
           error={!!errors.postal_code}
-          helperText={errors.postal_code || "eg. A1A 1A1"}
+          helperText={
+            isDisabled
+              ? ""
+              : errors.postal_code || "eg. A1A 1A1"
+          }
           disabled={isDisabled}
           fullWidth
           size="small"
@@ -142,8 +173,10 @@ export default function RegistrationFields({
           size="small"
           error={!!errors.province}
         >
-          <InputLabel>Province</InputLabel>
+          <InputLabel id="province-label">Province</InputLabel>
           <Select
+            id="province"
+            labelId="province-label"
             value={form.province ?? ""}
             label="Province"
             onChange={onChange("province")}
@@ -162,7 +195,11 @@ export default function RegistrationFields({
           label="Phone Number"
           value={form.phone ?? ""}
           error={!!errors.phone}
-          helperText={errors.phone || "eg. 604-123-4567"}
+          helperText={
+            isDisabled
+              ? ""
+              : errors.phone || "eg. 604-123-4567"
+          }
           disabled={isDisabled}
           fullWidth
           size="small"
@@ -206,13 +243,15 @@ export default function RegistrationFields({
           required
           error={!!errors.status_in_canada}
         >
-          <InputLabel>Status in Canada</InputLabel>
+          <InputLabel id="status-in-canada-label">Status in Canada</InputLabel>
           <Select
+            id="status-in-canada"
+            labelId="status-in-canada-label"
             value={form.status_in_canada ?? ""}
             label="Status in Canada"
             onChange={onChange("status_in_canada")}
           >
-            {STATUS_OPTIONS.map((status) => (
+            {status_options.map((status) => (
               <MenuItem key={status} value={status}>
                 {status}
               </MenuItem>

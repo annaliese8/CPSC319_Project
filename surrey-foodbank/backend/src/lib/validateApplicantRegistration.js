@@ -3,8 +3,9 @@ const ALLOWED_STATUS_IN_CANADA = [
   "canadian citizen",
   "permanent resident",
   "refugee/protected person",
-  "temporary resident (6 months+)"
+  "temporary resident (over 6 months)"
 ]
+
 const ALLOWED_TINY_BUNDLES = ["yes", "no"]
 
 function normalize(value) {

@@ -42,7 +42,6 @@ function AppointmentInfoDialog({
     })
   : "";
 
-
   const timeLabel = appointment?.startTime || ""
 
   return (
@@ -90,7 +89,7 @@ function AppointmentInfoDialog({
         </Button>
         <Button
           variant="contained"
-          color="secondary"
+          color="primary"
           onClick={handleMoreDetails}
           sx={{ fontWeight: 800, color: "common.white" }}
         >

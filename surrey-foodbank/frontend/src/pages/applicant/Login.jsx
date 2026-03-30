@@ -132,6 +132,7 @@ function Login() {
               component="button"
               type="button"
               underline="hover"
+              sx={{ textAlign: "left", display: "block" }}
               onClick={() => navigate("/applicant/create-account")}
             >
               <Typography>Don't have an account?</Typography>
@@ -140,14 +141,16 @@ function Login() {
               type="submit"
               variant="contained"
               size="large"
-              sx={{ fontWeight: "bold" }}
+              sx={{
+                fontWeight: "bold", whiteSpace: "nowrap",
+              }}
               disabled={isSubmitting}
             >
               {isSubmitting ? "Logging in..." : "Log In"}
             </Button>
           </Stack>
         </Box>
-      </Window>
+      </Window >
     </>
   );
 }

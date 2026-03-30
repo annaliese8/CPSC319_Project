@@ -287,8 +287,11 @@ function EmailFormatGuide({ t }) {
             </Tooltip>
           ))}
         </Stack>
-        <Typography variant="caption" sx={{ color: "text.disabled", whiteSpace: "nowrap" }}>
-          {t.hoverHelp}
+        <Typography
+          variant="caption"
+          sx={{ color: "#6F6F71", whiteSpace: "nowrap" }}
+        >
+          Hover over each part for help
         </Typography>
       </Stack>
     </Paper>

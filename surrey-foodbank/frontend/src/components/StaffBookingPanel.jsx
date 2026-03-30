@@ -305,7 +305,11 @@ export default function StaffBookingPanel({
           disabled={isRebooking}
           InputProps={
             isRebooking
-              ? { endAdornment: <LockIcon sx={{ fontSize: 16, color: "text.disabled" }} /> }
+              ? {
+                endAdornment: (
+                  <LockIcon sx={{ fontSize: 16, color: "text.disabled" }} />
+                ),
+              }
               : {}
           }
         />
@@ -315,6 +319,7 @@ export default function StaffBookingPanel({
           onChange={onChange}
           errors={formErrors}
           isDisabled={isRebooking}
+          isStaffPage={true}
         />
 
         <Stack direction="row" spacing={1.5} sx={{ mt: 3 }}>

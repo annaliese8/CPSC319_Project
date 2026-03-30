@@ -45,17 +45,17 @@ function StaffTopBar({ onLogout, label }) {
         {/* Left group - Logo */}
         <Stack direction="row" spacing={1.25} alignItems="center">
           <a href="https://surreyfoodbank.org/">
-            <img 
-              src={logo} 
-              alt="Surrey Food Bank Logo" 
+            <img
+              src={logo}
+              alt="Surrey Food Bank Logo"
               style={{ height: 40 }}
             />
           </a>
           <Typography variant="h6" sx={{ ml: 2 }}>
             {label}
           </Typography>
-          <Tabs 
-            value={activeTab} 
+          <Tabs
+            value={activeTab}
             onChange={handleTabChange}
             sx={{
               "& .MuiTab-root": {
@@ -67,7 +67,7 @@ function StaffTopBar({ onLogout, label }) {
             }}
           >
             {tabs.map((tab, index) => (
-              <Tab 
+              <Tab
                 key={index}
                 label={tab.label}
                 icon={tab.icon}
@@ -79,10 +79,10 @@ function StaffTopBar({ onLogout, label }) {
 
 
         {/* Right group - Logout */}
-        <Button 
-          onClick={onLogout} 
-          color="secondary" 
-          variant="text" 
+        <Button
+          onClick={onLogout}
+          color="primary"
+          variant="text"
           sx={{ fontSize: 14, fontWeight: 800, textTransform: 'none' }}
         >
           Log Out
