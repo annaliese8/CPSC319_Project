@@ -13,7 +13,13 @@ import ApplicantBookAppointment from "./pages/applicant/BookAppointment";
 import ApplicantProfile from "./pages/applicant/Profile";
 
 const staffBase = import.meta.env.VITE_STAFF_BASE;
-console.log("Staff base path:", staffBase);
+
+function StaffRoute({ children }) {
+  if (!localStorage.getItem("staffAuth")) {
+    return <Navigate to={`/${staffBase}/login`} replace />;
+  }
+  return children;
+}
 
 function App() {
   return (
@@ -26,10 +32,10 @@ function App() {
           {/* Secret staff admin */}
           <Route path={`/${staffBase}/login`} element={<StaffLogin />} />
 
-          {/* Staff routes */}
-          <Route path="/staff/home" element={<StaffHome />} />
-          <Route path="/staff/applicant-info" element={<StaffApplicantInfo />} />
-          <Route path="/staff/applicant-database" element={<StaffApplicantDatabase />} />
+          {/* Staff routes — protected by localStorage session */}
+          <Route path="/staff/home" element={<StaffRoute><StaffHome /></StaffRoute>} />
+          <Route path="/staff/applicant-info" element={<StaffRoute><StaffApplicantInfo /></StaffRoute>} />
+          <Route path="/staff/applicant-database" element={<StaffRoute><StaffApplicantDatabase /></StaffRoute>} />
          
           {/* Applicant routes */}
           <Route path="/applicant/login" element={<ApplicantLogin />} />

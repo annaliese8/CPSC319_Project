@@ -8,9 +8,16 @@ export default function BookingInfo({
   onChangeBooking,
   onBookAppointment,
   onStatusChange,
-  isStaffPage
+  isStaffPage,
 }) {
-  const hasAppointment = !!appointment?.day && !!appointment?.startTime;
+  // CHANGED: check DB fields (appointment_date/appointment_time) with fallback to old fields
+  const hasAppointment =
+    !!(appointment?.appointment_date || appointment?.day) &&
+    !!(appointment?.appointment_time || appointment?.startTime);
+
+  // CHANGED: display DB fields with fallback to old label fields
+  const dateDisplay = appointment?.appointment_date ?? appointment?.dateLabel ?? "";
+  const timeDisplay = appointment?.appointment_time ?? appointment?.timeLabel ?? "";
 
   return (
     <Box>
@@ -40,10 +47,10 @@ export default function BookingInfo({
                 size="large"
                 sx={{ fontWeight: 700 }}
               >
-                {appointment.dateLabel}
+                {dateDisplay}
               </Typography>
               <Typography color="primary" variant="h6" sx={{ fontWeight: 600 }}>
-                {appointment.timeLabel}
+                {timeDisplay}
               </Typography>
               {/* If it's a staff page, render the appointment status component */}
               {isStaffPage && (
@@ -73,7 +80,6 @@ export default function BookingInfo({
             </Button>
           )}
         </Paper>
-
         {hasAppointment && (
           <>
             <Divider sx={{ my: 2 }} />

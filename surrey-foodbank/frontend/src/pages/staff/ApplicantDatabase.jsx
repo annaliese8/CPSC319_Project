@@ -31,7 +31,10 @@ function ApplicantDatabase() {
   const [error, setError] = useState(null);
 
   const staffBase = import.meta.env.VITE_STAFF_BASE;
-  const handleLogout = () => navigate(`/${staffBase}/login`);
+  const handleLogout = () => {
+    localStorage.removeItem("staffAuth");
+    navigate(`/${staffBase}/login`);
+  };
 
   useEffect(() => {
     getApplicants()
@@ -49,37 +52,47 @@ function ApplicantDatabase() {
   });
 
   const handleRowClick = (applicant) => {
-    navigate(`/staff/applicant-info`, {
-      state: {
-        appointment: {
-          id: applicant.response_id,
-          first_name: applicant.first_name || "",
-          last_name: applicant.last_name || "",
-          email: applicant.email_address || "",
-          phone: applicant.phone || "",
-          street_addr: applicant.street_addr || "",
-          city: applicant.city || "",
-          postal_code: applicant.postal_code || "",
-          status_in_canada: applicant.status_in_canada || "",
-          tiny_bundles_program: applicant.tiny_bundles_program || false,
-          dateLabel: applicant.dateLabel || "",
-          timeLabel: applicant.timeLabel || "",
-          duration: applicant.duration || 0,
-          day: applicant.day || "",
-          startTime: applicant.startTime || "",
-        },
+  const appt = getAppointment(applicant)
+  navigate(`/staff/applicant-info`, {
+    state: {
+      appointment: {
+        id: applicant.response_id,
+        first_name: applicant.first_name || "",
+        last_name: applicant.last_name || "",
+        email: applicant.email_address || "",
+        phone: applicant.phone || "",
+        street_addr: applicant.street_addr || "",
+        city: applicant.city || "",
+        postal_code: applicant.postal_code || "",
+        status_in_canada: applicant.status_in_canada || "",
+        tiny_bundles_program: applicant.tiny_bundles_program || false,
+        appointmentStatus: appt?.appointment_status || "",
       },
-    });
-  };
+    },
+  })
+}
 
-  const bookingStatus = (a) => {
-    if (a.dateLabel && a.timeLabel) return "Booked";
-    if (a.first_name) return "Registered";
-    return "Pending";
-  };
- 
-  const statusColor = (s) =>
-    s === "Booked" ? "success" : s === "Registered" ? "warning" : "default";
+  const getAppointment = (applicant) => {
+  const appts = applicant.appointments
+  if (!Array.isArray(appts) || appts.length === 0) return null
+  return appts.sort((a, b) =>
+    new Date(b.appointment_date) - new Date(a.appointment_date)
+  )[0]
+}
+
+const bookingStatus = (a) => {
+  const appt = getAppointment(a)
+  if (appt) return appt.appointment_status || "Booked"
+  if (a.first_name) return "Registered"
+  return "Pending"
+}
+
+const statusColor = (s) => {
+  const match = STATUS_OPTIONS.find(
+    (o) => o.label.toLowerCase() === s.toLowerCase()
+  )
+  return match?.color ?? (s === "Registered" ? "warning" : "default")
+}
  
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
@@ -121,11 +134,11 @@ function ApplicantDatabase() {
  
         {loading ? (
           <Typography color="text.secondary" align="center" sx={{ mt: 4 }}>
-            Loading applicants...
+            Loading...
           </Typography>
         ) : error ? (
           <Typography color="error" align="center" sx={{ mt: 4 }}>
-            Error loading applicants: {error}
+            Error loading applicants: {error}. Please try reloading the page.
           </Typography>
         ) : applicants.length === 0 ? (
           <Typography color="text.secondary" align="center" sx={{ mt: 4 }}>
@@ -174,15 +187,24 @@ function ApplicantDatabase() {
                       }}
                     >
                       <TableCell>
-                        {applicant.first_name && applicant.last_name
+                      {applicant.first_name && applicant.last_name
                           ? `${applicant.first_name} ${applicant.last_name}`
                           : <em style={{ color: "#aaa" }}>Not provided</em>}
                       </TableCell>
                       <TableCell>{applicant.email_address}</TableCell>
                       <TableCell>
-                        {applicant.dateLabel && applicant.timeLabel
-                          ? `${applicant.dateLabel} · ${applicant.timeLabel}`
-                          : <em style={{ color: "#aaa" }}>No appointment booked</em>}
+                        {(() => {
+                          const appt = getAppointment(applicant)
+                          if (!appt?.appointment_date || !appt?.appointment_time) {
+                            return <em style={{ color: "#aaa" }}>No appointment booked</em>
+                          }
+                          const date = new Date(`${appt.appointment_date}T12:00:00`)
+                          const dateLabel = date.toLocaleDateString("en-US", {
+                            weekday: "long", month: "long", day: "numeric", year: "numeric",
+                          })
+                          const timeLabel = appt.appointment_time.slice(0, 5)
+                          return `${dateLabel} · ${timeLabel}`
+                        })()}
                       </TableCell>
                       <TableCell>
                         <Chip

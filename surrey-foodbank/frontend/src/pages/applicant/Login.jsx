@@ -67,11 +67,6 @@ function Login() {
       return;
     }
 
-    localStorage.setItem(
-      "activeUser",
-      JSON.stringify({ email: emailField.value }),
-    );
-
     const apiBase = getApiBaseUrl();
 
     try {

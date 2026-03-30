@@ -4,12 +4,13 @@ import { Typography, Box, Button, Paper, Stack, Divider } from "@mui/material";
 import AdminCalendar from "./AdminCalendar.jsx";
 
 function AdminCalendarPanel({
-    isEditing,
-    saveChanges,
-    discardChanges,
-    toggleBookingPanel,
-    changeBookingAppointment, 
-    isNewBooking, 
+  isEditing,
+  saveChanges,
+  discardChanges,
+  toggleBookingPanel,
+  changeBookingAppointment, // appointment to rebook (from ApplicantInfoPage)
+  appointments = [],
+  isNewBooking, 
 }) {
   const today = new Date();
   const startOfWeek = new Date(today);
@@ -91,27 +92,28 @@ function AdminCalendarPanel({
                 ) : ""}
             </Stack>
 
-            {/* Calendar */}
-            <Box
-                sx={{
-                    display: "grid",
-                    gridTemplateColumns: { xs: "0.75fr", md: "1fr 130px" },
-                    alignContent: "center",
-                    alignItems: "center",
-                }}
-            >
-                <AdminCalendar
-                    isEditing={isEditing}
-                    saveChanges={saveChanges}
-                    discardChanges={discardChanges}
-                    weekStart={weekStart}
-                    isBookingPanel={toggleBookingPanel}
-                    changeBookingAppointment={changeBookingAppointment}
-                    isNewBooking={isNewBooking}
-                />
-            </Box>
-        </Paper>
-    );
+      {/* Calendar */}
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: { xs: "0.75fr", md: "1fr 130px" },
+          alignContent: "center",
+          alignItems: "center",
+        }}
+      >
+        <AdminCalendar
+          isEditing={isEditing}
+          saveChanges={saveChanges}
+          discardChanges={discardChanges}
+          weekStart={weekStart}
+          isBookingPanel={toggleBookingPanel}
+          changeBookingAppointment={changeBookingAppointment}
+          appointments={appointments}
+          isNewBooking={isNewBooking}
+        />
+      </Box>
+    </Paper>
+  );
 }
 
 function LegendChip({ label, sx }) {
