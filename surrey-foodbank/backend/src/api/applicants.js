@@ -1,8 +1,5 @@
 import { getSupabaseAnonClient } from "../lib/supabase.js"
-
 const supabase = getSupabaseAnonClient()
-
-// ── Applicants ────────────────────────────────────────────────────────────────
 
 export async function getApplicants() {
   const { data, error } = await supabase
@@ -22,8 +19,6 @@ export async function updateApplicant(id, updates) {
   return data
 }
 
-// ── Appointments ──────────────────────────────────────────────────────────────
-
 export async function getAppointments() {
   const { data, error } = await supabase
     .from('appointments')
@@ -40,6 +35,24 @@ export async function getAppointments() {
   return data
 }
 
+export async function getAppointmentsByDateRange(startDate, endDate) {
+  const { data, error } = await supabase
+    .from('appointments')
+    .select(`
+      *,
+      registrationformresponse (
+        first_name,
+        last_name,
+        email_address,
+        phone
+      )
+    `)
+    .gte('appointment_date', startDate)
+    .lte('appointment_date', endDate)
+  if (error) throw error
+  return data
+}
+
 export async function getAppointmentByResponseId(responseId) {
   const { data, error } = await supabase
     .from('appointments')
@@ -48,6 +61,15 @@ export async function getAppointmentByResponseId(responseId) {
     .single()
   if (error && error.code !== 'PGRST116') throw error // PGRST116 = no rows found
   return data ?? null
+}
+
+export async function createAppointment(appointmentData) {
+  const { data, error } = await supabase
+    .from('appointments')
+    .insert(appointmentData)
+    .select()
+  if (error) throw error
+  return data
 }
 
 export async function updateAppointment(appointmentId, updates) {
@@ -65,5 +87,36 @@ export async function deleteAppointment(appointmentId) {
     .from('appointments')
     .delete()
     .eq('appointment_id', appointmentId)
+  if (error) throw error
+}
+
+/**
+ * Insert multiple blocked slots.
+ * Each item: { appointment_date, appointment_time, duration }
+ */
+export async function createBlockedSlots(slots) {
+  const rows = slots.map((s) => ({
+    response_id: null,
+    appointment_date: s.appointment_date,
+    appointment_time: s.appointment_time,
+    duration: s.duration ?? '00:15:00',
+    appointment_status: 'blocked',
+  }))
+  const { data, error } = await supabase
+    .from('appointments')
+    .insert(rows)
+    .select()
+  if (error) throw error
+  return data
+}
+
+/**
+ * Delete blocked slots by their appointment_ids.
+ */
+export async function deleteBlockedSlots(appointmentIds) {
+  const { error } = await supabase
+    .from('appointments')
+    .delete()
+    .in('appointment_id', appointmentIds)
   if (error) throw error
 }
