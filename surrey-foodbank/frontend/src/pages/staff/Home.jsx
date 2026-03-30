@@ -1,18 +1,18 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Box } from "@mui/material";
 import StaffTopBar from "../../components/StaffTopBar";
 import WelcomePanel from "../../components/WelcomePanel";
 import AdminCalendarPanel from "../../components/AdminCalendarPanel";
-import { useNavigate, useLocation } from 'react-router-dom';
-import AppointmentInfoDialog from "../../components/AppointmentInfoDialog";
+import { useNavigate, useLocation } from "react-router-dom";
+import { getAppointments } from "../../api/appointmentsAPI";
 
 function Home() {
-  const [openInfoDialog, setOpenInfoDialog] = React.useState(false);
-  const [appointmentData, setAppointmentData] = React.useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [canceled, setCanceled] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [toggleBookingPanel, setToggleBookingPanel] = React.useState(0);
+  const [toggleBookingPanel, setToggleBookingPanel] = useState(0);
+  const [appointments, setAppointments] = useState([]);
+  const [loadingAppointments, setLoadingAppointments] = useState(true);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -42,35 +42,20 @@ function Home() {
   };
 
   const handleBook = () => {
-    setToggleBookingPanel(toggleBookingPanel + 1);
+    setToggleBookingPanel((prev) => prev + 1);
   };
 
-  // Load appointment from demo user for testing
-  React.useEffect(() => {
-    const demoEmail = localStorage.getItem("activeUser")
-      ? JSON.parse(localStorage.getItem("activeUser")).email
-      : "harnoor@example.com";
-    const storedData = localStorage.getItem(`applicant_${demoEmail}`);
-    if (storedData) {
-      setAppointmentData(JSON.parse(storedData));
-    } else {
-      setAppointmentData({
-        name: "Joshua Pemberton",
-        address: "123 Main Street, Surrey BC V3T 1A2",
-        statusInCanada: "Permanent Resident",
-        applyingToTinyBundles: "yes",
-        householdMembers: "2",
-        dateLabel: "Monday March 26, 2026",
-        timeLabel: "3:30pm – 3:45pm",
-      });
-    }
+  useEffect(() => {
+    getAppointments()
+      .then((data) => setAppointments(data))
+      .catch((err) => console.error("Failed to load appointments:", err.message))
+      .finally(() => setLoadingAppointments(false));
   }, []);
 
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
       <title>Appointment Calendar | Surrey Food Bank</title>
       <StaffTopBar position="sticky" onLogout={handleLogout} />
-      {/* Main Layout */}
       <Box
         sx={{
           padding: { xs: 2, md: 4 },
@@ -80,21 +65,19 @@ function Home() {
           alignItems: "start",
         }}
       >
-        {/* Left Panel for staff instructions */}
         <WelcomePanel
           onEditSlots={handleEditSlots}
           onCancel={handleCancel}
           onSave={handleSave}
           onBook={handleBook}
         />
-        {/* Right panel to show calendar and manage bookings */}
         <AdminCalendarPanel
           isEditing={isEditing}
           saveChanges={saved}
           discardChanges={canceled}
           toggleBookingPanel={toggleBookingPanel}
           setShowBookingPanel={setToggleBookingPanel}
-          // Pass the appointment to rebook (if coming from ApplicantInfoPage)
+          appointments={appointments}
           changeBookingAppointment={changeBookingAppointment}
         />
       </Box>
@@ -103,5 +86,3 @@ function Home() {
 }
 
 export default Home;
-
-// GitHub Copilot was used to debug the code above and help with localStorage logic
