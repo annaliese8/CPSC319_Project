@@ -1,29 +1,28 @@
 # Surrey Food Bank Appointment and Registration System
 
 ## Project Description
-This web application allows prospective clients of The Surrey Food bank to book a registration appointment, and staff at the Surrey Food Bank to manage the appointments.
+This web application allows prospective clients of The Surrey Food bank to book a registration appointment, and staff to manage the appointments.
 
 ## Features
-- Applicants can create an account, complete a registration form, and book an appointment
+- Applicants can create an account, complete a registration form, and book an appointment on behalf of their household
 - Applicants can reschedule or cancel their appointments and edit their registration form
 - Staff can access the application through a secure login portal
-- Staff can easily view and manage appointments on a weekly calendar
+- Staff can easily view and manage appointments on a weekly-view calendar
 - Staff can book, change, and cancel appointments on behalf of applicants
-- Staff can browse and search a database of registered applicants
-- Appointment time slots can be blocked by staff to mark unavailability
+- Staff can browse and search through a database of registered applicants
+- Staff can block appointment time slots to mark unavailability
 
 ## Tech Stack
-| Layer        | Technology           |
-| :----------- | :---                 |
-| Runtime*     | Node.js + Express.js |
-| Language     | JavaScript           |
-| Frontend     | Vite + React + MUI   |
-| Database*    | PostgreSQL           |
-| HTTP Client* | Axios / Fetch API    |
-| CI/CD        | GitHub Actions       |
-| Hosting      | GitHub Pages         |
-
-*Not yet implemented. The app is temporarily using localStorage to store data.
+| Layer       | Technology                       |
+| :---------- | :------------------------------- |
+| Runtime     | Node.js + Express.js             |
+| Language    | JavaScript                       |
+| Frontend    | Vite + React + MUI               |
+| Database    | PostgreSQL + Supabase            |
+| HTTP Client | Fetch API                        |
+| Testing     | Vitest + React Testing Library   |
+| CI/CD       | GitHub Actions                   |
+| Hosting     | GitHub Pages                     |
 
 ## Quick Start
 
@@ -32,37 +31,72 @@ The app is hosted on GitHub Pages and can be accessed directly at:
 [https://annaliese8.github.io/CPSC319_Project/](https://annaliese8.github.io/CPSC319_Project/)
 
 ### Option 2: Running Locally
-> Requires Node.js v20+. Check with `node -v` or [download here](https://nodejs.org/en/download)
+#### Prerequisites
+
+0. Requires Node.js v20+. [Download here.](https://nodejs.org/en/download)
+```bash
+   # Check your node version with
+   node -v
+```
 
 1. Clone the repository
 ```bash
    git clone https://github.com/annaliese8/CPSC319_Project.git
 ```
-2. Navigate to the frontend folder
+
+#### Backend Setup
+
+2. Navigate to the backend folder
 ```bash
-   cd surrey-foodbank/frontend
+   cd surrey-foodbank/backend
 ```
+
 3. Install dependencies
 ```bash
    npm install
 ```
+
 4. Set up environment variables
 ```bash
-   touch .env
+echo "SUPABASE_URL=<your Supabase URL>
+SUPABASE_ANON_KEY=<your Supabase anon key>
+SUPABASE_SERVICE_ROLE_KEY=<your Supabase service role key>" > .env
 ```
-   Add the following to your `.env` file:
-```
-   VITE_STAFF_BASE=your_secret_url_base
-   VITE_STAFF_USERNAME=your_staff_username
-   VITE_STAFF_PASSWORD=your_staff_password
-```
-5. Start the development server
+
+5. Start the backend server
 ```bash
    npm run dev
 ```
-6. Visit the app:
+
+#### Frontend Setup
+
+6. Leave the backend running. In a separate terminal window, navigate to the frontend folder:
+```bash
+   cd surrey-foodbank/frontend
+```
+
+7. Install dependencies
+```bash
+   npm install
+```
+
+8. Set up environment variables
+```bash
+echo "VITE_STAFF_BASE=<your staff URL base>
+   VITE_STAFF_USERNAME=<your staff username>
+   VITE_STAFF_PASSWORD=<your staff password>
+   VITE_SUPABASE_ANON_KEY=<your Supabase anon key>
+   VITE_SUPABASE_URL=<your Supabase URL>" > .env
+```
+
+9. Start the frontend server
+```bash
+   npm run dev
+```
+
+10. Visit the app:
    - **Applicant side:** [http://localhost:5173/CPSC319_Project/](http://localhost:5173/CPSC319_Project/)
-   - **Staff side:** `http://localhost:5173/CPSC319_Project/#/{VITE_STAFF_BASE}/login`
+   - **Staff side:** `http://localhost:5173/CPSC319_Project/#/<VITE_STAFF_BASE>/login`
 
 ## Testing
 Navigate to the frontend folder and run:

@@ -10,6 +10,7 @@ import { useNavigate } from "react-router-dom";
 
 const ADMIN_PASSWORD = import.meta.env.VITE_STAFF_PASS;
 const ADMIN_USERNAME = import.meta.env.VITE_STAFF_USER;
+const STAFF_BASE = import.meta.env.VITE_STAFF_BASE || "staff";
 
 function Login() {
   const [password, setPassword] = useState("");
@@ -18,12 +19,21 @@ function Login() {
   const navigate = useNavigate();
 
   const handleLogin = () => {
-    if (password === ADMIN_PASSWORD && username === ADMIN_USERNAME) {
+    if (
+      password.trim() === ADMIN_PASSWORD?.trim() &&
+      username.trim() === ADMIN_USERNAME?.trim()
+    ) {
       setError(false);
+      // Store a session flag so protected routes can verify login
+      localStorage.setItem("staffAuth", "true");
       navigate("/staff/home");
     } else {
       setError(true);
     }
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter") handleLogin();
   };
 
   return (
@@ -32,13 +42,19 @@ function Login() {
       <Window title="Surrey Food Bank Administrator Login">
         <UserNameField
           onChange={(e) => setUsername(e.target.value)}
+          onKeyDown={handleKeyDown}
           error={error}
-          helperText={error ? "Incorrect username or password. Please try again." : ""}
+          helperText={
+            error ? "Incorrect username or password. Please try again." : ""
+          }
         />
         <PasswordField
           onChange={(e) => setPassword(e.target.value)}
+          onKeyDown={handleKeyDown}
           error={error}
-          helperText={error ? "Incorrect username or password. Please try again." : ""}
+          helperText={
+            error ? "Incorrect username or password. Please try again." : ""
+          }
         />
         <Stack
           direction="row"

@@ -1,18 +1,15 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Box } from "@mui/material";
 import StaffTopBar from "../../components/StaffTopBar";
 import WelcomePanel from "../../components/WelcomePanel";
 import AdminCalendarPanel from "../../components/AdminCalendarPanel";
 import { useNavigate, useLocation } from "react-router-dom";
-import { getAppointments } from "../../api/appointmentsAPI";
 
 function Home() {
   const [isEditing, setIsEditing] = useState(false);
   const [canceled, setCanceled] = useState(false);
   const [saved, setSaved] = useState(false);
   const [toggleBookingPanel, setToggleBookingPanel] = useState(0);
-  const [appointments, setAppointments] = useState([]);
-  const [loadingAppointments, setLoadingAppointments] = useState(true);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -22,8 +19,12 @@ function Home() {
   const changeBookingAppointment = location.state?.changeBooking
     ? location.state.appointment
     : null;
+    const isNewBooking = location.state?.isNewBooking ?? false;
 
-  const handleLogout = () => navigate(`/${staffBase}/login`);
+  const handleLogout = () => {
+    localStorage.removeItem("staffAuth");
+    navigate(`/${staffBase}/login`);
+  };
 
   const handleEditSlots = () => {
     setIsEditing(true);
@@ -45,12 +46,6 @@ function Home() {
     setToggleBookingPanel((prev) => prev + 1);
   };
 
-  useEffect(() => {
-    getAppointments()
-      .then((data) => setAppointments(data))
-      .catch((err) => console.error("Failed to load appointments:", err.message))
-      .finally(() => setLoadingAppointments(false));
-  }, []);
 
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
@@ -76,9 +71,8 @@ function Home() {
           saveChanges={saved}
           discardChanges={canceled}
           toggleBookingPanel={toggleBookingPanel}
-          setShowBookingPanel={setToggleBookingPanel}
-          appointments={appointments}
           changeBookingAppointment={changeBookingAppointment}
+          isNewBooking={isNewBooking}
         />
       </Box>
     </Box>

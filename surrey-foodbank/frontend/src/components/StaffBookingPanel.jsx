@@ -10,31 +10,62 @@ import {
 } from "@mui/material";
 import LockIcon from "@mui/icons-material/Lock";
 import RegistrationFields from "../components/RegistrationFields";
-import { validateRegistrationForm } from "../utils/ValidateRegistrationForm";
 import { addMinutesToTime } from "../utils/TimeUtils";
+
+// Validate using the same snake_case keys that RegistrationFields uses
+function validateForm(form) {
+  const errors = {};
+  const isValidPhone = (v) => {
+    if (!/^\+?[\d\s\-(). ]+$/.test(v)) return false;
+    return v.replace(/\D/g, "").length >= 10;
+  };
+  const isValidPostalCode = (v) => /^[a-z]\d[a-z] ?\d[a-z]\d$/i.test(v);
+
+  if (!form.first_name?.trim()) errors.first_name = "Required";
+  if (!form.last_name?.trim()) errors.last_name = "Required";
+  if (!form.street_addr?.trim()) errors.street_addr = "Required";
+  if (!form.city?.trim()) errors.city = "Required";
+  if (!form.province?.trim()) errors.province = "Required";
+  if (!form.postal_code?.trim()) errors.postal_code = "Required (e.g. A1A 1A1)";
+  else if (!isValidPostalCode(form.postal_code))
+    errors.postal_code = "Please enter a valid postal code (e.g. A1A 1A1)";
+  if (!form.phone?.trim()) errors.phone = "Required (at least 10 digits)";
+  else if (!isValidPhone(form.phone))
+    errors.phone = "Please enter a valid phone number (at least 10 digits)";
+  if (!form.status_in_canada?.trim()) errors.status_in_canada = "Required";
+  if (!form.language?.trim()) errors.language = "Required";
+  return errors;
+}
 
 export default function StaffBookingPanel({
   selectedSlot,
   onClose,
   onConfirmBooking,
   existingAppointments = [],
-  rebookingAppointment = null, // if set, we're changing an existing booking
+  rebookingAppointment = null, // pre-fills the form with applicant data
+  isNewBooking = false,        // true = new booking from profile (pre-fill but don't cancel old)
 }) {
-  const isRebooking = !!rebookingAppointment;
+  // isRebooking locks personal fields and shows "Change Booking" UI.
+  // For new bookings from a profile page (isNewBooking), fields remain editable.
+  const isRebooking = !!rebookingAppointment && !isNewBooking;
 
+  // Form state uses snake_case keys to match RegistrationFields exactly
   const [form, setForm] = React.useState({
-    firstName: rebookingAppointment?.firstName || "",
-    lastName: rebookingAppointment?.lastName || "",
+    first_name: rebookingAppointment?.first_name || rebookingAppointment?.firstName || "",
+    last_name: rebookingAppointment?.last_name || rebookingAppointment?.lastName || "",
     phone: rebookingAppointment?.phone || "",
-    streetAddress: rebookingAppointment?.streetAddress || "",
+    street_addr: rebookingAppointment?.street_addr || rebookingAppointment?.streetAddress || "",
     city: rebookingAppointment?.city || "",
     province: rebookingAppointment?.province || "British Columbia",
-    postalCode: rebookingAppointment?.postalCode || "",
-    statusInCanada: rebookingAppointment?.statusInCanada || "",
-    applyingToTinyBundles: rebookingAppointment?.applyingToTinyBundles || "no",
+    postal_code: rebookingAppointment?.postal_code || rebookingAppointment?.postalCode || "",
+    status_in_canada: rebookingAppointment?.status_in_canada || rebookingAppointment?.statusInCanada || "",
+    tiny_bundles_program: rebookingAppointment?.tiny_bundles_program ?? false,
     language: rebookingAppointment?.language || "English",
     email:
-      rebookingAppointment?.email || rebookingAppointment?.applicantEmail || "",
+      rebookingAppointment?.email ||
+      rebookingAppointment?.email_address ||
+      rebookingAppointment?.applicantEmail ||
+      "",
     householdMembers: rebookingAppointment?.householdMembers || [],
   });
 
@@ -43,6 +74,7 @@ export default function StaffBookingPanel({
   const [editableDate, setEditableDate] = React.useState("");
   const [startTime, setStartTime] = React.useState("");
   const [endTime, setEndTime] = React.useState("");
+  const [saving, setSaving] = React.useState(false);
 
   React.useEffect(() => {
     if (selectedSlot) {
@@ -50,27 +82,26 @@ export default function StaffBookingPanel({
         ? new Date(selectedSlot.date)
         : (() => {
             const dayIndex = [
-              "Sunday",
-              "Monday",
-              "Tuesday",
-              "Wednesday",
-              "Thursday",
-              "Friday",
-              "Saturday",
+              "Sunday", "Monday", "Tuesday", "Wednesday",
+              "Thursday", "Friday", "Saturday",
             ].indexOf(selectedSlot.day);
             const d = new Date(selectedSlot.weekStart);
             d.setDate(d.getDate() + dayIndex);
             return d;
           })();
-      setEditableDate(date.toISOString().split("T")[0]);
+      const y = date.getFullYear();
+      const mo = String(date.getMonth() + 1).padStart(2, "0");
+      const d = String(date.getDate()).padStart(2, "0");
+      setEditableDate(`${y}-${mo}-${d}`);
       setStartTime(selectedSlot.time);
       setEndTime(addMinutesToTime(selectedSlot.time, 15));
     }
   }, [selectedSlot]);
 
   const onChange = (key) => (e) => {
-    if (isRebooking) return; // lock personal fields during rebook
+    if (isRebooking) return;
     setForm((prev) => ({ ...prev, [key]: e.target.value }));
+    setFormErrors((prev) => ({ ...prev, [key]: undefined }));
     setError("");
   };
 
@@ -80,158 +111,105 @@ export default function StaffBookingPanel({
   };
 
   React.useEffect(() => {
-    const duration = getDuration();
-    if (startTime) {
-      setEndTime(addMinutesToTime(startTime, duration));
-    }
+    if (startTime) setEndTime(addMinutesToTime(startTime, getDuration()));
   }, [form.householdMembers, startTime]);
 
-  const checkSlotAvailability = (day, time, duration, excludeEmail = null) => {
-    if (duration === 15) return !isSlotBooked(day, time, excludeEmail);
-    const nextTime = getNextTimeSlot(time);
-    if (!nextTime) return false;
-    return (
-      !isSlotBooked(day, time, excludeEmail) &&
-      !isSlotBooked(day, nextTime, excludeEmail)
-    );
-  };
-
-  const isSlotBooked = (day, time, excludeEmail = null) => {
+  const isSlotBooked = (day, time, excludeResponseId = null) => {
+    const [slotH, slotM] = time.split(":").map(Number);
+    const slotMins = slotH * 60 + slotM;
     return existingAppointments.some((apt) => {
-      if (excludeEmail && apt.email === excludeEmail) return false; // ignore self
-      return apt.day === day && apt.startTime === time;
+      if (excludeResponseId && apt.response_id === excludeResponseId) return false;
+      if (apt.day !== day) return false;
+      const [aptH, aptM] = apt.startTime.split(":").map(Number);
+      const aptStart = aptH * 60 + aptM;
+      return slotMins >= aptStart && slotMins < aptStart + (apt.duration || 15);
     });
   };
 
-  const getNextTimeSlot = (time) => {
-    const [hour, minute] = time.split(":").map(Number);
-    if (minute === 0) return `${hour}:15`;
-    if (minute === 15) return `${hour}:30`;
-    if (minute === 30) return `${hour}:45`;
-    if (minute === 45) return `${hour + 1}:00`;
-    return null;
+  const checkSlotAvailability = (day, time, duration, excludeResponseId = null) => {
+    if (!isSlotBooked(day, time, excludeResponseId)) {
+      if (duration === 15) return true;
+      const [h, m] = time.split(":").map(Number);
+      const nextMins = h * 60 + m + 15;
+      const nextTime = `${Math.floor(nextMins / 60)}:${String(nextMins % 60).padStart(2, "0")}`;
+      return !isSlotBooked(day, nextTime, excludeResponseId);
+    }
+    return false;
   };
 
   const formatTimeLabel = (time, duration) => {
     const [hour, minute] = time.split(":").map(Number);
-    const startHour12 = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
-    const startPeriod = hour >= 12 ? "pm" : "am";
-    const startFormatted = `${startHour12}:${minute.toString().padStart(2, "0")}${startPeriod}`;
-    let endMinute = minute + duration;
-    let endHour = hour;
-    if (endMinute >= 60) {
-      endMinute -= 60;
-      endHour += 1;
-    }
-    const endHour12 =
-      endHour === 0 ? 12 : endHour > 12 ? endHour - 12 : endHour;
-    const endPeriod = endHour >= 12 ? "pm" : "am";
-    const endFormatted = `${endHour12}:${endMinute.toString().padStart(2, "0")}${endPeriod}`;
-    return `${startFormatted} – ${endFormatted}`;
+    const fmt = (h, m) => {
+      const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+      return `${h12}:${String(m).padStart(2, "0")}${h >= 12 ? "pm" : "am"}`;
+    };
+    const endMins = hour * 60 + minute + duration;
+    return `${fmt(hour, minute)} – ${fmt(Math.floor(endMins / 60), endMins % 60)}`;
   };
 
   const formatDateLabel = (day, date) => {
-    const monthNames = [
-      "January",
-      "February",
-      "March",
-      "April",
-      "May",
-      "June",
-      "July",
-      "August",
-      "September",
-      "October",
-      "November",
-      "December",
-    ];
     const d = new Date(date + "T00:00:00");
-    return `${day} ${monthNames[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+    return d.toLocaleDateString("en-US", {
+      weekday: "long", month: "long", day: "numeric", year: "numeric",
+    });
   };
 
   const handleConfirm = () => {
-    const errors = validateRegistrationForm(form);
-    if (!form.email.trim()) errors.email = "Please enter the applicant's email";
+    // Validate all fields using snake_case keys (matching RegistrationFields)
+    const errors = validateForm(form);
+    if (!form.email?.trim()) errors.email = "Please enter the applicant's email";
     if (Object.keys(errors).length) {
       setFormErrors(errors);
+      setError("Please fill in all required fields.");
       return;
     }
-    if (!editableDate) {
-      setError("Please select a date");
-      return;
-    }
-    if (!startTime) {
-      setError("Please enter a start time");
-      return;
-    }
-    if (!endTime) {
-      setError("Please enter an end time");
-      return;
-    }
-
-    // For new bookings, check the email isn't already booked
-    // For rebookings, skip this check since they already have a booking
-    if (!isRebooking) {
-      const existingAppointment = existingAppointments.find(
-        (apt) => apt.email === form.email.trim(),
-      );
-      if (existingAppointment) {
-        setError(
-          "This applicant already has an appointment. Please cancel the existing one first.",
-        );
-        return;
-      }
-    }
+    if (!editableDate) { setError("Please select a date"); return; }
+    if (!startTime)    { setError("Please enter a start time"); return; }
 
     const dateObj = new Date(editableDate + "T00:00:00");
-    const dayNames = [
-      "Sunday",
-      "Monday",
-      "Tuesday",
-      "Wednesday",
-      "Thursday",
-      "Friday",
-      "Saturday",
-    ];
+    const dayNames = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
     const dayName = dayNames[dateObj.getDay()];
     const duration = getDuration();
+    const excludeId = isRebooking ? rebookingAppointment?.response_id ?? null : null;
 
-    // When rebooking, exclude the applicant's own current slot from conflict check
-    const excludeEmail = isRebooking
-      ? rebookingAppointment?.email || rebookingAppointment?.applicantEmail
-      : null;
-
-    if (!checkSlotAvailability(dayName, startTime, duration, excludeEmail)) {
-      setError(
-        "The selected time slot is not available. Please choose another time.",
-      );
+    if (!checkSlotAvailability(dayName, startTime, duration, excludeId)) {
+      setError("The selected time slot is not available. Please choose another time.");
       return;
     }
 
     const appointmentData = {
-      firstName: form.firstName,
-      lastName: form.lastName,
-      name: `${form.firstName} ${form.lastName}`,
+      // snake_case — used by createApplicant in AdminCalendar
+      response_id: rebookingAppointment?.response_id ?? rebookingAppointment?.id ?? null,
+      first_name: form.first_name,
+      last_name: form.last_name,
+      street_addr: form.street_addr,
+      postal_code: form.postal_code,
+      status_in_canada: form.status_in_canada,
+      tiny_bundles_program: form.tiny_bundles_program,
+      // camelCase aliases kept for any downstream callers
+      firstName: form.first_name,
+      lastName: form.last_name,
+      name: `${form.first_name} ${form.last_name}`.trim(),
       email: form.email,
       phone: form.phone,
-      streetAddress: form.streetAddress,
+      streetAddress: form.street_addr,
       city: form.city,
       province: form.province,
-      postalCode: form.postalCode,
-      address: `${form.streetAddress}, ${form.city}, ${form.province}, ${form.postalCode}`,
-      householdMembers: form.householdMembers || [],
-      statusInCanada: form.statusInCanada,
-      applyingToTinyBundles: form.applyingToTinyBundles,
+      postalCode: form.postal_code,
+      statusInCanada: form.status_in_canada,
+      applyingToTinyBundles: form.tiny_bundles_program ? "yes" : "no",
       language: form.language,
+      householdMembers: form.householdMembers || [],
       day: dayName,
       startTime: startTime.padStart(5, "0"),
-      duration: duration,
-      date: dateObj.toISOString(),
+      duration,
+      date: editableDate,
       dateLabel: formatDateLabel(dayName, editableDate),
       timeLabel: formatTimeLabel(startTime, duration),
     };
 
-    onConfirmBooking(appointmentData);
+    setSaving(true);
+    Promise.resolve(onConfirmBooking(appointmentData)).finally(() => setSaving(false));
   };
 
   if (!selectedSlot) return null;
@@ -251,19 +229,9 @@ export default function StaffBookingPanel({
         zIndex: 1000,
       }}
     >
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          mb: 1,
-        }}
-      >
+      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
         <Box>
-          <Typography
-            variant="h6"
-            sx={{ fontWeight: 800, color: "primary.main" }}
-          >
+          <Typography variant="h6" sx={{ fontWeight: 800, color: "primary.main" }}>
             {isRebooking ? "CHANGE BOOKING" : "BOOK APPOINTMENT"}
           </Typography>
           {isRebooking && (
@@ -324,6 +292,7 @@ export default function StaffBookingPanel({
             helperText="Format: HH:MM"
           />
         </Box>
+
         <TextField
           label="Email*"
           type="email"
@@ -337,42 +306,35 @@ export default function StaffBookingPanel({
           InputProps={
             isRebooking
               ? {
-                  endAdornment: (
-                    <LockIcon sx={{ fontSize: 16, color: "text.disabled" }} />
-                  ),
-                }
+                endAdornment: (
+                  <LockIcon sx={{ fontSize: 16, color: "text.disabled" }} />
+                ),
+              }
               : {}
           }
         />
 
         <RegistrationFields
           form={form}
-          onChange={(key) => (e) => {
-            if (isRebooking) return;
-            setForm((prev) => ({ ...prev, [key]: e.target.value }));
-            setError("");
-          }}
+          onChange={onChange}
           errors={formErrors}
           isDisabled={isRebooking}
+          isStaffPage={true}
         />
 
         <Stack direction="row" spacing={1.5} sx={{ mt: 3 }}>
-          <Button
-            variant="outlined"
-            onClick={onClose}
-            fullWidth
-            sx={{ fontWeight: 600 }}
-          >
+          <Button variant="outlined" onClick={onClose} fullWidth sx={{ fontWeight: 600 }}>
             Discard
           </Button>
           <Button
             variant="contained"
             color="primary"
             onClick={handleConfirm}
+            disabled={saving}
             fullWidth
             sx={{ fontWeight: 600, color: "common.white" }}
           >
-            {isRebooking ? "Confirm Change" : "Confirm"}
+            {saving ? "Saving…" : isRebooking ? "Confirm Change" : "Confirm"}
           </Button>
         </Stack>
       </Stack>

@@ -22,14 +22,25 @@ function AppointmentInfoDialog({
   const navigate = useNavigate();
 
   const handleMoreDetails = () => {
-    navigate("/staff/applicant-info", { state: { appointment } });
+    navigate("/staff/applicant-info", {
+      state: {
+        appointment: {
+          ...appointment,
+          // ApplicantInfoPage keys off `id` to fire its API calls
+          id: appointment?.response_id ?? appointment?.id,
+        },
+      },
+    });
   };
 
   const dateLabel = appointment?.date
-    ? new Date(appointment.date).toLocaleDateString("en-US", {
-        weekday: "long", month: "long", day: "numeric", year: "numeric",
-      })
-    : ""
+  ? new Date(appointment.date + "T00:00:00").toLocaleDateString("en-US", {
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    })
+  : "";
 
   const timeLabel = appointment?.startTime || ""
 
@@ -78,7 +89,7 @@ function AppointmentInfoDialog({
         </Button>
         <Button
           variant="contained"
-          color="secondary"
+          color="primary"
           onClick={handleMoreDetails}
           sx={{ fontWeight: 800, color: "common.white" }}
         >

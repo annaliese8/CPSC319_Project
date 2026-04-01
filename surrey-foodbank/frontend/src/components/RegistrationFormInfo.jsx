@@ -34,7 +34,7 @@ function toUiErrors(validationErrors) {
   };
 }
 
-export default function RegistrationFormInfo({ appointment, onSave }) {
+export default function RegistrationFormInfo({ appointment, onSave, isStaffPage }) {
   // Helper function for setting appointment form fields
   // CHANGED: updated all field names to match Supabase DB column names
   const buildFormFromAppointment = (appt) => ({
@@ -147,6 +147,7 @@ export default function RegistrationFormInfo({ appointment, onSave }) {
             onChange={onChange}
             errors={formErrors}
             isDisabled={isDisabled}
+            isStaffPage={isStaffPage}
           />
         </Stack>
       </Paper>

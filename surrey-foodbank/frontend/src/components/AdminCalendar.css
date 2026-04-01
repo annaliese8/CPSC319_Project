@@ -2,9 +2,12 @@
   display: flex;
   height: 100%;
   font-family: 'DM Sans', sans-serif;
-  -webkit-user-select: none; /* Safari */
-  -ms-user-select: none; /* IE 10 and IE 11 */
-  user-select: none; /* Standard syntax */
+  -webkit-user-select: none;
+  /* Safari */
+  -ms-user-select: none;
+  /* IE 10 and IE 11 */
+  user-select: none;
+  /* Standard syntax */
 }
 
 .calendar-area {
@@ -16,14 +19,17 @@
 .calendar {
   flex: fit-content;
   overflow-y: scroll;
-  margin-right: -18px;
-  max-height: 550px;
-  border-radius: 10px;
+  /*margin-right: -18px; for windows*/
+  max-height: 620px;
+  border-bottom-right-radius: 10px;
   font-family: 'DM Sans', sans-serif;
   /*Keep Text inside from being Selectable (for click and drag)*/
-  -webkit-user-select: none; /* Safari */
-  -ms-user-select: none; /* IE 10 and IE 11 */
-  user-select: none; /* Standard syntax */
+  -webkit-user-select: none;
+  /* Safari */
+  -ms-user-select: none;
+  /* IE 10 and IE 11 */
+  user-select: none;
+  /* Standard syntax */
   /*border-right: 1px solid #ddd;*/
 }
 
@@ -59,7 +65,7 @@
   text-align: center;
   font-weight: lighter;
   font-size: small;
-  color: #9d9d9d;
+  color: #6B727B;
 }
 
 .time-column {
@@ -68,7 +74,7 @@
 
 .admin-calendar-row {
   display: flex;
-  height:20px;
+  height: 28px;
   padding-bottom: 1px;
 }
 
@@ -83,7 +89,6 @@
 
 .slot {
   flex: 1;
-  max-height: 20px;
   border-left: 1px solid #eee;
   border-top: 1px solid #eee;
   cursor: pointer;
@@ -156,20 +161,30 @@ button.cancel-button:hover {
 }
 
 .prevent-select {
-  -webkit-user-select: none; /* Safari */
-  -ms-user-select: none; /* IE 10 and IE 11 */
-  user-select: none; /* Standard syntax */
+  -webkit-user-select: none;
+  /* Safari */
+  -ms-user-select: none;
+  /* IE 10 and IE 11 */
+  user-select: none;
+  /* Standard syntax */
 }
 
 .admin-selected {
-    background-color: #f24c62 !important; 
-    outline: 2px solid #f24c90;
-    outline-offset: -2px;
-    cursor: pointer;
-    animation: pulse-selected 1.2s ease-in-out infinite;
+  background-color: #f24c62 !important;
+  outline: 2px solid #f24c90;
+  outline-offset: -2px;
+  cursor: pointer;
+  animation: pulse-selected 1.2s ease-in-out infinite;
 }
 
 @keyframes pulse-selected {
-    0%, 100% { opacity: 1; }
-    50%       { opacity: 0.65; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.65;
+  }
 }
