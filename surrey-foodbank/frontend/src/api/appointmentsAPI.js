@@ -23,7 +23,6 @@ export async function getAppointmentByResponseId(responseId) {
 }
 
 export async function createAppointment(appointmentData) {
-  console.log("here?", appointmentData)
   const res = await fetch(`${BASE_URL}/api/appointments`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -34,8 +33,6 @@ export async function createAppointment(appointmentData) {
 }
 
 export async function updateAppointment(appointmentId, updates) {
-  console.log("OR here?", updates)
-
   const res = await fetch(`${BASE_URL}/api/appointments/${appointmentId}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
@@ -46,7 +43,6 @@ export async function updateAppointment(appointmentId, updates) {
 }
 
 export async function deleteAppointment(appointmentId) {
-  console.log("HGHGFHGHFGHF")
   const res = await fetch(`${BASE_URL}/api/appointments/${appointmentId}`, {
     method: "DELETE",
   });

@@ -54,9 +54,11 @@ export default class EmailClient {
         } catch (error) {
             console.log(error); // logs any error
         }
+        console.log("Mailgun Conf Sent");
     }
 
     async sendCancellation(name, address, date) {
+        console.log("called?");
         const mailgun = new Mailgun(FormData);
 
         const mg = mailgun.client({
@@ -81,8 +83,8 @@ export default class EmailClient {
         } catch (error) {
             console.log(error); // logs any error
         }
+        console.log("Mailgun Cancel Sent");
+
     }
 
 }
-
-const client = new EmailClient();

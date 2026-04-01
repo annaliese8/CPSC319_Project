@@ -63,18 +63,22 @@ export async function getAppointmentByResponseId(responseId) {
 }
 
 export async function createAppointment(appointmentData) {
-  console.log("sent?", appointmentData)
+  console.log("CREATING APPOINTMENT", appointmentData)
   const { data, error } = await supabase
     .from('appointments')
     .insert(appointmentData)
     .select()
   if (error) throw error
-  // await emailClient.sendConfirmation("Joe", "nineranger@gmail.com", "today")
+  try {
+    await emailClient.sendConfirmation("Joe", "insertEmailHere", appointmentData.appointment_date.concat(" at ").concat(appointmentData.appointment_time));
+  } catch (e) {
+    console.log(e);
+  }
   return data
 }
 
 export async function updateAppointment(appointmentId, updates) {
-  console.log("BBBBB", updates)
+  console.log("UPDATING APPOINTMENT", appointmentId, updates);
   const { data, error } = await supabase
     .from('appointments')
     .update(updates)
@@ -85,13 +89,17 @@ export async function updateAppointment(appointmentId, updates) {
 }
 
 export async function deleteAppointment(appointmentId) {
-  console.log(appointmentId, "AAAAAA")
+  console.log(appointmentId, "DELETING APPOINTMENT")
   const { error } = await supabase
     .from('appointments')
     .delete()
     .eq('appointment_id', appointmentId)
   if (error) throw error
-  await emailClient.sendCancellation("Joe", "nineranger@gmail.com", "today")
+  try {
+    await emailClient.sendCancellation("Joe", "insertEmailHere", "today")
+  }catch (e) {
+    console.log(e);
+  }
 }
 
 /**

@@ -29,7 +29,6 @@ function getApiBaseUrl() {
  */
 export default function BookAppointment() {
   useBookingStyles();
-  const emailClient = new EmailClient();
   const navigate = useNavigate();
   const handleLogout = () => navigate(`/applicant/home`);
 
@@ -115,7 +114,8 @@ export default function BookAppointment() {
       duration,
       appointmentStatus: "Booked"
     };
-    
+
+    console.log("PAYLOAD", payload);
 
     const apiBase = getApiBaseUrl();
 
@@ -137,15 +137,13 @@ export default function BookAppointment() {
         return;
       }
 
-      console.log("AHHH");
-      await emailClient.sendConfirmation("Joe", "nineranger@gmail.com", "DATE");
-      console.log("grrrrr");
-
       navigate("/applicant/profile", { replace: true });
     } catch (_error) {
       setLoadError("Unable to save appointment.");
+      // console.log(_error);
       setIsSaving(false);
     }
+
 
   };
 
