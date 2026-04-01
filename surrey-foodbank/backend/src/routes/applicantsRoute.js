@@ -39,7 +39,8 @@ router.get("/", async (req, res) => {
           appointment_date,
           appointment_time,
           appointment_status
-        )
+        ),
+        householdinformation (count)
       `)
     if (error) throw error
     return res.status(200).json({ ok: true, data })
