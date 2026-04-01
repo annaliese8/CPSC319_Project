@@ -13,6 +13,7 @@ import { validateRegistrationForm } from "../../utils/ValidateRegistrationForm";
 import { getSupabaseClient } from "../../lib/supabaseClient";
 import { INELIGIBLE_STATUS_OPTIONS } from "../../components/RegistrationFields";
 import IneligibleStatusDialog from "../../components/IneligibleStatusDialog";
+import IneligibleAgeDialog from "../../components/IneligibleAgeDialog";
 
 function getApiBaseUrl() {
   const envBase = (import.meta.env.VITE_API_BASE_URL || "").trim();
@@ -34,6 +35,7 @@ function toValidationForm(form) {
     statusInCanada: form.status_in_canada ?? "",
     language: form.language ?? "",
     applyingToTinyBundles: form.tiny_bundles_program ? "yes" : "no",
+    over_eighteen: form.over_eighteen // not stored in the database
   };
 }
 
@@ -86,6 +88,7 @@ export default function Register() {
     status_in_canada: stored.status_in_canada ?? "",
     tiny_bundles_program: stored.tiny_bundles_program ?? false,
     language: stored.language?.trim() || "English",
+    over_eighteen: stored.over_eighteen ?? "true", // not stored in the database
   });
   const [householdMembers, setHouseholdMembers] = useState(
     [],
@@ -99,6 +102,7 @@ export default function Register() {
   const [submitError, setSubmitError] = useState("");
   const [showIneligibleStatusDialog, setShowIneligibleStatusDialog] = useState(false);
   const [ineligibleStatus, setIneligibleStatus] = useState("");
+  const [showIneligibleAgeDialog, setShowIneligibleAgeDialog] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -134,12 +138,19 @@ export default function Register() {
     setFormErrors(toUiErrors(errors));
     if (Object.keys(errors).length) return;
 
-    // Check if status in Canada is ineligible, and show dialog
+    // Check if status in Canada is ineligible, and show dialog if so
     if (INELIGIBLE_STATUS_OPTIONS.includes(form.status_in_canada)) {
       setIneligibleStatus(form.status_in_canada);
       setShowIneligibleStatusDialog(true);
       return;
     }
+
+    // Check if applicant is under eighteen years old, and show dialog if so
+    if (!form.over_eighteen) {
+      setShowIneligibleAgeDialog(true);
+      return;
+    }
+
     setIsSubmitting(true);
 
     const supabase = getSupabaseClient();
@@ -413,6 +424,10 @@ export default function Register() {
         open={showIneligibleStatusDialog}
         onClose={() => setShowIneligibleStatusDialog(false)}
         status={ineligibleStatus}
+      />
+      <IneligibleAgeDialog
+        open={showIneligibleAgeDialog}
+        onClose={() => setShowIneligibleAgeDialog(false)}
       />
     </div>
   );

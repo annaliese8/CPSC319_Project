@@ -10,7 +10,7 @@ import { addMinutesToTime } from "../utils/TimeUtils";
 const BASE_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
 
 export const DAYS_FULL = [
-  "Monday","Tuesday","Wednesday","Thursday","Friday",
+  "Monday", "Tuesday", "Wednesday", "Thursday", "Friday",
 ];
 export const DAYS_SHORT = ["Mon", "Tue", "Wed", "Thu", "Fri"];
 
@@ -236,11 +236,11 @@ export function TopNav({ onLogout }) {
 export const isSlotAvailable = (availability, day, time, interval = 15) =>
   interval === 30
     ? !!availability[`${day}-${time}`] &&
-      !!availability[`${day}-${addMinutesToTime(time, 15)}`] &&
-      !!availability[`${day}-${addMinutesToTime(time, 30)}`] &&
-      !!availability[`${day}-${addMinutesToTime(time, 45)}`]
+    !!availability[`${day}-${addMinutesToTime(time, 15)}`] &&
+    !!availability[`${day}-${addMinutesToTime(time, 30)}`] &&
+    !!availability[`${day}-${addMinutesToTime(time, 45)}`]
     : !!availability[`${day}-${time}`] &&
-      !!availability[`${day}-${addMinutesToTime(time, 15)}`];
+    !!availability[`${day}-${addMinutesToTime(time, 15)}`];
 
 export function Stepper({ currentStep, steps = STEPS }) {
   return (
@@ -279,6 +279,7 @@ export function StepPersonalInfo({
         errors={errors}
         isDisabled={isSubmitting}
         isStaffPage={false}
+        isBookingSteps={true}
       />
       <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 3 }}>
         <Button
@@ -573,23 +574,21 @@ export function StepChooseTime({
                         }}
                       >
                         <div
-                          className={`ba-slot ${
-                            selected
-                              ? "selected"
-                              : avail
+                          className={`ba-slot ${selected
+                            ? "selected"
+                            : avail
                               ? "avail"
                               : "unavail"
-                          }`}
+                            }`}
                           onClick={() => handleSlotClick(day, time)}
                           tabIndex={0}
                           role="button"
-                          aria-label={`${
-                            selected
-                              ? "Appointment selected"
-                              : avail
+                          aria-label={`${selected
+                            ? "Appointment selected"
+                            : avail
                               ? "Available"
                               : "Unavailable"
-                          } slot: ${day} at ${time}`}
+                            } slot: ${day} at ${time}`}
                           onKeyDown={(e) => {
                             if (e.key === "Enter" || e.key === " ") {
                               e.preventDefault();
@@ -853,8 +852,8 @@ export function StepSignupReview({ form, householdMembers, onBack, onConfirm }) 
         form.tiny_bundles_program === true
           ? "Yes"
           : form.tiny_bundles_program === false
-          ? "No"
-          : "",
+            ? "No"
+            : "",
     },
     { label: "Preferred Language", value: form.language },
   ];

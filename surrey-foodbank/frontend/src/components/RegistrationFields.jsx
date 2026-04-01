@@ -71,7 +71,8 @@ export default function RegistrationFields({
   onChange,
   errors = {},
   isDisabled = false,
-  isStaffPage
+  isStaffPage,
+  isBookingSteps = false
 }) {
 
   const status_options = isStaffPage
@@ -272,16 +273,16 @@ export default function RegistrationFields({
             color: isDisabled ? "text.disabled" : "text.primary",
           }}
         >
-          <FormLabel sx={{ maxWidth: '50%'}}>
+          <FormLabel sx={{ maxWidth: '50%' }}>
             Does your household have someone currently pregnant
             or children under 12 months old?
           </FormLabel>
           <Tooltip
-            title={<span>The Tiny Bundles program is available for pregnancies and children under 12 months. <br/>
-                          Tiny Bundles households receive food every week instead of every two weeks. They are also
-                          supplied with fresh eggs and milk while pregnant or nursing. Additional fresh vegetables
-                          and other nutritional items are supplied when available. <br/>  <br/>
-                          <i>Note: Tiny Bundles appointments can only be booked on Wednesdays.</i> </span>}
+            title={<span>The Tiny Bundles program is available for pregnancies and children under 12 months. <br />
+              Tiny Bundles households receive food every week instead of every two weeks. They are also
+              supplied with fresh eggs and milk while pregnant or nursing. Additional fresh vegetables
+              and other nutritional items are supplied when available. <br />  <br />
+              <i>Note: Tiny Bundles appointments can only be booked on Wednesdays.</i> </span>}
             disableHoverListener={isDisabled}
             disableFocusListener={isDisabled}
             arrow
@@ -340,6 +341,47 @@ export default function RegistrationFields({
           </RadioGroup>
         </Stack>
       </FormControl>
+      {/* Over the age of 18; only shows in initial applicant booking steps*/}
+      {isBookingSteps && (
+        <FormControl >
+          <Stack
+            direction="row"
+            spacing={2}
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              color: isDisabled ? "text.disabled" : "text.primary",
+            }}
+          >
+            <FormLabel sx={{ maxWidth: "50%" }}>
+              Are you over the age of 18 years old?
+            </FormLabel>
+            <RadioGroup
+              row
+              value={form.over_eighteen}
+              onChange={(e) =>
+                onChange("over_eighteen")({
+                  target: { value: e.target.value === "true" },
+                })
+              }
+            >
+              <FormControlLabel
+                value="true"
+                control={<Radio />}
+                label="Yes"
+                disabled={isDisabled}
+              />
+              <FormControlLabel
+                value="false"
+                control={<Radio />}
+                label="No"
+                disabled={isDisabled}
+              />
+            </RadioGroup>
+          </Stack>
+        </FormControl>
+      )}
+
     </Stack>
   );
 }
