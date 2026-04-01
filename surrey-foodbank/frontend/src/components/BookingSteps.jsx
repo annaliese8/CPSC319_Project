@@ -1,16 +1,25 @@
 import { useState, useEffect, useMemo } from "react";
 export const STEPS = ["Personal Info", "Choose Time", "Review", "Thank You"];
 import logo from "../styles/full-logo.png";
-import { Box, Button, Stack, Typography } from "@mui/material";
+import {
+  Box,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Stack,
+  Typography,
+} from "@mui/material";
 import NavigateNextIcon from "@mui/icons-material/NavigateNext";
 import RegistrationFields from "./RegistrationFields";
 import HouseholdMemberInfo, { AGE_GROUPS } from "./HouseholdMemberInfo";
 import { addMinutesToTime } from "../utils/TimeUtils";
 
-const BASE_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+const BASE_URL = (import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_BASE_URL || "http://localhost:3000").replace(/\/$/, "");
 
 export const DAYS_FULL = [
-  "Monday","Tuesday","Wednesday","Thursday","Friday",
+  "Monday", "Tuesday", "Wednesday", "Thursday", "Friday",
 ];
 export const DAYS_SHORT = ["Mon", "Tue", "Wed", "Thu", "Fri"];
 
@@ -236,11 +245,11 @@ export function TopNav({ onLogout }) {
 export const isSlotAvailable = (availability, day, time, interval = 15) =>
   interval === 30
     ? !!availability[`${day}-${time}`] &&
-      !!availability[`${day}-${addMinutesToTime(time, 15)}`] &&
-      !!availability[`${day}-${addMinutesToTime(time, 30)}`] &&
-      !!availability[`${day}-${addMinutesToTime(time, 45)}`]
+    !!availability[`${day}-${addMinutesToTime(time, 15)}`] &&
+    !!availability[`${day}-${addMinutesToTime(time, 30)}`] &&
+    !!availability[`${day}-${addMinutesToTime(time, 45)}`]
     : !!availability[`${day}-${time}`] &&
-      !!availability[`${day}-${addMinutesToTime(time, 15)}`];
+    !!availability[`${day}-${addMinutesToTime(time, 15)}`];
 
 export function Stepper({ currentStep, steps = STEPS }) {
   return (
@@ -279,6 +288,7 @@ export function StepPersonalInfo({
         errors={errors}
         isDisabled={isSubmitting}
         isStaffPage={false}
+        isBookingSteps={true}
       />
       <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 3 }}>
         <Button
@@ -331,6 +341,7 @@ export function StepChooseTime({
   onClearSlot,
   onBack,
   onNext,
+  existingSlot = null,
 }) {
   const todayStart = getWeekStart(new Date());
   const [weekStart, setWeekStart] = useState(todayStart);
@@ -365,7 +376,8 @@ export function StepChooseTime({
   const isLargeHousehold = householdSize >= 5;
   const bookingInterval = isLargeHousehold ? 30 : 15;
   const tinyBundles = form.applyingToTinyBundles === "yes" || form.tiny_bundles_program === true;
-  const isDimmed = (day) => tinyBundles && day !== "Wednesday";
+  // Tiny Bundles users: only Wednesday; non-TB users: all days except Wednesday
+  const isDimmed = (day) => tinyBundles ? day !== "Wednesday" : day === "Wednesday";
 
   // Saturday date (weekStart is Monday, so +5 = Saturday)
   const saturdayDate = useMemo(() => {
@@ -406,14 +418,12 @@ export function StepChooseTime({
     const dayOffset = day === "Saturday" ? 5 : DAYS_FULL.indexOf(day);
     d.setDate(weekStart.getDate() + dayOffset);
     if (isDayBeyondCutoff(d)) return;
+    const slotOk = (t) =>
+      !!availability[`${day}-${t}`] || isExistingAppt(day, t, d);
     if (isLargeHousehold) {
-      if (
-        !availability[`${day}-${time}`] ||
-        !availability[`${day}-${addMinutesToTime(time, 15)}`]
-      )
-        return;
+      if (!slotOk(time) || !slotOk(addMinutesToTime(time, 15))) return;
     } else {
-      if (!availability[`${day}-${time}`]) return;
+      if (!slotOk(time)) return;
     }
     const [hh, mm] = time.split(":").map(Number);
     d.setHours(hh, mm, 0, 0);
@@ -428,6 +438,17 @@ export function StepChooseTime({
         time === addMinutesToTime(selectedSlot.time, 15)
       );
     return time === selectedSlot.time;
+  };
+
+  const toDateStr = (d) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+  const isExistingAppt = (day, time, weekDate) => {
+    if (!existingSlot) return false;
+    if (toDateStr(weekDate) !== existingSlot.dateStr) return false;
+    if (existingSlot.duration > 15)
+      return time === existingSlot.time || time === addMinutesToTime(existingSlot.time, 15);
+    return time === existingSlot.time;
   };
 
   if (availLoading) {
@@ -453,6 +474,18 @@ export function StepChooseTime({
             }}
           >
             Showing Wednesday appointments only (Tiny Bundles program)
+          </p>
+        )}
+        {!tinyBundles && (
+          <p
+            style={{
+              textAlign: "center",
+              fontSize: 13,
+              color: "var(--gray-500)",
+              marginBottom: 12,
+            }}
+          >
+            Wednesday slots are reserved for the Tiny Bundles program and are not available for general booking.
           </p>
         )}
         {isLargeHousehold && (
@@ -508,6 +541,11 @@ export function StepChooseTime({
           <span>
             <div className="ba-legend-dot booked" /> Unavailable
           </span>
+          {existingSlot && (
+            <span>
+              <div className="ba-legend-dot" style={{ background: "#f59e0b22", outline: "2px dashed #f59e0b", outlineOffset: "-2px" }} /> Current Appointment
+            </span>
+          )}
         </div>
         <div className="ba-cal-grid">
           <table className="ba-cal-table" style={{ tableLayout: "fixed" }}>
@@ -563,6 +601,7 @@ export function StepChooseTime({
                     const dimmed = isDimmed(day) || isDayBeyondCutoff(weekDates[i]);
                     const avail = !!availability[`${day}-${time}`];
                     const selected = isHighlighted(day, time);
+                    const existing = !selected && isExistingAppt(day, time, weekDates[i]);
                     return (
                       <td
                         key={day}
@@ -573,23 +612,25 @@ export function StepChooseTime({
                         }}
                       >
                         <div
-                          className={`ba-slot ${
-                            selected
-                              ? "selected"
+                          className={`ba-slot ${selected
+                            ? "selected"
+                            : existing
+                              ? "existing"
                               : avail
-                              ? "avail"
-                              : "unavail"
-                          }`}
+                                ? "avail"
+                                : "unavail"
+                            }`}
                           onClick={() => handleSlotClick(day, time)}
                           tabIndex={0}
                           role="button"
-                          aria-label={`${
-                            selected
-                              ? "Appointment selected"
+                          aria-label={`${selected
+                            ? "Appointment selected"
+                            : existing
+                              ? "Current appointment"
                               : avail
-                              ? "Available"
-                              : "Unavailable"
-                          } slot: ${day} at ${time}`}
+                                ? "Available"
+                                : "Unavailable"
+                            } slot: ${day} at ${time}`}
                           onKeyDown={(e) => {
                             if (e.key === "Enter" || e.key === " ") {
                               e.preventDefault();
@@ -605,11 +646,12 @@ export function StepChooseTime({
                     const satPast = isDayBeyondCutoff(saturdayDate);
                     const avail = !!availability[`${day}-${time}`];
                     const selected = isHighlighted(day, time);
+                    const existing = !selected && isExistingAppt(day, time, saturdayDate);
                     return (
                       <td key="Saturday" className="ba-cal-td"
                         style={{ opacity: satPast ? 0.15 : 1, pointerEvents: satPast ? "none" : "auto" }}>
                         <div
-                          className={`ba-slot ${selected ? "selected" : avail ? "avail" : "unavail"}`}
+                          className={`ba-slot ${selected ? "selected" : existing ? "existing" : avail ? "avail" : "unavail"}`}
                           onClick={() => handleSlotClick(day, time)}
                           tabIndex={0}
                           role="button"
@@ -695,7 +737,11 @@ export function StepReview({
   onBack,
   onConfirm,
   onTimerExpired,
+  onChange,
+  errors,
+  isConfirming = false,
 }) {
+  const [isEditing, setIsEditing] = useState(false);
   const full_name = [form.first_name, form.last_name]
     .filter(Boolean)
     .join(" ");
@@ -707,7 +753,7 @@ export function StepReview({
   ]
     .filter(Boolean)
     .join(", ");
-  const rows = [
+  const infoRows = [
     { label: "Name", value: full_name },
     { label: "Address", value: full_address },
     { label: "Phone", value: form.phone },
@@ -717,7 +763,6 @@ export function StepReview({
       value: form.tiny_bundles_program === "yes" ? "Yes" : "No",
     },
     { label: "Preferred Language", value: form.language },
-    { label: "Appointment", value: formatApptString(selectedSlot) },
   ];
   const [secondsLeft, setSecondsLeft] = useState(TIMER_SECONDS);
   useEffect(() => {
@@ -731,14 +776,80 @@ export function StepReview({
   return (
     <>
       <div className="ba-body">
-        <h2>Please confirm that the following fields are correct</h2>
-        <div className="ba-review-grid">
-          {rows.map(({ label, value }) => (
-            <div key={label} className="ba-review-row">
-              <div className="ba-review-label">{label}</div>
-              <div className="ba-review-val">{value}</div>
-            </div>
-          ))}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+          <h2 style={{ margin: 0 }}>Please confirm that the following fields are correct</h2>
+          <Button
+            size="small"
+            variant="outlined"
+            onClick={() => setIsEditing((v) => !v)}
+            sx={{ ml: 2, textTransform: "none", fontWeight: 600, flexShrink: 0 }}
+          >
+            {isEditing ? "Done Editing" : "Edit Info"}
+          </Button>
+        </div>
+        {isEditing ? (
+          <RegistrationFields
+            form={form}
+            onChange={onChange}
+            errors={errors || {}}
+            isDisabled={false}
+            isStaffPage={false}
+          />
+        ) : (
+          <div className="ba-review-grid">
+            {infoRows.map(({ label, value }) => (
+              <div key={label} className="ba-review-row">
+                <div className="ba-review-label">{label}</div>
+                <div className="ba-review-val">{value}</div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <Typography variant="subtitle1" sx={{ fontWeight: 700, mt: 2, mb: 1 }}>
+          Additional Household Members{" "}
+          <span style={{ fontWeight: 400, color: "#66747F" }}>
+            ({(form.householdMembers ?? []).length})
+          </span>
+        </Typography>
+        {(form.householdMembers ?? []).length === 0 ? (
+          <Typography variant="body2" sx={{ color: "#66747F", fontStyle: "italic", mb: 1 }}>
+            No additional household members added.
+          </Typography>
+        ) : (
+          (form.householdMembers ?? []).map((m, i) => {
+            const ageGroupConfig = AGE_GROUPS.find((g) => g.key === m.ageGroup);
+            return (
+              <div
+                key={m.id ?? i}
+                className="ba-review-grid"
+                style={{
+                  marginBottom: 10,
+                  borderBottom: i < (form.householdMembers ?? []).length - 1 ? "1px solid var(--gray-200)" : "none",
+                }}
+              >
+                <div className="ba-review-row">
+                  <div className="ba-review-label">Name</div>
+                  <div className="ba-review-val">
+                    {[m.firstName, m.lastName].filter(Boolean).join(" ")}
+                  </div>
+                </div>
+                <div className="ba-review-row">
+                  <div className="ba-review-label">Age Group</div>
+                  <div className="ba-review-val">
+                    {ageGroupConfig ? `${ageGroupConfig.label} (${ageGroupConfig.range})` : "—"}
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        )}
+
+        <div className="ba-review-grid" style={{ marginTop: 8 }}>
+          <div className="ba-review-row">
+            <div className="ba-review-label">Appointment</div>
+            <div className="ba-review-val">{formatApptString(selectedSlot)}</div>
+          </div>
         </div>
       </div>
       <TimerBar secondsLeft={secondsLeft} />
@@ -749,8 +860,8 @@ export function StepReview({
         <button className="ba-btn ba-btn-secondary" onClick={onBack}>
           ← Back
         </button>
-        <button className="ba-btn ba-btn-confirm" onClick={onConfirm}>
-          Confirm
+        <button className="ba-btn ba-btn-confirm" onClick={onConfirm} disabled={isConfirming}>
+          {isConfirming ? "Saving..." : "Confirm Booking"}
         </button>
       </div>
     </>
@@ -799,33 +910,105 @@ export function StepHouseholdMembers({
   onNext,
   errors,
 }) {
+  const [showInfantPrompt, setShowInfantPrompt] = useState(false);
+  const [promptAcknowledged, setPromptAcknowledged] = useState(false);
+
+  const membersSignature = useMemo(
+    () => JSON.stringify(householdMembers || []),
+    [householdMembers],
+  );
+
+  const hasInfantMember = useMemo(
+    () => (householdMembers || []).some((member) => member?.ageGroup === "infant"),
+    [householdMembers],
+  );
+
+  useEffect(() => {
+    setPromptAcknowledged(false);
+  }, [membersSignature]);
+
+  const handleNext = () => {
+    if (hasInfantMember && !promptAcknowledged) {
+      setShowInfantPrompt(true);
+      return;
+    }
+    onNext();
+  };
+
+  const handleContinueAfterPrompt = () => {
+    setPromptAcknowledged(true);
+    setShowInfantPrompt(false);
+    onNext();
+  };
+
   return (
-    <Box className="ba-body">
-      <Typography variant="h2">Additional Household Members</Typography>
-      <HouseholdMemberInfo
-        householdMembers={householdMembers}
-        onChange={onChange}
-        errors={errors}
-      />
-      <Box sx={{ display: "flex", justifyContent: "space-between", mt: 1 }}>
-        <Button
-          variant="outlined"
-          onClick={onBack}
-          sx={{ textTransform: "none", fontWeight: 600 }}
-        >
-          ← Back
-        </Button>
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={onNext}
-          sx={{ fontWeight: "bold", textTransform: "none" }}
-          endIcon={<NavigateNextIcon />}
-        >
-          Next
-        </Button>
+    <>
+      <Box className="ba-body">
+        <Typography variant="h2">Additional Household Members</Typography>
+        <HouseholdMemberInfo
+          householdMembers={householdMembers}
+          onChange={onChange}
+          errors={errors}
+        />
+        <Box sx={{ display: "flex", justifyContent: "space-between", mt: 1 }}>
+          <Button
+            variant="outlined"
+            onClick={onBack}
+            sx={{ textTransform: "none", fontWeight: 600 }}
+          >
+            ← Back
+          </Button>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handleNext}
+            sx={{ fontWeight: "bold", textTransform: "none" }}
+            endIcon={<NavigateNextIcon />}
+          >
+            Next
+          </Button>
+        </Box>
       </Box>
-    </Box>
+      <Dialog
+        open={showInfantPrompt}
+        onClose={() => setShowInfantPrompt(false)}
+        aria-labelledby="tiny-bundles-info-title"
+        PaperProps={{
+          sx: {
+            borderRadius: 2,
+            border: "2px solid #63C5DA",
+            bgcolor: "#F4FCFF",
+          },
+        }}
+      >
+        <DialogTitle id="tiny-bundles-info-title">
+          <Typography variant="h6" sx={{ fontWeight: 800, color: "#0B5F7A" }}>
+            Tiny Bundles Program Information
+          </Typography>
+        </DialogTitle>
+        <DialogContent dividers>
+          <Typography variant="body2" sx={{ mb: 1.5 }}>
+            We noticed you added an infant (0-12 months) to your household.
+          </Typography>
+          <Typography variant="body2" sx={{ mb: 1.5 }}>
+            If your household has someone currently pregnant or a child under 12 months,
+            you may be eligible for our Tiny Bundles program.
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            You can update your Tiny Bundles selection in the registration details if needed.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 2, pb: 2 }}>
+          <Button
+            variant="contained"
+            onClick={handleContinueAfterPrompt}
+            sx={{ bgcolor: "#0B5F7A", "&:hover": { bgcolor: "#084B60" } }}
+          >
+            Okay
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
   );
 }
 
@@ -853,8 +1036,8 @@ export function StepSignupReview({ form, householdMembers, onBack, onConfirm }) 
         form.tiny_bundles_program === true
           ? "Yes"
           : form.tiny_bundles_program === false
-          ? "No"
-          : "",
+            ? "No"
+            : "",
     },
     { label: "Preferred Language", value: form.language },
   ];

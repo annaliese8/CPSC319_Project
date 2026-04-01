@@ -55,6 +55,7 @@ function ApplicantDatabase() {
     const appt = getAppointment(applicant)
     navigate(`/staff/applicant-info`, {
       state: {
+        from: "database",
         appointment: {
           id: applicant.response_id,
           first_name: applicant.first_name || "",
@@ -116,6 +117,7 @@ function ApplicantDatabase() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           sx={{ mb: 3 }}
+          slotProps={{ htmlInput: { maxLength: 254 } }}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">

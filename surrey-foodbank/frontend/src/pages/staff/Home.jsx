@@ -9,6 +9,7 @@ function Home() {
   const [isEditing, setIsEditing] = useState(false);
   const [canceled, setCanceled] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [confirmed, setConfirmed] = useState(false);
   const [toggleBookingPanel, setToggleBookingPanel] = useState(0);
 
   const navigate = useNavigate();
@@ -39,11 +40,15 @@ function Home() {
 
   const handleSave = () => {
     setSaved(true);
-    setIsEditing(false);
   };
 
   const handleBook = () => {
     setToggleBookingPanel((prev) => prev + 1);
+  };
+
+  const handleConfirm = () => {
+      setConfirmed(true);
+      setIsEditing(false);
   };
 
 
@@ -65,14 +70,18 @@ function Home() {
           onCancel={handleCancel}
           onSave={handleSave}
           onBook={handleBook}
+          isConfirmed={confirmed}
+          setIsConfirmed={setConfirmed}
         />
         <AdminCalendarPanel
           isEditing={isEditing}
           saveChanges={saved}
+          setSaveState={setSaved}
           discardChanges={canceled}
           toggleBookingPanel={toggleBookingPanel}
           changeBookingAppointment={changeBookingAppointment}
           isNewBooking={isNewBooking}
+          saveConfirmed={handleConfirm}
         />
       </Box>
     </Box>

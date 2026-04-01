@@ -27,7 +27,10 @@ import { getAppointmentByResponseId, updateAppointment } from "../../api/appoint
 export default function ApplicantInfoPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const handleBack = () => navigate("/staff/applicant-database");
+  const handleBack = () =>
+    location.state?.from === "calendar"
+      ? navigate("/staff/home")
+      : navigate("/staff/applicant-database");
 
   const [appointment, setAppointment] = useState(location.state?.appointment);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
@@ -63,7 +66,7 @@ export default function ApplicantInfoPage() {
       })
       .catch((err) => console.error("Failed to load household members:", err.message));
 
-    fetch(`${import.meta.env.VITE_BACKEND_URL || "http://localhost:3000"}/api/applicants/${responseId}`)
+    fetch(`${(import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_BASE_URL || "http://localhost:3000").replace(/\/$/, "")}/api/applicants/${responseId}`)
       .then((res) => res.json())
       .then((result) => {
         const reg = result?.data ?? null;

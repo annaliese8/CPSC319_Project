@@ -75,7 +75,6 @@
 .admin-calendar-row {
   display: flex;
   height: 28px;
-  padding-bottom: 1px;
 }
 
 .admin-time-label {
@@ -102,12 +101,42 @@
   background-color: #2eafc4;
 }
 
+/* Single 15-min booked slot — no accent */
 .admin-booked {
   background-color: #005070;
+  border-radius: 3px;
 }
 
 .admin-booked:hover {
   background-color: #003f55;
+}
+
+/* Multi-slot appointment rendered as one tall block — teal left accent */
+.admin-booked-start {
+  background-color: #005070;
+  box-shadow: inset 3px 0 0 #4CC5DC;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.admin-booked-start:hover {
+  background-color: #003f55;
+}
+
+/* Applicant name + household size — pinned to top-left of the block */
+.slot-appt-label {
+  position: absolute;
+  left: 8px;
+  right: 12px;
+  top: 5px;
+  font-size: 9px;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+  line-height: 1;
 }
 
 .unavailable-invis {

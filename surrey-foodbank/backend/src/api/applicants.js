@@ -38,11 +38,11 @@ export async function getAppointments() {
 }
 
 export async function getAppointmentsByDateRange(startDate, endDate) {
-  // No JOIN — only appointment columns needed to render the calendar grid.
-  // Applicant details (name, email) are lazy-loaded when the info dialog opens.
+  // Lightweight JOIN: only fetch name + household_size for calendar slot display.
+  // Email is still lazy-loaded when the info dialog opens.
   const { data, error } = await supabase
     .from('appointments')
-    .select('*')
+    .select('*, registrationformresponse(first_name, last_name, householdinformation(count))')
     .gte('appointment_date', startDate)
     .lte('appointment_date', endDate)
   if (error) throw error

@@ -55,9 +55,22 @@ export default function AppointmentStatus({ appointment, onStatusChange }) {
         setAnchorEl(null);
     };
 
+    // Normalize DB status strings (e.g. "booked" → "Booked") before lookup
+    const normalizeLabel = (s) => {
+        if (!s) return s;
+        const map = {
+            "booked": "Booked",
+            "checked in": "Checked In",
+            "checked-in": "Checked In",
+            "complete": "Complete",
+            "no show": "No Show",
+        };
+        return map[s.toLowerCase()] ?? s;
+    };
+
     // Find the color associated with the current status
     const selectedOption = STATUS_OPTIONS.find(
-        (option) => option.label === status
+        (option) => option.label === normalizeLabel(status)
     );
 
     return (
@@ -66,7 +79,7 @@ export default function AppointmentStatus({ appointment, onStatusChange }) {
             <Chip
                 label={
                     <Stack direction="row" alignItems="center" spacing={0.5}>
-                        <span>{status || "Select status"}</span>
+                        <span>{normalizeLabel(status) || "Select status"}</span>
                         <ArrowDropDownIcon fontSize="small" />
                     </Stack>
                 }

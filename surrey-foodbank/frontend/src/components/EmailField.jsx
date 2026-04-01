@@ -21,6 +21,7 @@ function EmailField({ onChange, error = false, helperText = "", ...props }) {
               </InputAdornment>
             ),
           },
+          htmlInput: { maxLength: 254 }
         }}
         onChange={onChange}
         helperText={helperText}
