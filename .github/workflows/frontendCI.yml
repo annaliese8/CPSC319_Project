@@ -52,7 +52,7 @@ jobs:
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
 
       - name: Deploy backend
-        if: github.ref == 'refs/heads/main' && secrets.BACKEND_DEPLOY_HOOK_URL != ''
+        if: github.ref == 'refs/heads/main'
         run: curl -fsS -X POST "$BACKEND_DEPLOY_HOOK_URL"
         env:
           BACKEND_DEPLOY_HOOK_URL: ${{ secrets.BACKEND_DEPLOY_HOOK_URL }}
