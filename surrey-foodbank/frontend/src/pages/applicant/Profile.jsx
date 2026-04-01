@@ -1,6 +1,7 @@
 import {
   Box,
   Button,
+  CircularProgress,
   Divider,
   Link,
   Paper,
@@ -112,6 +113,7 @@ function Profile() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showIneligibleStatusDialog, setShowIneligibleStatusDialog] = useState(false);
   const [ineligibleStatus, setIneligibleStatus] = useState("");
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
 
   // Load user and appointment data
   useEffect(() => {
@@ -122,8 +124,10 @@ function Profile() {
       const { data: sessionData } = await supabase.auth.getSession();
       const accessToken = sessionData?.session?.access_token;
       const userEmail = sessionData?.session?.user?.email || "";
+      let redirected = false;
 
       if (!accessToken) {
+        redirected = true;
         navigate("/applicant/login", { replace: true });
         return;
       }
@@ -131,24 +135,14 @@ function Profile() {
       const apiBase = getApiBaseUrl();
 
       try {
-        const [registrationResponse, appointmentResponse] = await Promise.all([
-          fetch(`${apiBase}/api/applicant/registration`, {
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-            },
-          }),
-          fetch(`${apiBase}/api/applicant/appointment`, {
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-            },
-          }),
-        ]);
-
+        const registrationResponse = await fetch(`${apiBase}/api/applicant/registration`, {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        });
         const result = await registrationResponse.json().catch(() => null);
-        const appointmentResult = await appointmentResponse.json().catch(() => null);
-        if (!isMounted) return;
-
         if (!registrationResponse.ok) {
+          if (!isMounted) return;
           setSubmitError(result?.error || "Unable to load registration form data.");
           setAppointment((prev) => ({
             ...prev,
@@ -158,6 +152,22 @@ function Profile() {
           return;
         }
 
+        const registration = result?.data?.registration || null;
+
+        if (!registration) {
+          redirected = true;
+          navigate("/applicant/register");
+          return;
+        }
+
+        const appointmentResponse = await fetch(`${apiBase}/api/applicant/appointment`, {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        });
+        const appointmentResult = await appointmentResponse.json().catch(() => null);
+        if (!isMounted) return;
+
         if (!appointmentResponse.ok) {
           setSubmitError(
             appointmentResult?.error ||
@@ -165,7 +175,6 @@ function Profile() {
           );
         }
 
-        const registration = result?.data?.registration || null;
         const appointmentFromDb = toAppointmentDisplay(
           appointmentResult?.data?.appointment || null,
         );
@@ -183,6 +192,9 @@ function Profile() {
       } catch (_error) {
         if (!isMounted) return;
         setSubmitError("Unable to load registration form data.");
+      } finally {
+        if (!isMounted || redirected) return;
+        setIsInitialLoading(false);
       }
     }
 
@@ -192,6 +204,26 @@ function Profile() {
       isMounted = false;
     };
   }, [navigate]);
+
+  if (isInitialLoading) {
+    return (
+      <Box
+        sx={{
+          minHeight: "100vh",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          alignItems: "center",
+          gap: 1,
+        }}
+      >
+        <CircularProgress size={72} thickness={4.5} />
+        <Typography variant="body2" color="text.secondary">
+          Loading your profile...
+        </Typography>
+      </Box>
+    );
+  }
 
   // Keep in sync when appointment loads
   useEffect(() => {
