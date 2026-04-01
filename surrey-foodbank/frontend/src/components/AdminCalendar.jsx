@@ -57,10 +57,14 @@ export const STATUS_DOT_COLORS = {
 // Normalize DB status strings to match STATUS_OPTIONS labels
 const normalizeStatus = (status) => {
   if (!status) return "";
-  const s = status.trim();
-  if (s.toLowerCase() === "checked-in" || s.toLowerCase() === "checked in") return "Checked In";
-  // Capitalize first letter of each word for any other variants
-  return s;
+  switch (status.trim().toLowerCase()) {
+    case "booked":       return "Booked";
+    case "checked in":
+    case "checked-in":   return "Checked In";
+    case "complete":     return "Complete";
+    case "no show":      return "No Show";
+    default:             return status.trim();
+  }
 };
 
 function StatusDot({ status }) {
