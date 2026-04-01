@@ -26,7 +26,7 @@ function IneligibleAgeDialog({ open, onClose }) {
                     fontWeight: 800,
                 }}
             >
-                You cannot register online at this time
+                You're Not Eligible to Register Online
                 <IconButton
                     aria-label="Close ineligible age dialog"
                     onClick={onClose}
