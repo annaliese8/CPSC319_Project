@@ -11,8 +11,6 @@ import { useNavigate } from "react-router-dom";
 import ApplicantTopBar from "../../components/ApplicantTopBar";
 import { Typography } from "@mui/material";
 import { getSupabaseClient } from "../../lib/supabaseClient";
-import EmailClient from "../../../../backend/src/api/emailclient.js";
-
 
 function getApiBaseUrl() {
   const envBase = (import.meta.env.VITE_API_BASE_URL || "").trim();
@@ -56,8 +54,8 @@ export default function BookAppointment() {
       if (isMounted) {
         setAccessToken(token);
       }
-
       const apiBase = getApiBaseUrl();
+
       try {
         const [regResponse, apptResponse] = await Promise.all([
           fetch(`${apiBase}/api/applicant/registration`, {
@@ -174,8 +172,6 @@ export default function BookAppointment() {
       duration,
       appointmentStatus: "Booked",
     };
-
-    const apiBase = getApiBaseUrl();
 
     try {
       const response = await fetch(`${apiBase}/api/applicant/appointment`, {
