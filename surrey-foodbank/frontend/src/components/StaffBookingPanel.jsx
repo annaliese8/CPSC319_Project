@@ -11,6 +11,7 @@ import {
 import LockIcon from "@mui/icons-material/Lock";
 import RegistrationFields from "../components/RegistrationFields";
 import { addMinutesToTime } from "../utils/TimeUtils";
+import { getApplicantByEmail, getApplicant, getHouseholdMembers } from "../api/applicantsAPI";
 
 // Validate using the same snake_case keys that RegistrationFields uses
 function validateForm(form) {
@@ -42,6 +43,7 @@ export default function StaffBookingPanel({
   onClose,
   onConfirmBooking,
   existingAppointments = [],
+  blockedSlots = [],           // savedBlocked from AdminCalendar: [{date, time}]
   rebookingAppointment = null, // pre-fills the form with applicant data
   isNewBooking = false,        // true = new booking from profile (pre-fill but don't cancel old)
 }) {
@@ -75,6 +77,7 @@ export default function StaffBookingPanel({
   const [startTime, setStartTime] = React.useState("");
   const [endTime, setEndTime] = React.useState("");
   const [saving, setSaving] = React.useState(false);
+  const [lookupStatus, setLookupStatus] = React.useState(null); // null | 'loading' | 'found' | 'not-found'
 
   React.useEffect(() => {
     if (selectedSlot) {
@@ -98,6 +101,50 @@ export default function StaffBookingPanel({
     }
   }, [selectedSlot]);
 
+  React.useEffect(() => {
+    if (isRebooking) return;
+    const email = form.email;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setLookupStatus(null);
+      return;
+    }
+    setLookupStatus("loading");
+    const timer = setTimeout(async () => {
+      try {
+        const result = await getApplicantByEmail(email.trim());
+        if (result?.response_id) {
+          const [reg, membersResult] = await Promise.all([
+            getApplicant(result.response_id),
+            getHouseholdMembers(result.response_id),
+          ]);
+          if (reg) {
+            setForm((prev) => ({
+              ...prev,
+              first_name: reg.first_name || prev.first_name,
+              last_name: reg.last_name || prev.last_name,
+              phone: reg.phone || prev.phone,
+              street_addr: reg.street_addr || prev.street_addr,
+              city: reg.city || prev.city,
+              province: reg.province || prev.province,
+              postal_code: reg.postal_code || prev.postal_code,
+              status_in_canada: reg.status_in_canada || prev.status_in_canada,
+              tiny_bundles_program: reg.tiny_bundles_program ?? prev.tiny_bundles_program,
+              language: reg.language || prev.language,
+              householdMembers: membersResult?.data ?? membersResult ?? [],
+              _response_id: result.response_id,
+            }));
+          }
+          setLookupStatus("found");
+        } else {
+          setLookupStatus("not-found");
+        }
+      } catch {
+        setLookupStatus("not-found");
+      }
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [form.email, isRebooking]);
+
   const onChange = (key) => (e) => {
     if (isRebooking) return;
     setForm((prev) => ({ ...prev, [key]: e.target.value }));
@@ -108,6 +155,17 @@ export default function StaffBookingPanel({
   const getDuration = () => {
     const size = (form.householdMembers?.length ?? 0) + 1;
     return size >= 5 ? 30 : 15;
+  };
+
+  // Respect manually-entered end time; fall back to household-derived duration
+  const getEffectiveDuration = () => {
+    if (startTime && endTime) {
+      const [sh, sm] = startTime.split(":").map(Number);
+      const [eh, em] = endTime.split(":").map(Number);
+      const diff = (eh * 60 + em) - (sh * 60 + sm);
+      if (diff > 0 && diff % 15 === 0) return diff;
+    }
+    return getDuration();
   };
 
   React.useEffect(() => {
@@ -166,11 +224,48 @@ export default function StaffBookingPanel({
     if (!editableDate) { setError("Please select a date"); return; }
     if (!startTime) { setError("Please enter a start time"); return; }
 
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (new Date(editableDate + "T00:00:00") < today) {
+      setError("Cannot book an appointment in the past.");
+      return;
+    }
+
     const dateObj = new Date(editableDate + "T00:00:00");
     const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
     const dayName = dayNames[dateObj.getDay()];
-    const duration = getDuration();
+
+    if (dayName === "Saturday" || dayName === "Sunday") {
+      setError("Cannot book appointments on weekends.");
+      return;
+    }
+
+    const duration = getEffectiveDuration();
     const excludeId = isRebooking ? rebookingAppointment?.response_id ?? null : null;
+
+    // Check each 15-min slot within the duration range for blocked or booked conflicts
+    const normTime = (t) => {
+      const [h, m] = t.split(":").map(Number);
+      return `${h}:${m.toString().padStart(2, "0")}`;
+    };
+    const [sh, sm] = startTime.split(":").map(Number);
+    const startMins = sh * 60 + sm;
+    const endMins = startMins + duration;
+
+    // End time must not go past 1:00 PM
+    if (endMins > 13 * 60) {
+      setError("Appointment end time cannot go past 1:00 PM.");
+      return;
+    }
+
+    for (let offset = 0; offset < duration; offset += 15) {
+      const slotMins = startMins + offset;
+      const slotTime = normTime(`${Math.floor(slotMins / 60)}:${slotMins % 60}`);
+      if (blockedSlots.some((s) => s.date === editableDate && s.time === slotTime)) {
+        setError("Part of the selected time range overlaps with a blocked slot.");
+        return;
+      }
+    }
 
     if (!checkSlotAvailability(dayName, startTime, duration, excludeId)) {
       setError("The selected time slot is not available. Please choose another time.");
@@ -178,8 +273,7 @@ export default function StaffBookingPanel({
     }
 
     const appointmentData = {
-      // snake_case — used by createApplicant in AdminCalendar
-      response_id: rebookingAppointment?.response_id ?? rebookingAppointment?.id ?? null,
+      response_id: rebookingAppointment?.response_id ?? rebookingAppointment?.id ?? form._response_id ?? null,
       first_name: form.first_name,
       last_name: form.last_name,
       street_addr: form.street_addr,
@@ -317,6 +411,21 @@ export default function StaffBookingPanel({
           }
           slotProps={{ htmlInput: { maxLength: 254 } }}
         />
+        {!isRebooking && lookupStatus === "loading" && (
+          <Typography variant="caption" sx={{ color: "text.secondary" }}>
+            Looking up account…
+          </Typography>
+        )}
+        {!isRebooking && lookupStatus === "found" && (
+          <Typography variant="caption" sx={{ color: "success.main" }}>
+            Account found — details auto-filled
+          </Typography>
+        )}
+        {!isRebooking && lookupStatus === "not-found" && (
+          <Typography variant="caption" sx={{ color: "text.secondary" }}>
+            No existing account — a new one will be created
+          </Typography>
+        )}
 
         <RegistrationFields
           form={form}

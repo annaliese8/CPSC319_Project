@@ -119,6 +119,9 @@ function Profile() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showIneligibleStatusDialog, setShowIneligibleStatusDialog] = useState(false);
   const [ineligibleStatus, setIneligibleStatus] = useState("");
+  const [showIneligibleCityDialog, setShowIneligibleCityDialog] = useState(false);
+  const [ineligibleCity, setIneligibleCity] = useState("");
+  const [showSizeUpgradeDialog, setShowSizeUpgradeDialog] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [showInfantPrompt, setShowInfantPrompt] = useState(false);
   const [infantPromptAcknowledged, setInfantPromptAcknowledged] = useState(false);
@@ -438,10 +441,15 @@ function Profile() {
     }
 
     setMemberErrors({});
-    setAppointment((prev) => ({
-      ...prev,
-      householdMembers: pendingHouseholdMembers,
-    }));
+    setAppointment((prev) => {
+      const newTotal = pendingHouseholdMembers.length + 1;
+      const hasBooking = !!(prev.date || prev.startTime);
+      const wasShort = (prev.duration || 0) < 30;
+      if (hasBooking && newTotal >= 5 && wasShort) {
+        setShowSizeUpgradeDialog(true);
+      }
+      return { ...prev, householdMembers: pendingHouseholdMembers };
+    });
     setIsSubmitting(false);
   };
 
@@ -681,6 +689,45 @@ function Profile() {
           </Dialog>
         </>
       )}
+
+      {/* Shown when household grows to 5+ while a 15-min appointment is already booked */}
+      <Dialog
+        open={showSizeUpgradeDialog}
+        onClose={() => setShowSizeUpgradeDialog(false)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle sx={{ fontWeight: 800 }}>Appointment Time Change Required</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" sx={{ mb: 1.5 }}>
+            Your household now has <strong>{(appointment.householdMembers?.length ?? 0) + 1} members</strong>, which requires a <strong>30-minute</strong> appointment slot instead of 15 minutes.
+          </Typography>
+          {appointment.dateLabel && (
+            <Typography variant="body2" sx={{ mb: 1.5 }}>
+              Your current appointment is booked for <strong>{appointment.dateLabel}</strong>
+              {appointment.timeLabel ? ` at ${appointment.timeLabel}` : ""}.
+            </Typography>
+          )}
+          <Typography variant="body2" color="text.secondary">
+            Please change your appointment to make sure you have enough time at your visit.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 2, pb: 2, gap: 1 }}>
+          <Button variant="outlined" onClick={() => setShowSizeUpgradeDialog(false)}>
+            Later
+          </Button>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={() => {
+              setShowSizeUpgradeDialog(false);
+              navigate("/applicant/book-appointment");
+            }}
+          >
+            Change Appointment
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 }

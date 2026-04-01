@@ -1,6 +1,7 @@
 import React from "react";
 import { Typography, Box, Paper, Button, Divider, Stack } from "@mui/material";
 import AppointmentStatus from "./AppointmentStatus";
+import { formatDateFull, formatTimeRange } from "../utils/TimeUtils";
 
 export default function BookingInfo({
   appointment,
@@ -15,9 +16,16 @@ export default function BookingInfo({
     !!(appointment?.appointment_date || appointment?.day) &&
     !!(appointment?.appointment_time || appointment?.startTime);
 
-  // CHANGED: display DB fields with fallback to old label fields
-  const dateDisplay = appointment?.appointment_date ?? appointment?.dateLabel ?? "";
-  const timeDisplay = appointment?.appointment_time ?? appointment?.timeLabel ?? "";
+  // Format date with full weekday; format time as "9:00am – 9:15am" range
+  const dateDisplay = formatDateFull(
+    appointment?.appointment_date ?? appointment?.date ?? appointment?.dateLabel ?? ""
+  );
+  const timeDisplay = (appointment?.appointment_date || appointment?.date)
+    ? formatTimeRange(
+        appointment?.appointment_time ?? appointment?.startTime,
+        appointment?.duration
+      )
+    : (appointment?.timeLabel ?? "");
 
   return (
     <Box>
