@@ -1,7 +1,16 @@
 import { useState, useEffect, useMemo } from "react";
 export const STEPS = ["Personal Info", "Choose Time", "Review", "Thank You"];
 import logo from "../styles/full-logo.png";
-import { Box, Button, Stack, Typography } from "@mui/material";
+import {
+  Box,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Stack,
+  Typography,
+} from "@mui/material";
 import NavigateNextIcon from "@mui/icons-material/NavigateNext";
 import RegistrationFields from "./RegistrationFields";
 import HouseholdMemberInfo, { AGE_GROUPS } from "./HouseholdMemberInfo";
@@ -798,33 +807,105 @@ export function StepHouseholdMembers({
   onNext,
   errors,
 }) {
+  const [showInfantPrompt, setShowInfantPrompt] = useState(false);
+  const [promptAcknowledged, setPromptAcknowledged] = useState(false);
+
+  const membersSignature = useMemo(
+    () => JSON.stringify(householdMembers || []),
+    [householdMembers],
+  );
+
+  const hasInfantMember = useMemo(
+    () => (householdMembers || []).some((member) => member?.ageGroup === "infant"),
+    [householdMembers],
+  );
+
+  useEffect(() => {
+    setPromptAcknowledged(false);
+  }, [membersSignature]);
+
+  const handleNext = () => {
+    if (hasInfantMember && !promptAcknowledged) {
+      setShowInfantPrompt(true);
+      return;
+    }
+    onNext();
+  };
+
+  const handleContinueAfterPrompt = () => {
+    setPromptAcknowledged(true);
+    setShowInfantPrompt(false);
+    onNext();
+  };
+
   return (
-    <Box className="ba-body">
-      <Typography variant="h2">Additional Household Members</Typography>
-      <HouseholdMemberInfo
-        householdMembers={householdMembers}
-        onChange={onChange}
-        errors={errors}
-      />
-      <Box sx={{ display: "flex", justifyContent: "space-between", mt: 1 }}>
-        <Button
-          variant="outlined"
-          onClick={onBack}
-          sx={{ textTransform: "none", fontWeight: 600 }}
-        >
-          ← Back
-        </Button>
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={onNext}
-          sx={{ fontWeight: "bold", textTransform: "none" }}
-          endIcon={<NavigateNextIcon />}
-        >
-          Next
-        </Button>
+    <>
+      <Box className="ba-body">
+        <Typography variant="h2">Additional Household Members</Typography>
+        <HouseholdMemberInfo
+          householdMembers={householdMembers}
+          onChange={onChange}
+          errors={errors}
+        />
+        <Box sx={{ display: "flex", justifyContent: "space-between", mt: 1 }}>
+          <Button
+            variant="outlined"
+            onClick={onBack}
+            sx={{ textTransform: "none", fontWeight: 600 }}
+          >
+            ← Back
+          </Button>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handleNext}
+            sx={{ fontWeight: "bold", textTransform: "none" }}
+            endIcon={<NavigateNextIcon />}
+          >
+            Next
+          </Button>
+        </Box>
       </Box>
-    </Box>
+      <Dialog
+        open={showInfantPrompt}
+        onClose={() => setShowInfantPrompt(false)}
+        aria-labelledby="tiny-bundles-info-title"
+        PaperProps={{
+          sx: {
+            borderRadius: 2,
+            border: "2px solid #63C5DA",
+            bgcolor: "#F4FCFF",
+          },
+        }}
+      >
+        <DialogTitle id="tiny-bundles-info-title">
+          <Typography variant="h6" sx={{ fontWeight: 800, color: "#0B5F7A" }}>
+            Tiny Bundles Program Information
+          </Typography>
+        </DialogTitle>
+        <DialogContent dividers>
+          <Typography variant="body2" sx={{ mb: 1.5 }}>
+            We noticed you added an infant (0-12 months) to your household.
+          </Typography>
+          <Typography variant="body2" sx={{ mb: 1.5 }}>
+            If your household has someone currently pregnant or a child under 12 months,
+            you may be eligible for our Tiny Bundles program.
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            You can update your Tiny Bundles selection in the registration details if needed.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 2, pb: 2 }}>
+          <Button
+            variant="contained"
+            onClick={handleContinueAfterPrompt}
+            sx={{ bgcolor: "#0B5F7A", "&:hover": { bgcolor: "#084B60" } }}
+          >
+            Okay
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
   );
 }
 

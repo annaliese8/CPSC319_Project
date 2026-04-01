@@ -1,6 +1,11 @@
 import {
   Box,
   Button,
+  CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   Divider,
   Link,
   Paper,
@@ -20,7 +25,7 @@ import {
   FamilyRestroom as FamilyRestroomIcon,
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import BookingInfo from "../../components/BookingInfo";
 import RegistrationFormInfo from "../../components/RegistrationFormInfo";
 import ApplicantTopBar from "../../components/ApplicantTopBar";
@@ -114,8 +119,19 @@ function Profile() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showIneligibleStatusDialog, setShowIneligibleStatusDialog] = useState(false);
   const [ineligibleStatus, setIneligibleStatus] = useState("");
-  const [showIneligibleCityDialog, setShowIneligibleCityDialog] = useState(false);
-  const [ineligibleCity, setIneligibleCity] = useState("");
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [showInfantPrompt, setShowInfantPrompt] = useState(false);
+  const [infantPromptAcknowledged, setInfantPromptAcknowledged] = useState(false);
+
+  const pendingMembersSignature = useMemo(
+    () => JSON.stringify(pendingHouseholdMembers ?? []),
+    [pendingHouseholdMembers],
+  );
+  const hasInfantInPendingMembers = useMemo(
+    () => (pendingHouseholdMembers ?? []).some((member) => member?.ageGroup === "infant"),
+    [pendingHouseholdMembers],
+  );
+
 
   // Load user and appointment data
   useEffect(() => {
@@ -126,8 +142,10 @@ function Profile() {
       const { data: sessionData } = await supabase.auth.getSession();
       const accessToken = sessionData?.session?.access_token;
       const userEmail = sessionData?.session?.user?.email || "";
+      let redirected = false;
 
       if (!accessToken) {
+        redirected = true;
         navigate("/applicant/login", { replace: true });
         return;
       }
@@ -135,24 +153,15 @@ function Profile() {
       const apiBase = getApiBaseUrl();
 
       try {
-        const [registrationResponse, appointmentResponse] = await Promise.all([
-          fetch(`${apiBase}/api/applicant/registration`, {
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-            },
-          }),
-          fetch(`${apiBase}/api/applicant/appointment`, {
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-            },
-          }),
-        ]);
+        const registrationResponse = await fetch(`${apiBase}/api/applicant/registration`, {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        });
 
         const result = await registrationResponse.json().catch(() => null);
-        const appointmentResult = await appointmentResponse.json().catch(() => null);
-        if (!isMounted) return;
-
         if (!registrationResponse.ok) {
+          if (!isMounted) return;
           setSubmitError(result?.error || "Unable to load registration form data.");
           setAppointment((prev) => ({
             ...prev,
@@ -162,6 +171,22 @@ function Profile() {
           return;
         }
 
+        const registration = result?.data?.registration || null;
+
+        if (!registration) {
+          redirected = true;
+          navigate("/applicant/register");
+          return;
+        }
+
+        const appointmentResponse = await fetch(`${apiBase}/api/applicant/appointment`, {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        });
+        const appointmentResult = await appointmentResponse.json().catch(() => null);
+        if (!isMounted) return;
+
         if (!appointmentResponse.ok) {
           setSubmitError(
             appointmentResult?.error ||
@@ -169,7 +194,6 @@ function Profile() {
           );
         }
 
-        const registration = result?.data?.registration || null;
         const appointmentFromDb = toAppointmentDisplay(
           appointmentResult?.data?.appointment || null,
         );
@@ -187,6 +211,9 @@ function Profile() {
       } catch (_error) {
         if (!isMounted) return;
         setSubmitError("Unable to load registration form data.");
+      } finally {
+        if (!isMounted || redirected) return;
+        setIsInitialLoading(false);
       }
     }
 
@@ -201,6 +228,30 @@ function Profile() {
   useEffect(() => {
     setPendingHouseholdMembers(appointment.householdMembers ?? []);
   }, [appointment.householdMembers]);
+
+  useEffect(() => {
+    setInfantPromptAcknowledged(false);
+  }, [pendingMembersSignature]);
+
+  if (isInitialLoading) {
+    return (
+      <Box
+        sx={{
+          minHeight: "100vh",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          alignItems: "center",
+          gap: 1,
+        }}
+      >
+        <CircularProgress size={72} thickness={4.5} />
+        <Typography variant="body2" color="text.secondary">
+          Loading your profile...
+        </Typography>
+      </Box>
+    );
+  }
 
   const onCancelBooking = () => setShowCancelDialog(true);
   const onChangeBooking = () => navigate(`/applicant/book-appointment`);
@@ -341,7 +392,7 @@ function Profile() {
   };
 
   // Saves household member changes to database
-  const handleHouseholdSave = async () => {
+  const performHouseholdSave = async () => {
     const errors = validateHouseholdMembers(pendingHouseholdMembers);
     if (Object.keys(errors).length) {
       setMemberErrors(errors);
@@ -392,6 +443,21 @@ function Profile() {
       householdMembers: pendingHouseholdMembers,
     }));
     setIsSubmitting(false);
+  };
+
+  const handleHouseholdSave = () => {
+    if (hasInfantInPendingMembers && !infantPromptAcknowledged) {
+      setShowInfantPrompt(true);
+      return;
+    }
+
+    void performHouseholdSave();
+  };
+
+  const handleContinueAfterInfantPrompt = () => {
+    setInfantPromptAcknowledged(true);
+    setShowInfantPrompt(false);
+    void performHouseholdSave();
   };
 
   // Reverts unsaved household member changes
@@ -521,58 +587,99 @@ function Profile() {
       )}
       {/* Shows Household Members when tab is active */}
       {activeTab === "household-members" && (
-        <Stack
-          direction={{ xs: "column", md: "row" }}
-          spacing={2}
-          divider={<Divider orientation="vertical" flexItem />}
-          sx={{ justifyContent: "center", alignItems: "stretch" }}
-        >
-          <Box sx={{ flex: 1, px: 5 }}>
-            <Typography variant="h4" sx={{ fontWeight: 800, mb: 2 }}>
-              Household Members
-            </Typography>
-            <Paper
-              variant="outlined"
-              sx={{ p: 4, borderRadius: 2, bgcolor: "grey.25" }}
-            >
-              <Stack spacing={2}>
-                {hasChanges && (
-                  <>
-                    <Stack direction="row" spacing={2}>
-                      <Button
-                        variant="outlined"
-                        color="primary"
-                        size="large"
-                        startIcon={<ClearIcon />}
-                        sx={{ fontWeight: 800, flex: 1 }}
-                        onClick={handleHouseholdDiscard}
-                      >
-                        Discard Changes
-                      </Button>
-                      <Button
-                        variant="contained"
-                        color="primary"
-                        size="large"
-                        startIcon={<CheckIcon />}
-                        sx={{ fontWeight: 800, color: "common.white", flex: 1 }}
-                        onClick={handleHouseholdSave}
-                      >
-                        Save Changes
-                      </Button>
-                    </Stack>
-                    <Divider />
-                  </>
-                )}
-                <HouseholdMemberInfo
-                  householdMembers={pendingHouseholdMembers}
-                  onChange={setPendingHouseholdMembers}
-                  errors={memberErrors}
-                />
-              </Stack>
-            </Paper>
-          </Box>
-          <NextSteps />
-        </Stack>
+        <>
+          <Stack
+            direction={{ xs: "column", md: "row" }}
+            spacing={2}
+            divider={<Divider orientation="vertical" flexItem />}
+            sx={{ justifyContent: "center", alignItems: "stretch" }}
+          >
+            <Box sx={{ flex: 1, px: 5 }}>
+              <Typography variant="h4" sx={{ fontWeight: 800, mb: 2 }}>
+                Household Members
+              </Typography>
+              <Paper
+                variant="outlined"
+                sx={{ p: 4, borderRadius: 2, bgcolor: "grey.25" }}
+              >
+                <Stack spacing={2}>
+                  {hasChanges && (
+                    <>
+                      <Stack direction="row" spacing={2}>
+                        <Button
+                          variant="outlined"
+                          color="primary"
+                          size="large"
+                          startIcon={<ClearIcon />}
+                          sx={{ fontWeight: 800, flex: 1 }}
+                          onClick={handleHouseholdDiscard}
+                        >
+                          Discard Changes
+                        </Button>
+                        <Button
+                          variant="contained"
+                          color="primary"
+                          size="large"
+                          startIcon={<CheckIcon />}
+                          sx={{ fontWeight: 800, color: "common.white", flex: 1 }}
+                          onClick={handleHouseholdSave}
+                        >
+                          Save Changes
+                        </Button>
+                      </Stack>
+                      <Divider />
+                    </>
+                  )}
+                  <HouseholdMemberInfo
+                    householdMembers={pendingHouseholdMembers}
+                    onChange={setPendingHouseholdMembers}
+                    errors={memberErrors}
+                  />
+                </Stack>
+              </Paper>
+            </Box>
+            <NextSteps />
+          </Stack>
+          <Dialog
+            open={showInfantPrompt}
+            onClose={() => setShowInfantPrompt(false)}
+            aria-labelledby="tiny-bundles-profile-info-title"
+            PaperProps={{
+              sx: {
+                borderRadius: 2,
+                // border: "2px solid #63C5DA",
+                // bgcolor: "#F4FCFF",
+              },
+            }}
+          >
+            <DialogTitle id="tiny-bundles-profile-info-title">
+              <Typography variant="h6" sx={{ fontWeight: 800, color: "#0B5F7A" }}>
+                Tiny Bundles Program Information
+              </Typography>
+            </DialogTitle>
+            <DialogContent dividers>
+              <Typography variant="body2" sx={{ mb: 1.5 }}>
+                We noticed you added an infant (0-12 months) to your household.
+              </Typography>
+              <Typography variant="body2" sx={{ mb: 1.5 }}>
+                If your household has someone currently pregnant or a child under 12 months,
+                you may be eligible for our Tiny Bundles program.
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                You can update your Tiny Bundles selection in the Registration Form tab.
+              </Typography>
+            </DialogContent>
+            <DialogActions sx={{ px: 2, pb: 2 }}>
+              <Button
+                variant="contained"
+                onClick={handleContinueAfterInfantPrompt}
+                sx={{ bgcolor: "#0B5F7A", "&:hover": { bgcolor: "#084B60" } }}
+              >
+                Okay
+              </Button>
+            </DialogActions>
+          </Dialog>
+        </>
       )}
     </>
   );
