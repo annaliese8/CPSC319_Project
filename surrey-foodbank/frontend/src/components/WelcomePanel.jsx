@@ -1,14 +1,14 @@
-import React, { useState } from "react";
+import React, {useEffect, useState} from "react";
 import { Typography, Box, Button } from "@mui/material";
-import AppointmentInfoDialog from "./AppointmentInfoDialog.jsx";
 
 
-function WelcomePanel({ onEditSlots, onCancel, onSave, onBook }) {
+function WelcomePanel({ onEditSlots, onCancel, onSave, onBook, isConfirmed, setIsConfirmed }) {
 
     const [editing, setEditing] = useState(false);
 
     const handleEdit = () => {
         setEditing(true);
+        setIsConfirmed(false);
         onEditSlots();
     }
 
@@ -19,24 +19,37 @@ function WelcomePanel({ onEditSlots, onCancel, onSave, onBook }) {
 
     const handleSave = () => {
         onSave();
-        setEditing(false);
     }
     const handleBook = () => {
         onBook();
     }
 
+    useEffect(() => {
+        if(isConfirmed) {
+            setEditing(false);
+        }
+    }, [isConfirmed]);
+
     return (
         <Box sx={{ pt: { xs: 0, md: 6 } }}>
-            <Typography variant="h3" align="center" color="primary" sx={{ fontSize: 25, mb: 2, fontWeight: "bold" }}>
+            <Typography variant="h3" align="center" color="primary" sx={{ fontSize: 25, mb: 10, fontWeight: "bold" }}>
                 Welcome!
             </Typography>
-            <Typography variant="body1" sx={{ mb: 1.5, fontStyle: "italic" }}>
-                Click on booked appointments to see details and edit.
-            </Typography>
-            <Typography variant="body1" sx={{ fontStyle: "italic" }}>
-                Click on grey availability slots to book appointment.
-            </Typography>
-            <Box sx={{ display: "flex", justifyContent: "center", mt: 3 }}>
+            {editing ? (
+                <Typography variant="body1" align="center" sx={{ mb: 9.5, fontSize: 18 }}>
+                    Click and drag across slots to block or unblock availability.
+                </Typography>
+            ) : (
+                <div>
+                    <Typography variant="body1" align="center"  sx={{ mb: 1.5, fontSize: 18 }}>
+                        Click on booked appointments to see details.
+                    </Typography>
+                    <Typography variant="body1" align="center"  sx={{ fontSize: 18 }}>
+                        Click on available slot to book appointment.
+                    </Typography>
+                </div>
+            )}
+            <Box sx={{ display: "flex", justifyContent: "center", mt: 8 }}>
                 {editing ? (
                     <div className="button-container">
                         <Button variant="contained" color="secondary" onClick={handleSave}
