@@ -54,8 +54,8 @@ export default function BookAppointment() {
       if (isMounted) {
         setAccessToken(token);
       }
-
       const apiBase = getApiBaseUrl();
+
       try {
         const [regResponse, apptResponse] = await Promise.all([
           fetch(`${apiBase}/api/applicant/registration`, {
@@ -184,6 +184,7 @@ export default function BookAppointment() {
       });
 
       const result = await response.json().catch(() => null);
+
       if (!response.ok) {
         setLoadError(result?.error || "Unable to save appointment.");
         setIsSaving(false);

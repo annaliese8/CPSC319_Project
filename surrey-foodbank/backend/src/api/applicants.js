@@ -1,5 +1,7 @@
 import { getSupabaseServiceClient } from "../lib/supabase.js"
 const supabase = getSupabaseServiceClient()
+import EmailClient from "./emailclient.js";
+const emailClient = new EmailClient();
 
 export async function getApplicants() {
   const { data, error } = await supabase
@@ -61,15 +63,22 @@ export async function getAppointmentByResponseId(responseId) {
 }
 
 export async function createAppointment(appointmentData) {
+  console.log("CREATING APPOINTMENT", appointmentData)
   const { data, error } = await supabase
     .from('appointments')
     .insert(appointmentData)
     .select()
   if (error) throw error
+  try {
+    await emailClient.sendConfirmation("Joe", "insertEmailHere", appointmentData.appointment_date.concat(" at ").concat(appointmentData.appointment_time));
+  } catch (e) {
+    console.log(e);
+  }
   return data
 }
 
 export async function updateAppointment(appointmentId, updates) {
+  console.log("UPDATING APPOINTMENT", appointmentId, updates);
   const { data, error } = await supabase
     .from('appointments')
     .update(updates)
@@ -80,11 +89,17 @@ export async function updateAppointment(appointmentId, updates) {
 }
 
 export async function deleteAppointment(appointmentId) {
+  console.log(appointmentId, "DELETING APPOINTMENT")
   const { error } = await supabase
     .from('appointments')
     .delete()
     .eq('appointment_id', appointmentId)
   if (error) throw error
+  try {
+    await emailClient.sendCancellation("Joe", "insertEmailHere", "today")
+  }catch (e) {
+    console.log(e);
+  }
 }
 
 /**
