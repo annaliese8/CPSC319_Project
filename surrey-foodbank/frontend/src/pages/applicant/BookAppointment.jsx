@@ -36,6 +36,7 @@ export default function BookAppointment() {
   const [isLoadingForm, setIsLoadingForm] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [formDirty, setFormDirty] = useState(false);
+  const [existingSlot, setExistingSlot] = useState(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -56,21 +57,33 @@ export default function BookAppointment() {
 
       const apiBase = getApiBaseUrl();
       try {
-        const response = await fetch(`${apiBase}/api/applicant/registration`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        const [regResponse, apptResponse] = await Promise.all([
+          fetch(`${apiBase}/api/applicant/registration`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          fetch(`${apiBase}/api/applicant/appointment`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+        ]);
 
-        const result = await response.json().catch(() => null);
+        const regResult = await regResponse.json().catch(() => null);
+        const apptResult = await apptResponse.json().catch(() => null);
         if (!isMounted) return;
 
-        if (!response.ok) {
-          setLoadError(result?.error || "Unable to load registration details.");
+        if (!regResponse.ok) {
+          setLoadError(regResult?.error || "Unable to load registration details.");
           return;
         }
 
-        setForm(result?.data?.registration || {});
+        setForm(regResult?.data?.registration || {});
+
+        // Derive existing slot for highlighting in the calendar
+        const appt = apptResult?.data?.appointment;
+        if (appt?.startTime && appt?.date) {
+          const d = new Date(appt.date);
+          const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+          setExistingSlot({ day: appt.day, time: appt.startTime, dateStr, duration: appt.duration ?? 15 });
+        }
       } catch (_error) {
         if (!isMounted) return;
         setLoadError("Unable to load registration details.");
@@ -222,6 +235,7 @@ export default function BookAppointment() {
               onClearSlot={() => setSelectedSlot(null)}
               onBack={() => navigate("/applicant/profile")}
               onNext={selectedSlot && !isLoadingForm ? next : undefined}
+              existingSlot={existingSlot}
             />
           )}
 

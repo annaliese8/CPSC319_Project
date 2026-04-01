@@ -84,14 +84,14 @@ export default function StaffBookingPanel({
       const date = selectedSlot.date
         ? new Date(selectedSlot.date)
         : (() => {
-            const dayIndex = [
-              "Sunday", "Monday", "Tuesday", "Wednesday",
-              "Thursday", "Friday", "Saturday",
-            ].indexOf(selectedSlot.day);
-            const d = new Date(selectedSlot.weekStart);
-            d.setDate(d.getDate() + dayIndex);
-            return d;
-          })();
+          const dayIndex = [
+            "Sunday", "Monday", "Tuesday", "Wednesday",
+            "Thursday", "Friday", "Saturday",
+          ].indexOf(selectedSlot.day);
+          const d = new Date(selectedSlot.weekStart);
+          d.setDate(d.getDate() + dayIndex);
+          return d;
+        })();
       const y = date.getFullYear();
       const mo = String(date.getMonth() + 1).padStart(2, "0");
       const d = String(date.getDate()).padStart(2, "0");
@@ -222,7 +222,7 @@ export default function StaffBookingPanel({
       return;
     }
     if (!editableDate) { setError("Please select a date"); return; }
-    if (!startTime)    { setError("Please enter a start time"); return; }
+    if (!startTime) { setError("Please enter a start time"); return; }
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -232,7 +232,7 @@ export default function StaffBookingPanel({
     }
 
     const dateObj = new Date(editableDate + "T00:00:00");
-    const dayNames = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+    const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
     const dayName = dayNames[dateObj.getDay()];
 
     if (dayName === "Saturday" || dayName === "Sunday") {
@@ -363,6 +363,7 @@ export default function StaffBookingPanel({
           fullWidth
           size="small"
           InputLabelProps={{ shrink: true }}
+          slotProps={{ htmlInput: { maxLength: 20 } }}
         />
 
         <Box sx={{ display: "flex", gap: 1 }}>
@@ -374,6 +375,7 @@ export default function StaffBookingPanel({
             size="small"
             placeholder="9:15"
             helperText="Format: HH:MM"
+            slotProps={{ htmlInput: { maxLength: 10 } }}
           />
           <Typography sx={{ alignSelf: "center", px: 0.5 }}>to</Typography>
           <TextField
@@ -384,6 +386,7 @@ export default function StaffBookingPanel({
             size="small"
             placeholder="9:30"
             helperText="Format: HH:MM"
+            slotProps={{ htmlInput: { maxLength: 10 } }}
           />
         </Box>
 
@@ -406,6 +409,7 @@ export default function StaffBookingPanel({
               }
               : {}
           }
+          slotProps={{ htmlInput: { maxLength: 254 } }}
         />
         {!isRebooking && lookupStatus === "loading" && (
           <Typography variant="caption" sx={{ color: "text.secondary" }}>

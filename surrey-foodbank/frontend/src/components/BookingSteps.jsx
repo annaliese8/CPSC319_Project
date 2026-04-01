@@ -1,7 +1,16 @@
 import { useState, useEffect, useMemo } from "react";
 export const STEPS = ["Personal Info", "Choose Time", "Review", "Thank You"];
 import logo from "../styles/full-logo.png";
-import { Box, Button, Stack, Typography } from "@mui/material";
+import {
+  Box,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Stack,
+  Typography,
+} from "@mui/material";
 import NavigateNextIcon from "@mui/icons-material/NavigateNext";
 import RegistrationFields from "./RegistrationFields";
 import HouseholdMemberInfo, { AGE_GROUPS } from "./HouseholdMemberInfo";
@@ -10,7 +19,7 @@ import { addMinutesToTime } from "../utils/TimeUtils";
 const BASE_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
 
 export const DAYS_FULL = [
-  "Monday","Tuesday","Wednesday","Thursday","Friday",
+  "Monday", "Tuesday", "Wednesday", "Thursday", "Friday",
 ];
 export const DAYS_SHORT = ["Mon", "Tue", "Wed", "Thu", "Fri"];
 
@@ -236,11 +245,11 @@ export function TopNav({ onLogout }) {
 export const isSlotAvailable = (availability, day, time, interval = 15) =>
   interval === 30
     ? !!availability[`${day}-${time}`] &&
-      !!availability[`${day}-${addMinutesToTime(time, 15)}`] &&
-      !!availability[`${day}-${addMinutesToTime(time, 30)}`] &&
-      !!availability[`${day}-${addMinutesToTime(time, 45)}`]
+    !!availability[`${day}-${addMinutesToTime(time, 15)}`] &&
+    !!availability[`${day}-${addMinutesToTime(time, 30)}`] &&
+    !!availability[`${day}-${addMinutesToTime(time, 45)}`]
     : !!availability[`${day}-${time}`] &&
-      !!availability[`${day}-${addMinutesToTime(time, 15)}`];
+    !!availability[`${day}-${addMinutesToTime(time, 15)}`];
 
 export function Stepper({ currentStep, steps = STEPS }) {
   return (
@@ -279,6 +288,7 @@ export function StepPersonalInfo({
         errors={errors}
         isDisabled={isSubmitting}
         isStaffPage={false}
+        isBookingSteps={true}
       />
       <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 3 }}>
         <Button
@@ -331,6 +341,7 @@ export function StepChooseTime({
   onClearSlot,
   onBack,
   onNext,
+  existingSlot = null,
 }) {
   const todayStart = getWeekStart(new Date());
   const [weekStart, setWeekStart] = useState(todayStart);
@@ -431,6 +442,17 @@ export function StepChooseTime({
     return time === selectedSlot.time;
   };
 
+  const toDateStr = (d) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+  const isExistingAppt = (day, time, weekDate) => {
+    if (!existingSlot) return false;
+    if (toDateStr(weekDate) !== existingSlot.dateStr) return false;
+    if (existingSlot.duration > 15)
+      return time === existingSlot.time || time === addMinutesToTime(existingSlot.time, 15);
+    return time === existingSlot.time;
+  };
+
   if (availLoading) {
     return (
       <div className="ba-body" style={{ textAlign: "center", padding: 40 }}>
@@ -454,6 +476,18 @@ export function StepChooseTime({
             }}
           >
             Showing Wednesday appointments only (Tiny Bundles program)
+          </p>
+        )}
+        {!tinyBundles && (
+          <p
+            style={{
+              textAlign: "center",
+              fontSize: 13,
+              color: "var(--gray-500)",
+              marginBottom: 12,
+            }}
+          >
+            Wednesday slots are reserved for the Tiny Bundles program and are not available for general booking.
           </p>
         )}
         {isLargeHousehold && (
@@ -509,6 +543,11 @@ export function StepChooseTime({
           <span>
             <div className="ba-legend-dot booked" /> Unavailable
           </span>
+          {existingSlot && (
+            <span>
+              <div className="ba-legend-dot" style={{ background: "#f59e0b22", outline: "2px dashed #f59e0b", outlineOffset: "-2px" }} /> Current Appointment
+            </span>
+          )}
         </div>
         <div className="ba-cal-grid">
           <table className="ba-cal-table" style={{ tableLayout: "fixed" }}>
@@ -564,6 +603,7 @@ export function StepChooseTime({
                     const dimmed = isDimmed(day) || isDayBeyondCutoff(weekDates[i]);
                     const avail = !!availability[`${day}-${time}`];
                     const selected = isHighlighted(day, time);
+                    const existing = !selected && isExistingAppt(day, time, weekDates[i]);
                     return (
                       <td
                         key={day}
@@ -574,23 +614,25 @@ export function StepChooseTime({
                         }}
                       >
                         <div
-                          className={`ba-slot ${
-                            selected
-                              ? "selected"
+                          className={`ba-slot ${selected
+                            ? "selected"
+                            : existing
+                              ? "existing"
                               : avail
-                              ? "avail"
-                              : "unavail"
-                          }`}
+                                ? "avail"
+                                : "unavail"
+                            }`}
                           onClick={() => handleSlotClick(day, time)}
                           tabIndex={0}
                           role="button"
-                          aria-label={`${
-                            selected
-                              ? "Appointment selected"
+                          aria-label={`${selected
+                            ? "Appointment selected"
+                            : existing
+                              ? "Current appointment"
                               : avail
-                              ? "Available"
-                              : "Unavailable"
-                          } slot: ${day} at ${time}`}
+                                ? "Available"
+                                : "Unavailable"
+                            } slot: ${day} at ${time}`}
                           onKeyDown={(e) => {
                             if (e.key === "Enter" || e.key === " ") {
                               e.preventDefault();
@@ -606,11 +648,12 @@ export function StepChooseTime({
                     const satPast = isDayBeyondCutoff(saturdayDate);
                     const avail = !!availability[`${day}-${time}`];
                     const selected = isHighlighted(day, time);
+                    const existing = !selected && isExistingAppt(day, time, saturdayDate);
                     return (
                       <td key="Saturday" className="ba-cal-td"
                         style={{ opacity: satPast ? 0.15 : 1, pointerEvents: satPast ? "none" : "auto" }}>
                         <div
-                          className={`ba-slot ${selected ? "selected" : avail ? "avail" : "unavail"}`}
+                          className={`ba-slot ${selected ? "selected" : existing ? "existing" : avail ? "avail" : "unavail"}`}
                           onClick={() => handleSlotClick(day, time)}
                           tabIndex={0}
                           role="button"
@@ -869,33 +912,105 @@ export function StepHouseholdMembers({
   onNext,
   errors,
 }) {
+  const [showInfantPrompt, setShowInfantPrompt] = useState(false);
+  const [promptAcknowledged, setPromptAcknowledged] = useState(false);
+
+  const membersSignature = useMemo(
+    () => JSON.stringify(householdMembers || []),
+    [householdMembers],
+  );
+
+  const hasInfantMember = useMemo(
+    () => (householdMembers || []).some((member) => member?.ageGroup === "infant"),
+    [householdMembers],
+  );
+
+  useEffect(() => {
+    setPromptAcknowledged(false);
+  }, [membersSignature]);
+
+  const handleNext = () => {
+    if (hasInfantMember && !promptAcknowledged) {
+      setShowInfantPrompt(true);
+      return;
+    }
+    onNext();
+  };
+
+  const handleContinueAfterPrompt = () => {
+    setPromptAcknowledged(true);
+    setShowInfantPrompt(false);
+    onNext();
+  };
+
   return (
-    <Box className="ba-body">
-      <Typography variant="h2">Additional Household Members</Typography>
-      <HouseholdMemberInfo
-        householdMembers={householdMembers}
-        onChange={onChange}
-        errors={errors}
-      />
-      <Box sx={{ display: "flex", justifyContent: "space-between", mt: 1 }}>
-        <Button
-          variant="outlined"
-          onClick={onBack}
-          sx={{ textTransform: "none", fontWeight: 600 }}
-        >
-          ← Back
-        </Button>
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={onNext}
-          sx={{ fontWeight: "bold", textTransform: "none" }}
-          endIcon={<NavigateNextIcon />}
-        >
-          Next
-        </Button>
+    <>
+      <Box className="ba-body">
+        <Typography variant="h2">Additional Household Members</Typography>
+        <HouseholdMemberInfo
+          householdMembers={householdMembers}
+          onChange={onChange}
+          errors={errors}
+        />
+        <Box sx={{ display: "flex", justifyContent: "space-between", mt: 1 }}>
+          <Button
+            variant="outlined"
+            onClick={onBack}
+            sx={{ textTransform: "none", fontWeight: 600 }}
+          >
+            ← Back
+          </Button>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handleNext}
+            sx={{ fontWeight: "bold", textTransform: "none" }}
+            endIcon={<NavigateNextIcon />}
+          >
+            Next
+          </Button>
+        </Box>
       </Box>
-    </Box>
+      <Dialog
+        open={showInfantPrompt}
+        onClose={() => setShowInfantPrompt(false)}
+        aria-labelledby="tiny-bundles-info-title"
+        PaperProps={{
+          sx: {
+            borderRadius: 2,
+            border: "2px solid #63C5DA",
+            bgcolor: "#F4FCFF",
+          },
+        }}
+      >
+        <DialogTitle id="tiny-bundles-info-title">
+          <Typography variant="h6" sx={{ fontWeight: 800, color: "#0B5F7A" }}>
+            Tiny Bundles Program Information
+          </Typography>
+        </DialogTitle>
+        <DialogContent dividers>
+          <Typography variant="body2" sx={{ mb: 1.5 }}>
+            We noticed you added an infant (0-12 months) to your household.
+          </Typography>
+          <Typography variant="body2" sx={{ mb: 1.5 }}>
+            If your household has someone currently pregnant or a child under 12 months,
+            you may be eligible for our Tiny Bundles program.
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            You can update your Tiny Bundles selection in the registration details if needed.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 2, pb: 2 }}>
+          <Button
+            variant="contained"
+            onClick={handleContinueAfterPrompt}
+            sx={{ bgcolor: "#0B5F7A", "&:hover": { bgcolor: "#084B60" } }}
+          >
+            Okay
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
   );
 }
 
@@ -923,8 +1038,8 @@ export function StepSignupReview({ form, householdMembers, onBack, onConfirm }) 
         form.tiny_bundles_program === true
           ? "Yes"
           : form.tiny_bundles_program === false
-          ? "No"
-          : "",
+            ? "No"
+            : "",
     },
     { label: "Preferred Language", value: form.language },
   ];

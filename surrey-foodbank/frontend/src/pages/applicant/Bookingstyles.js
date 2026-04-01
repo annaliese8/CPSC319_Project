@@ -178,6 +178,7 @@ export const bookingStyles = `
   .ba-slot.avail:hover { opacity: 1; filter: brightness(1.07); }
   .ba-slot.unavail { background: var(--gray-200); cursor: default; }
   .ba-slot.selected { background: var(--navy); opacity: 1; }
+  .ba-slot.existing { background: #f59e0b22; outline: 2px dashed #f59e0b; outline-offset: -2px; opacity: 1; }
   .ba-selected-pill {
     display: inline-flex; align-items: center; gap: 10px;
     background: var(--navy); color: var(--white); border-radius: 8px;

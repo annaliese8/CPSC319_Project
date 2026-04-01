@@ -28,6 +28,12 @@ export const INELIGIBLE_STATUS_OPTIONS = [
   "Visitor"
 ];
 
+export const ELIGIBLE_CITIES = [
+  "delta",
+  "surrey",
+  "cloverdale"
+];
+
 export const LANGUAGES = [
   "English",
   "Arabic",
@@ -71,7 +77,8 @@ export default function RegistrationFields({
   onChange,
   errors = {},
   isDisabled = false,
-  isStaffPage
+  isStaffPage,
+  isBookingSteps = false
 }) {
 
   const status_options = isStaffPage
@@ -96,6 +103,7 @@ export default function RegistrationFields({
           size="small"
           required
           onChange={onChange("first_name")}
+          slotProps={{ htmlInput: { maxLength: 100 } }}
         />
         <TextField
           label="Last Name"
@@ -111,6 +119,7 @@ export default function RegistrationFields({
           size="small"
           required
           onChange={onChange("last_name")}
+          slotProps={{ htmlInput: { maxLength: 100 } }}
         />
       </Stack>
 
@@ -129,6 +138,7 @@ export default function RegistrationFields({
         size="small"
         required
         onChange={onChange("street_addr")}
+        slotProps={{ htmlInput: { maxLength: 100 } }}
       />
 
       {/* City / Postal Code */}
@@ -147,6 +157,7 @@ export default function RegistrationFields({
           size="small"
           required
           onChange={onChange("city")}
+          slotProps={{ htmlInput: { maxLength: 50 } }}
         />
         <TextField
           label="Postal Code"
@@ -162,6 +173,7 @@ export default function RegistrationFields({
           size="small"
           required
           onChange={onChange("postal_code")}
+          slotProps={{ htmlInput: { maxLength: 10 } }}
         />
       </Stack>
 
@@ -205,6 +217,7 @@ export default function RegistrationFields({
           size="small"
           required
           onChange={onChange("phone")}
+          slotProps={{ htmlInput: { maxLength: 30 } }}
         />
       </Stack>
 
@@ -227,6 +240,10 @@ export default function RegistrationFields({
               error={!!errors.language}
               helperText={errors.language}
               fullWidth
+              inputProps={{
+                ...params.inputProps,
+                maxLength: 50,
+              }}
             />
           )}
           size="small"
@@ -272,16 +289,16 @@ export default function RegistrationFields({
             color: isDisabled ? "text.disabled" : "text.primary",
           }}
         >
-          <FormLabel sx={{ maxWidth: '50%'}}>
+          <FormLabel sx={{ maxWidth: '50%' }}>
             Does your household have someone currently pregnant
             or children under 12 months old?
           </FormLabel>
           <Tooltip
-            title={<span>The Tiny Bundles program is available for pregnancies and children under 12 months. <br/>
-                          Tiny Bundles households receive food every week instead of every two weeks. They are also
-                          supplied with fresh eggs and milk while pregnant or nursing. Additional fresh vegetables
-                          and other nutritional items are supplied when available. <br/>  <br/>
-                          <i>Note: Tiny Bundles appointments can only be booked on Wednesdays.</i> </span>}
+            title={<span>The Tiny Bundles program is available for pregnancies and children under 12 months. <br />
+              Tiny Bundles households receive food every week instead of every two weeks. They are also
+              supplied with fresh eggs and milk while pregnant or nursing. Additional fresh vegetables
+              and other nutritional items are supplied when available. <br />  <br />
+              <i>Note: Tiny Bundles appointments can only be booked on Wednesdays.</i> </span>}
             disableHoverListener={isDisabled}
             disableFocusListener={isDisabled}
             arrow
@@ -340,6 +357,47 @@ export default function RegistrationFields({
           </RadioGroup>
         </Stack>
       </FormControl>
+      {/* Over the age of 18; only shows in initial applicant booking steps*/}
+      {isBookingSteps && (
+        <FormControl >
+          <Stack
+            direction="row"
+            spacing={2}
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              color: isDisabled ? "text.disabled" : "text.primary",
+            }}
+          >
+            <FormLabel sx={{ maxWidth: "50%" }}>
+              Are you over the age of 18 years old?
+            </FormLabel>
+            <RadioGroup
+              row
+              value={form.over_eighteen}
+              onChange={(e) =>
+                onChange("over_eighteen")({
+                  target: { value: e.target.value === "true" },
+                })
+              }
+            >
+              <FormControlLabel
+                value="true"
+                control={<Radio />}
+                label="Yes"
+                disabled={isDisabled}
+              />
+              <FormControlLabel
+                value="false"
+                control={<Radio />}
+                label="No"
+                disabled={isDisabled}
+              />
+            </RadioGroup>
+          </Stack>
+        </FormControl>
+      )}
+
     </Stack>
   );
 }
