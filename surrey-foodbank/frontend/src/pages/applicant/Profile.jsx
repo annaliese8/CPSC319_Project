@@ -2,6 +2,10 @@ import {
   Box,
   Button,
   CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   Divider,
   Link,
   Paper,
@@ -21,7 +25,7 @@ import {
   FamilyRestroom as FamilyRestroomIcon,
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import BookingInfo from "../../components/BookingInfo";
 import RegistrationFormInfo from "../../components/RegistrationFormInfo";
 import ApplicantTopBar from "../../components/ApplicantTopBar";
@@ -114,6 +118,17 @@ function Profile() {
   const [showIneligibleStatusDialog, setShowIneligibleStatusDialog] = useState(false);
   const [ineligibleStatus, setIneligibleStatus] = useState("");
   const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [showInfantPrompt, setShowInfantPrompt] = useState(false);
+  const [infantPromptAcknowledged, setInfantPromptAcknowledged] = useState(false);
+
+  const pendingMembersSignature = useMemo(
+    () => JSON.stringify(pendingHouseholdMembers ?? []),
+    [pendingHouseholdMembers],
+  );
+  const hasInfantInPendingMembers = useMemo(
+    () => (pendingHouseholdMembers ?? []).some((member) => member?.ageGroup === "infant"),
+    [pendingHouseholdMembers],
+  );
 
   // Load user and appointment data
   useEffect(() => {
@@ -140,6 +155,7 @@ function Profile() {
             Authorization: `Bearer ${accessToken}`,
           },
         });
+
         const result = await registrationResponse.json().catch(() => null);
         if (!registrationResponse.ok) {
           if (!isMounted) return;
@@ -205,6 +221,15 @@ function Profile() {
     };
   }, [navigate]);
 
+  // Keep in sync when appointment loads
+  useEffect(() => {
+    setPendingHouseholdMembers(appointment.householdMembers ?? []);
+  }, [appointment.householdMembers]);
+
+  useEffect(() => {
+    setInfantPromptAcknowledged(false);
+  }, [pendingMembersSignature]);
+
   if (isInitialLoading) {
     return (
       <Box
@@ -224,11 +249,6 @@ function Profile() {
       </Box>
     );
   }
-
-  // Keep in sync when appointment loads
-  useEffect(() => {
-    setPendingHouseholdMembers(appointment.householdMembers ?? []);
-  }, [appointment.householdMembers]);
 
   const onCancelBooking = () => setShowCancelDialog(true);
   const onChangeBooking = () => navigate(`/applicant/book-appointment`);
@@ -356,7 +376,7 @@ function Profile() {
   };
 
   // Saves household member changes to database
-  const handleHouseholdSave = async () => {
+  const performHouseholdSave = async () => {
     const errors = validateHouseholdMembers(pendingHouseholdMembers);
     if (Object.keys(errors).length) {
       setMemberErrors(errors);
@@ -407,6 +427,21 @@ function Profile() {
       householdMembers: pendingHouseholdMembers,
     }));
     setIsSubmitting(false);
+  };
+
+  const handleHouseholdSave = () => {
+    if (hasInfantInPendingMembers && !infantPromptAcknowledged) {
+      setShowInfantPrompt(true);
+      return;
+    }
+
+    void performHouseholdSave();
+  };
+
+  const handleContinueAfterInfantPrompt = () => {
+    setInfantPromptAcknowledged(true);
+    setShowInfantPrompt(false);
+    void performHouseholdSave();
   };
 
   // Reverts unsaved household member changes
@@ -531,58 +566,99 @@ function Profile() {
       )}
       {/* Shows Household Members when tab is active */}
       {activeTab === "household-members" && (
-        <Stack
-          direction={{ xs: "column", md: "row" }}
-          spacing={2}
-          divider={<Divider orientation="vertical" flexItem />}
-          sx={{ justifyContent: "center", alignItems: "stretch" }}
-        >
-          <Box sx={{ flex: 1, px: 5 }}>
-            <Typography variant="h4" sx={{ fontWeight: 800, mb: 2 }}>
-              Household Members
-            </Typography>
-            <Paper
-              variant="outlined"
-              sx={{ p: 4, borderRadius: 2, bgcolor: "grey.25" }}
-            >
-              <Stack spacing={2}>
-                {hasChanges && (
-                  <>
-                    <Stack direction="row" spacing={2}>
-                      <Button
-                        variant="outlined"
-                        color="primary"
-                        size="large"
-                        startIcon={<ClearIcon />}
-                        sx={{ fontWeight: 800, flex: 1 }}
-                        onClick={handleHouseholdDiscard}
-                      >
-                        Discard Changes
-                      </Button>
-                      <Button
-                        variant="contained"
-                        color="primary"
-                        size="large"
-                        startIcon={<CheckIcon />}
-                        sx={{ fontWeight: 800, color: "common.white", flex: 1 }}
-                        onClick={handleHouseholdSave}
-                      >
-                        Save Changes
-                      </Button>
-                    </Stack>
-                    <Divider />
-                  </>
-                )}
-                <HouseholdMemberInfo
-                  householdMembers={pendingHouseholdMembers}
-                  onChange={setPendingHouseholdMembers}
-                  errors={memberErrors}
-                />
-              </Stack>
-            </Paper>
-          </Box>
-          <NextSteps />
-        </Stack>
+        <>
+          <Stack
+            direction={{ xs: "column", md: "row" }}
+            spacing={2}
+            divider={<Divider orientation="vertical" flexItem />}
+            sx={{ justifyContent: "center", alignItems: "stretch" }}
+          >
+            <Box sx={{ flex: 1, px: 5 }}>
+              <Typography variant="h4" sx={{ fontWeight: 800, mb: 2 }}>
+                Household Members
+              </Typography>
+              <Paper
+                variant="outlined"
+                sx={{ p: 4, borderRadius: 2, bgcolor: "grey.25" }}
+              >
+                <Stack spacing={2}>
+                  {hasChanges && (
+                    <>
+                      <Stack direction="row" spacing={2}>
+                        <Button
+                          variant="outlined"
+                          color="primary"
+                          size="large"
+                          startIcon={<ClearIcon />}
+                          sx={{ fontWeight: 800, flex: 1 }}
+                          onClick={handleHouseholdDiscard}
+                        >
+                          Discard Changes
+                        </Button>
+                        <Button
+                          variant="contained"
+                          color="primary"
+                          size="large"
+                          startIcon={<CheckIcon />}
+                          sx={{ fontWeight: 800, color: "common.white", flex: 1 }}
+                          onClick={handleHouseholdSave}
+                        >
+                          Save Changes
+                        </Button>
+                      </Stack>
+                      <Divider />
+                    </>
+                  )}
+                  <HouseholdMemberInfo
+                    householdMembers={pendingHouseholdMembers}
+                    onChange={setPendingHouseholdMembers}
+                    errors={memberErrors}
+                  />
+                </Stack>
+              </Paper>
+            </Box>
+            <NextSteps />
+          </Stack>
+          <Dialog
+            open={showInfantPrompt}
+            onClose={() => setShowInfantPrompt(false)}
+            aria-labelledby="tiny-bundles-profile-info-title"
+            PaperProps={{
+              sx: {
+                borderRadius: 2,
+                // border: "2px solid #63C5DA",
+                // bgcolor: "#F4FCFF",
+              },
+            }}
+          >
+            <DialogTitle id="tiny-bundles-profile-info-title">
+              <Typography variant="h6" sx={{ fontWeight: 800, color: "#0B5F7A" }}>
+                Tiny Bundles Program Information
+              </Typography>
+            </DialogTitle>
+            <DialogContent dividers>
+              <Typography variant="body2" sx={{ mb: 1.5 }}>
+                We noticed you added an infant (0-12 months) to your household.
+              </Typography>
+              <Typography variant="body2" sx={{ mb: 1.5 }}>
+                If your household has someone currently pregnant or a child under 12 months,
+                you may be eligible for our Tiny Bundles program.
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                You can update your Tiny Bundles selection in the Registration Form tab.
+              </Typography>
+            </DialogContent>
+            <DialogActions sx={{ px: 2, pb: 2 }}>
+              <Button
+                variant="contained"
+                onClick={handleContinueAfterInfantPrompt}
+                sx={{ bgcolor: "#0B5F7A", "&:hover": { bgcolor: "#084B60" } }}
+              >
+                Okay
+              </Button>
+            </DialogActions>
+          </Dialog>
+        </>
       )}
     </>
   );
