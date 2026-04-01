@@ -25,6 +25,18 @@ jobs:
           cache: 'npm'
           cache-dependency-path: surrey-foodbank/frontend/package-lock.json
 
+      - name: Install backend dependencies
+        run: npm ci
+        working-directory: surrey-foodbank/backend
+
+      - name: Run backend integration tests
+        run: npm test
+        working-directory: surrey-foodbank/backend
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
       - name: Install dependencies
         run: npm ci
 
@@ -38,6 +50,12 @@ jobs:
           VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+
+      - name: Deploy backend
+        if: github.ref == 'refs/heads/main' && secrets.BACKEND_DEPLOY_HOOK_URL != ''
+        run: curl -fsS -X POST "$BACKEND_DEPLOY_HOOK_URL"
+        env:
+          BACKEND_DEPLOY_HOOK_URL: ${{ secrets.BACKEND_DEPLOY_HOOK_URL }}
 
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v4
