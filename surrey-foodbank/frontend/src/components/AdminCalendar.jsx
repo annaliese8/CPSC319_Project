@@ -46,10 +46,10 @@ const generateTimeSlots = (startHour, endHour) => {
 const visibleTimeSlots = generateTimeSlots(VISIBLE_START_HOUR, VISIBLE_END_HOUR);
 
 // Map MUI color names → actual hex values to render dots without MUI theme overhead
-const STATUS_DOT_COLORS = {
-  info:    "#0288d1", // Booked
-  primary: "#1976d2", // Checked In
-  success: "#2e7d32", // Complete
+export const STATUS_DOT_COLORS = {
+  info:    "#4cc5dc", // Booked
+  primary: "#1981cb", // Checked In
+  success: "#2fb036", // Complete
   error:   "#d32f2f", // No Show
   default: "#9e9e9e",
 };
@@ -196,11 +196,13 @@ function ConflictModal({ conflicts, onConfirm, onCancel }) {
 function AdminCalendar({
   isEditing,
   saveChanges,
+  setSaveState,
   discardChanges,
   weekStart,
   isBookingPanel,
   changeBookingAppointment,
   isNewBooking,
+  saveConfirmed,
 }) {
   const weekStartStr = toDateStr(weekStart);
   const weekEndDate = new Date(weekStart);
@@ -377,14 +379,37 @@ function AdminCalendar({
       (s) => !savedBlocked.some((b) => b.date === s.date && b.time === s.time)
     );
     const conflicts = appointments.filter((apt) =>
-      newlyBlocked.some((s) => s.date === apt.date && s.time === apt.startTime)
+      newlyBlocked.some((s) => s.date === apt.date && timeIsConflicting(s.time, apt.startTime, apt.duration))
     );
     if (conflicts.length > 0) {
       setPendingConflicts(conflicts);
     } else {
       await commitSave([]);
+      saveConfirmed();
     }
   };
+
+  // ClaudeAI was used to help with the following function
+  const timeIsConflicting = (blockedTime, aptTime, aptLength) => {
+    const conflictingTimes = [];
+
+    // Parse the start time
+    const [hours, minutes] = aptTime.split(':').map(Number);
+    let currentMinutes = hours * 60 + minutes;
+
+    // Calculate end time in minutes
+    const endMinutes = currentMinutes + aptLength;
+
+    // Generate times at 15-minute intervals
+    while (currentMinutes < endMinutes) {
+      const h = Math.floor(currentMinutes / 60);
+      const m = currentMinutes % 60;
+      conflictingTimes.push(`${h}:${m.toString().padStart(2, '0')}`);
+      currentMinutes += 15;
+    }
+
+    return conflictingTimes.some((t) => t === blockedTime);
+  }
 
   const commitSave = async (cancelledAppts = []) => {
     setError(null);
@@ -437,9 +462,15 @@ function AdminCalendar({
     const cancelled = [...pendingConflicts];
     setPendingConflicts(null);
     await commitSave(cancelled);
+    saveConfirmed();
   };
 
-  const handleModalCancel = () => setPendingConflicts(null);
+  const handleModalCancel = () => {
+    setPendingConflicts(null)
+    setSaveState(false);
+
+
+  };
   const handleDiscard = () => {
     setBlockedSlots(savedBlocked);
     clearMouseTrackers();
