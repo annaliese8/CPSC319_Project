@@ -36,6 +36,8 @@ jobs:
           VITE_STAFF_PASS: ${{ secrets.VITE_STAFF_PASS }}
           VITE_BACKEND_URL: ${{ secrets.VITE_BACKEND_URL }}
           VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
 
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v4

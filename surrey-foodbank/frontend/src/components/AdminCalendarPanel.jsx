@@ -2,15 +2,18 @@ import React, {useState} from "react";
 import "./AdminCalendar.css";
 import {Typography, Box, Button, Paper, Stack, Divider} from "@mui/material";
 import AdminCalendar from "./AdminCalendar.jsx";
+import {STATUS_DOT_COLORS} from "./AdminCalendar.jsx";
 
 function AdminCalendarPanel({
                                 isEditing,
                                 saveChanges,
+                                setSaveState,
                                 discardChanges,
                                 toggleBookingPanel,
                                 changeBookingAppointment, // appointment to rebook (from ApplicantInfoPage)
                                 appointments = [],
                                 isNewBooking,
+                                saveConfirmed,
                             }) {
     const today = new Date();
     const startOfWeek = new Date(today);
@@ -84,18 +87,35 @@ function AdminCalendarPanel({
             <Divider sx={{my: 1}}/>
 
             {/* Legend */}
-            <Stack direction="row" spacing={1.5} sx={{mb: 1, justifyContent: "center"}}>
+            <Stack direction="row" spacing={1.5} alignItems="center" sx={{mb: 1, justifyContent: "center", flexWrap: "wrap"}}>
                 <LegendChip label="Available" sx={{bgcolor: "secondary.main"}}/>
                 <LegendChip
                     label="Booked"
                     sx={{bgcolor: "primary.main", color: "common.white"}}
                 />
-                {isEditing ? (
+                {isEditing && (
                     <LegendChip
                         label="Blocked"
                         sx={{bgcolor: "warning.main", color: "common.white"}}
                     />
-                ) : ""}
+                )}
+
+                <Typography variant="body2" sx={{ color: "text.disabled", px: 0.5 }}>|</Typography>
+
+                {STATUS_OPTIONS.map((opt) => (
+                    <Stack key={opt.label} direction="row" spacing={0.75} alignItems="center" sx={{ p: 0.5 }}>
+                        <Box sx={{
+                            width: 9,
+                            height: 9,
+                            borderRadius: "50%",
+                            bgcolor: STATUS_DOT_COLORS[opt.color] ?? STATUS_DOT_COLORS.default,
+                            flexShrink: 0,
+                        }} />
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                            {opt.label}
+                        </Typography>
+                    </Stack>
+                ))}
             </Stack>
 
             {/* Calendar */}
@@ -110,22 +130,47 @@ function AdminCalendarPanel({
                 <AdminCalendar
                     isEditing={isEditing}
                     saveChanges={saveChanges}
+                    setSaveState={setSaveState}
                     discardChanges={discardChanges}
                     weekStart={weekStart}
                     isBookingPanel={toggleBookingPanel}
                     changeBookingAppointment={changeBookingAppointment}
                     appointments={appointments}
                     isNewBooking={isNewBooking}
+                    saveConfirmed={saveConfirmed}
                 />
+                <Stack direction="column" spacing={1.5} sx={{ml: 2, justifyContent: "center"}}>
+                    <LegendCircle label="Booked" sx={{bgcolor: STATUS_DOT_COLORS.info}}/>
+                    <LegendCircle label="Checked In" sx={{bgcolor: STATUS_DOT_COLORS.primary, color: "common.white"}} />
+                    <LegendCircle label="Complete" sx={{bgcolor: STATUS_DOT_COLORS.success, color: "common.white"}} />
+                    <LegendCircle label="No Show" sx={{bgcolor: STATUS_DOT_COLORS.error, color: "common.white"}} />
+                </Stack>
             </Box>
         </Paper>
     );
 }
 
+// info:    "#0288d1", // Booked
+//     primary: "#1976d2", // Checked In
+//     success: "#2e7d32", // Complete
+//     error:   "#d32f2f", // No Show
+// default: "#9e9e9e",
+
 function LegendChip({label, sx}) {
     return (
         <Stack direction="row" spacing={1} alignItems="center" sx={{p: 0.5}}>
             <Box sx={{width: 20, height: 20, borderRadius: 0.5, ...sx}}/>
+            <Typography variant="body2" sx={{fontWeight: 600}}>
+                {label}
+            </Typography>
+        </Stack>
+    );
+}
+
+function LegendCircle({label, sx}) {
+    return (
+        <Stack direction="row" spacing={1} alignItems="center" sx={{p: 0.5}}>
+            <Box sx={{width: 15, height: 15, borderRadius: 5, ...sx}}/>
             <Typography variant="body2" sx={{fontWeight: 600}}>
                 {label}
             </Typography>

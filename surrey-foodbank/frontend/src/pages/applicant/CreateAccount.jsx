@@ -133,9 +133,9 @@ const T = {
     emailFormat: "تنسيق البريد الإلكتروني:",
     hoverHelp: "مرّر المؤشر على كل جزء للحصول على مساعدة",
     passwordMust: "يجب أن تكون كلمة المرور:",
-    pwLength: "مكوّنة من 10 أحرف على الأقل",
+    pwLength: "مكوّنة من ١٠ أحرف على الأقل",
     pwUpper: "تحتوي على حرف كبير واحد على الأقل (مثلًا A، B، C ...)",
-    pwNumber: "تحتوي على رقم واحد على الأقل (مثلًا 1، 2، 3 ...)",
+    pwNumber: "تحتوي على رقم واحد على الأقل (مثلًا ١، ٢، ٣ ...)",
     emailHint: "مثال: اسمك@example.com",
     emailPlaceholder: "اسمك@example.com",
     emailInvalid: "يرجى إدخال عنوان بريد إلكتروني صالح بالتنسيق: اسمك@example.com",
@@ -250,7 +250,7 @@ function EmailFormatGuide({ t }) {
         <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600, whiteSpace: "nowrap", fontSize: "0.95rem" }}>
           {t.emailFormat}
         </Typography>
-        <Stack direction="row" alignItems="center" flexWrap="wrap">
+        <Stack direction="row" alignItems="center" flexWrap="wrap" dir="ltr">
           {t.emailParts.map((part, i) => (
             <Tooltip
               key={i}
@@ -292,7 +292,7 @@ function EmailFormatGuide({ t }) {
           variant="caption"
           sx={{ color: "#6F6F71", whiteSpace: "nowrap" }}
         >
-          Hover over each part for help
+          {t.hoverHelp}
         </Typography>
       </Stack>
     </Paper>

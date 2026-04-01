@@ -46,10 +46,10 @@ const generateTimeSlots = (startHour, endHour) => {
 const visibleTimeSlots = generateTimeSlots(VISIBLE_START_HOUR, VISIBLE_END_HOUR);
 
 // Map MUI color names → actual hex values to render dots without MUI theme overhead
-const STATUS_DOT_COLORS = {
-  info:    "#0288d1", // Booked
-  primary: "#1976d2", // Checked In
-  success: "#2e7d32", // Complete
+export const STATUS_DOT_COLORS = {
+  info:    "#4cc5dc", // Booked
+  primary: "#1981cb", // Checked In
+  success: "#2fb036", // Complete
   error:   "#d32f2f", // No Show
   default: "#9e9e9e",
 };
@@ -126,25 +126,34 @@ const expandBlockedRow = (row) => {
   return slots;
 };
 
-const normaliseAppointment = (a) => ({
-  appointment_id: a.appointment_id,
-  response_id: a.response_id,
-  email: "",
-  name: "",
-  day: a.appointment_date
-    ? new Date(`${a.appointment_date}T12:00:00`).toLocaleDateString("en-US", {
-        weekday: "long",
-      })
-    : "",
-  date: a.appointment_date ?? null,
-  startTime: a.appointment_time ? dbTimeToGrid(a.appointment_time) : "",
-  duration: (() => {
+const normaliseAppointment = (a) => {
+  const reg = a.registrationformresponse;
+  const duration = (() => {
     if (!a.duration) return 15;
     const parts = String(a.duration).split(":");
     return parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
-  })(),
-  appointmentStatus: a.appointment_status ?? "Booked",
-});
+  })();
+  // householdinformation(count) returns [{count: "N"}]; +1 for the primary applicant
+  const hhRows = reg?.householdinformation;
+  const householdSize = hhRows != null
+    ? parseInt(Array.isArray(hhRows) ? (hhRows[0]?.count ?? "0") : "0", 10) + 1
+    : null;
+  return {
+    appointment_id: a.appointment_id,
+    response_id: a.response_id,
+    email: "",
+    name: reg ? `${reg.first_name || ""} ${reg.last_name || ""}`.trim() : "",
+    phone: "",
+    householdSize,
+    day: a.appointment_date
+      ? new Date(`${a.appointment_date}T12:00:00`).toLocaleDateString("en-US", { weekday: "long" })
+      : "",
+    date: a.appointment_date ?? null,
+    startTime: a.appointment_time ? dbTimeToGrid(a.appointment_time) : "",
+    duration,
+    appointmentStatus: a.appointment_status ?? "Booked",
+  };
+};
 
 function ConflictModal({ conflicts, onConfirm, onCancel }) {
   return (
@@ -187,11 +196,13 @@ function ConflictModal({ conflicts, onConfirm, onCancel }) {
 function AdminCalendar({
   isEditing,
   saveChanges,
+  setSaveState,
   discardChanges,
   weekStart,
   isBookingPanel,
   changeBookingAppointment,
   isNewBooking,
+  saveConfirmed,
 }) {
   const weekStartStr = toDateStr(weekStart);
   const weekEndDate = new Date(weekStart);
@@ -257,6 +268,12 @@ function AdminCalendar({
   const [isUnblocking, setIsUnblocking] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Drag state for move/resize
+  const dragStateRef = React.useRef(null);
+  const [dragState, setDragState] = React.useState(null);
+  const dragDidMove = React.useRef(false);
+  const commitDragFn = React.useRef(null);
 
   const loadWeekData = useCallback(async ({ forceRefresh = false } = {}) => {
     if (!forceRefresh && weekCache.current[weekStartStr]) {
@@ -327,6 +344,7 @@ function AdminCalendar({
   const dateForDay = (day) => dayDateMap[day];
 
   const isBlocked = (day, time) => {
+    if (day === "Saturday" || day === "Sunday") return true;
     const date = dateForDay(day);
     const set = isEditing ? blockedSlotsSet : savedBlockedSet;
     return set.has(`${date}|${time}`);
@@ -361,14 +379,37 @@ function AdminCalendar({
       (s) => !savedBlocked.some((b) => b.date === s.date && b.time === s.time)
     );
     const conflicts = appointments.filter((apt) =>
-      newlyBlocked.some((s) => s.date === apt.date && s.time === apt.startTime)
+      newlyBlocked.some((s) => s.date === apt.date && timeIsConflicting(s.time, apt.startTime, apt.duration))
     );
     if (conflicts.length > 0) {
       setPendingConflicts(conflicts);
     } else {
       await commitSave([]);
+      saveConfirmed();
     }
   };
+
+  // ClaudeAI was used to help with the following function
+  const timeIsConflicting = (blockedTime, aptTime, aptLength) => {
+    const conflictingTimes = [];
+
+    // Parse the start time
+    const [hours, minutes] = aptTime.split(':').map(Number);
+    let currentMinutes = hours * 60 + minutes;
+
+    // Calculate end time in minutes
+    const endMinutes = currentMinutes + aptLength;
+
+    // Generate times at 15-minute intervals
+    while (currentMinutes < endMinutes) {
+      const h = Math.floor(currentMinutes / 60);
+      const m = currentMinutes % 60;
+      conflictingTimes.push(`${h}:${m.toString().padStart(2, '0')}`);
+      currentMinutes += 15;
+    }
+
+    return conflictingTimes.some((t) => t === blockedTime);
+  }
 
   const commitSave = async (cancelledAppts = []) => {
     setError(null);
@@ -421,9 +462,15 @@ function AdminCalendar({
     const cancelled = [...pendingConflicts];
     setPendingConflicts(null);
     await commitSave(cancelled);
+    saveConfirmed();
   };
 
-  const handleModalCancel = () => setPendingConflicts(null);
+  const handleModalCancel = () => {
+    setPendingConflicts(null)
+    setSaveState(false);
+
+
+  };
   const handleDiscard = () => {
     setBlockedSlots(savedBlocked);
     clearMouseTrackers();
@@ -460,6 +507,7 @@ function AdminCalendar({
   };
 
   const handleSlotClick = (day, time) => {
+    if (dragDidMove.current) { dragDidMove.current = false; return; }
     if (showBookingPanel && rebookingAppointment && !isBlocked(day, time)) {
       const dayIndex = days.indexOf(day);
       const date = new Date(weekStart);
@@ -485,22 +533,19 @@ function AdminCalendar({
       if (appt) {
         setAppointmentData(appt);
         setOpenInfoDialog(true);
-        // Lazy-load name/email only if not already present
-        if (appt.response_id && !appt.name) {
+        // Lazy-load email + phone (name comes from JOIN already)
+        if (appt.response_id && (!appt.email || !appt.phone)) {
           getApplicant(appt.response_id)
             .then((reg) => {
               if (!reg) return;
-              // Also cache it on the appointments array so re-opens are instant
-              const fullName = `${reg.first_name || ""} ${reg.last_name || ""}`.trim();
               const email = reg.email_address || "";
+              const phone = reg.phone || "";
               setAppointments((prev) =>
                 prev.map((a) =>
-                  a.appointment_id === appt.appointment_id
-                    ? { ...a, name: fullName, email }
-                    : a
+                  a.appointment_id === appt.appointment_id ? { ...a, email, phone } : a
                 )
               );
-              setAppointmentData((prev) => ({ ...prev, name: fullName, email }));
+              setAppointmentData((prev) => ({ ...prev, email, phone }));
             })
             .catch(() => {});
         }
@@ -544,7 +589,9 @@ function AdminCalendar({
       appointment_id: null,
       response_id: responseId,
       email: newData.email || "",
+      phone: newData.phone || "",
       name: `${newData.first_name || newData.firstName || ""} ${newData.last_name || newData.lastName || ""}`.trim(),
+      householdSize: (newData.householdMembers?.length ?? 0) + 1,
       day: newData.day,
       date: dateStr,
       startTime: newData.startTime,
@@ -564,7 +611,7 @@ function AdminCalendar({
         response_id: responseId,
         appointment_date: dateStr,
         appointment_time: gridTimeToDb(newData.startTime),
-        duration: newData.duration === 30 ? "00:30:00" : "00:15:00",
+        duration: (() => { const m = newData.duration || 15; return `${String(Math.floor(m/60)).padStart(2,"0")}:${String(m%60).padStart(2,"0")}:00`; })(),
         appointment_status: "Booked",
       });
     } catch (err) {
@@ -586,7 +633,9 @@ function AdminCalendar({
         appointment_id: null,
         response_id: newData.response_id ?? rebookingAppointment?.response_id ?? null,
         email: rebookingAppointment?.email || "",
+        phone: rebookingAppointment?.phone || "",
         name: rebookingAppointment?.name || "",
+        householdSize: rebookingAppointment?.householdSize ?? null,
         day: newData.day,
         date: dateStr,
         startTime: newData.startTime,
@@ -608,7 +657,7 @@ function AdminCalendar({
           response_id: newData.response_id ?? rebookingAppointment?.response_id ?? null,
           appointment_date: dateStr,
           appointment_time: gridTimeToDb(newData.startTime),
-          duration: newData.duration === 30 ? "00:30:00" : "00:15:00",
+          duration: (() => { const m = newData.duration || 15; return `${String(Math.floor(m/60)).padStart(2,"0")}:${String(m%60).padStart(2,"0")}:00`; })(),
           appointment_status: "Booked",
         }),
       ]);
@@ -637,9 +686,118 @@ function AdminCalendar({
     }
   };
 
+  // ─── Drag helpers (commented out — feature temporarily disabled) ───────────────────────────────────────────────
+  // const startMoveDrag = (e, apt) => {
+  //   if (isEditing || !apt.appointment_id) return;
+  //   e.preventDefault();
+  //   e.stopPropagation();
+  //   dragDidMove.current = false;
+  //   const ds = { type: "move", apt, targetDay: apt.day, targetDate: apt.date, targetTime: apt.startTime };
+  //   dragStateRef.current = ds;
+  //   setDragState(ds);
+  // };
+
+  // const startResizeDrag = (e, apt) => {
+  //   if (isEditing || !apt.appointment_id) return;
+  //   e.preventDefault();
+  //   e.stopPropagation();
+  //   dragDidMove.current = false;
+  //   const lastMins = (() => { const [h, m] = apt.startTime.split(":").map(Number); return h * 60 + m + apt.duration - 15; })();
+  //   const lastTime = `${Math.floor(lastMins / 60)}:${String(lastMins % 60).padStart(2, "0")}`;
+  //   const ds = { type: "resize", apt, targetDay: apt.day, targetTime: lastTime };
+  //   dragStateRef.current = ds;
+  //   setDragState(ds);
+  // };
+
+  const handleSlotMouseEnter = (day, time) => {
+    const ds = dragStateRef.current;
+    if (!ds) return;
+    if (ds.targetDay === day && ds.targetTime === time) return;
+    dragDidMove.current = true;
+    const updated = { ...ds, targetDay: day, targetTime: time, targetDate: dayDateMap[day] };
+    dragStateRef.current = updated;
+    setDragState({ ...updated });
+  };
+
   useEffect(() => { if (saveChanges) handleSave(); }, [saveChanges]);
   useEffect(() => { if (discardChanges) handleDiscard(); }, [discardChanges]);
   useEffect(() => { if (isBookingPanel > 0) handleBookingPanel(days[1], "9:00"); }, [isBookingPanel]);
+
+  // // Global mouseup to commit drag (commented out — drag feature temporarily disabled)
+  // React.useEffect(() => {
+  //   const handler = () => commitDragFn.current?.();
+  //   document.addEventListener("mouseup", handler);
+  //   return () => document.removeEventListener("mouseup", handler);
+  // }, []);
+
+  // // Always-fresh commit function (captures latest closure values)
+  // commitDragFn.current = async () => {
+  //   const ds = dragStateRef.current;
+  //   dragStateRef.current = null;
+  //   setDragState(null);
+  //   if (!ds || !dragDidMove.current) return;
+  //   if (ds.type === "move") {
+  //     const { apt, targetDay, targetDate, targetTime } = ds;
+  //     if (!targetDate || !dayDateMap[targetDay]) return;
+  //     if (isBlocked(targetDay, targetTime)) return;
+  //     const [sh, sm] = targetTime.split(":").map(Number);
+  //     const startMins = sh * 60 + sm;
+  //     for (let off = 0; off < apt.duration; off += 15) {
+  //       const slotMins = startMins + off;
+  //       const h = Math.floor(slotMins / 60);
+  //       const m = slotMins % 60;
+  //       const key = `${targetDate}|${h}:${m.toString().padStart(2, "0")}`;
+  //       const occupant = slotAppointmentMap.get(key);
+  //       if (occupant && occupant.appointment_id !== apt.appointment_id) return;
+  //     }
+  //     const prevAppts = appointments;
+  //     setAppointments(prev => prev.map(a =>
+  //       a.appointment_id === apt.appointment_id
+  //         ? { ...a, day: targetDay, date: targetDate, startTime: targetTime }
+  //         : a
+  //     ));
+  //     delete weekCache.current[weekStartStr];
+  //     try {
+  //       await updateAppointment(apt.appointment_id, {
+  //         appointment_date: targetDate,
+  //         appointment_time: gridTimeToDb(targetTime),
+  //       });
+  //     } catch (err) {
+  //       setError("Failed to move appointment: " + err.message);
+  //       setAppointments(prevAppts);
+  //     }
+  //   } else if (ds.type === "resize") {
+  //     const { apt, targetDay, targetTime } = ds;
+  //     if (targetDay !== apt.day) return;
+  //     const [ah, am] = apt.startTime.split(":").map(Number);
+  //     const [th, tm] = targetTime.split(":").map(Number);
+  //     const newDuration = (th * 60 + tm + 15) - (ah * 60 + am);
+  //     if (newDuration < 15) return;
+  //     const startMins = ah * 60 + am;
+  //     for (let off = apt.duration; off < newDuration; off += 15) {
+  //       const slotMins = startMins + off;
+  //       const h = Math.floor(slotMins / 60);
+  //       const m = slotMins % 60;
+  //       const key = `${apt.date}|${h}:${m.toString().padStart(2, "0")}`;
+  //       if (savedBlockedSet.has(key)) return;
+  //       const occupant = slotAppointmentMap.get(key);
+  //       if (occupant && occupant.appointment_id !== apt.appointment_id) return;
+  //     }
+  //     const prevAppts = appointments;
+  //     setAppointments(prev => prev.map(a =>
+  //       a.appointment_id === apt.appointment_id ? { ...a, duration: newDuration } : a
+  //     ));
+  //     delete weekCache.current[weekStartStr];
+  //     const mins = newDuration;
+  //     const durStr = `${String(Math.floor(mins / 60)).padStart(2, "0")}:${String(mins % 60).padStart(2, "0")}:00`;
+  //     try {
+  //       await updateAppointment(apt.appointment_id, { duration: durStr });
+  //     } catch (err) {
+  //       setError("Failed to resize appointment: " + err.message);
+  //       setAppointments(prevAppts);
+  //     }
+  //   }
+  // };
 
   if (loading) return <div className="calendar-area">Loading...</div>;
 
@@ -700,28 +858,70 @@ function AdminCalendar({
               } else {
                 const slotKey = `${dateForDay(day)}|${time}`;
                 const slotAppt = booked ? slotAppointmentMap.get(slotKey) : null;
+                const isFirstSlot = slotAppt && (() => {
+                  const [aptH, aptM] = slotAppt.startTime.split(":").map(Number);
+                  const [slotHr, slotMn] = time.split(":").map(Number);
+                  return slotHr * 60 + slotMn === aptH * 60 + aptM;
+                })();
+                const isCont = booked && !!slotAppt && !isFirstSlot && !isHighlighted;
+                if (isCont) {
+                  return (
+                    <div
+                      key={day + time}
+                      className="slot"
+                      style={{ background: "transparent", pointerEvents: dragState ? "auto" : "none", cursor: "default" }}
+                      onMouseEnter={() => handleSlotMouseEnter(day, time)}
+                      aria-hidden="true"
+                    />
+                  );
+                }
+
+                const isMultiStart = isFirstSlot && slotAppt.duration > 15;
+                const isDragSource = dragState?.type === "move" && dragState.apt?.appointment_id === slotAppt?.appointment_id && isFirstSlot;
+                const isDragTarget = !!dragState && !blocked && dragState.targetDay === day && dragState.targetTime === time && !(booked && slotAppointmentMap.get(slotKey)?.appointment_id !== dragState.apt?.appointment_id);
+                const isResizePreview = dragState?.type === "resize" && dragState.apt?.appointment_id === slotAppt?.appointment_id && isFirstSlot;
+
+                let displayNumSlots = isMultiStart ? Math.ceil(slotAppt.duration / 15) : 1;
+                if (isResizePreview) {
+                  const [ah, am] = slotAppt.startTime.split(":").map(Number);
+                  const [th, tm] = dragState.targetTime.split(":").map(Number);
+                  const previewDur = (th * 60 + tm + 15) - (ah * 60 + am);
+                  displayNumSlots = Math.max(1, Math.ceil(previewDur / 15));
+                }
+
+                const slotClass = blocked ? "unavailable-invis"
+                  : isDragTarget && dragState?.type === "move" ? "admin-drop-target"
+                  : isHighlighted ? "admin-selected"
+                  : isDragSource ? "admin-booked admin-booked-ghost"
+                  : isMultiStart || isResizePreview ? "admin-booked-start"
+                  : booked ? "admin-booked"
+                  : "admin-available";
+
+                const displayName = slotAppt?.name || "";
+                const hhSize = slotAppt?.householdSize;
                 return (
                   <div
                     key={day + time}
-                    className={`slot ${
-                      blocked ? "unavailable-invis"
-                      : isHighlighted ? "admin-selected"
-                      : booked ? "admin-booked"
-                      : "admin-available"
-                    }`}
-                    style={{ position: "relative" }}
+                    className={`slot ${slotClass}`}
+                    style={{
+                      position: "relative",
+                      ...(displayNumSlots > 1 && { height: `${displayNumSlots * 28}px`, zIndex: 2 }),
+                    }}
                     onClick={() => handleSlotClick(day, time)}
                     tabIndex={0}
                     role="button"
                     aria-label={`${blocked ? "Unavailable" : booked ? "Booked" : "Available"} slot: ${day} at ${time}`}
                     onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        handleSlotClick(day, time);
-                      }
+                      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleSlotClick(day, time); }
                     }}
                   >
+                    {isFirstSlot && displayName && (
+                      <span className="slot-appt-label">
+                        {displayName}{hhSize != null ? ` · ${hhSize}` : ""}
+                      </span>
+                    )}
                     {slotAppt && <StatusDot status={slotAppt.appointmentStatus} />}
+                    {/* apt-resize-handle commented out — drag feature temporarily disabled */}
                   </div>
                 );
               }
@@ -757,6 +957,7 @@ function AdminCalendar({
               ? appointments.filter((a) => a.response_id !== rebookingAppointment.response_id)
               : appointments
           }
+          blockedSlots={savedBlocked}
           rebookingAppointment={rebookingAppointment}
           isNewBooking={isNewBooking}
         />
