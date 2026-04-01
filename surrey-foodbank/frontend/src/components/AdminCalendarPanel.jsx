@@ -2,7 +2,15 @@ import React, {useState} from "react";
 import "./AdminCalendar.css";
 import {Typography, Box, Button, Paper, Stack, Divider} from "@mui/material";
 import AdminCalendar from "./AdminCalendar.jsx";
-import {STATUS_DOT_COLORS} from "./AdminCalendar.jsx";
+//import {STATUS_DOT_COLORS} from "./AdminCalendar.jsx";
+import { STATUS_OPTIONS } from "./AppointmentStatus.jsx";
+const STATUS_DOT_COLORS = {
+info: "#0288d1", // Booked
+primary: "#1976d2", // Checked In 
+success: "#2e7d32",  // Complete
+error:   "#d32f2f", // No Show
+default: "#9e9e9e",
+};
 
 function AdminCalendarPanel({
                                 isEditing,
@@ -139,12 +147,7 @@ function AdminCalendarPanel({
                     isNewBooking={isNewBooking}
                     saveConfirmed={saveConfirmed}
                 />
-                <Stack direction="column" spacing={1.5} sx={{ml: 2, justifyContent: "center"}}>
-                    <LegendCircle label="Booked" sx={{bgcolor: STATUS_DOT_COLORS.info}}/>
-                    <LegendCircle label="Checked In" sx={{bgcolor: STATUS_DOT_COLORS.primary, color: "common.white"}} />
-                    <LegendCircle label="Complete" sx={{bgcolor: STATUS_DOT_COLORS.success, color: "common.white"}} />
-                    <LegendCircle label="No Show" sx={{bgcolor: STATUS_DOT_COLORS.error, color: "common.white"}} />
-                </Stack>
+                
             </Box>
         </Paper>
     );
