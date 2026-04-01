@@ -418,14 +418,12 @@ export function StepChooseTime({
     const dayOffset = day === "Saturday" ? 5 : DAYS_FULL.indexOf(day);
     d.setDate(weekStart.getDate() + dayOffset);
     if (isDayBeyondCutoff(d)) return;
+    const slotOk = (t) =>
+      !!availability[`${day}-${t}`] || isExistingAppt(day, t, d);
     if (isLargeHousehold) {
-      if (
-        !availability[`${day}-${time}`] ||
-        !availability[`${day}-${addMinutesToTime(time, 15)}`]
-      )
-        return;
+      if (!slotOk(time) || !slotOk(addMinutesToTime(time, 15))) return;
     } else {
-      if (!availability[`${day}-${time}`]) return;
+      if (!slotOk(time)) return;
     }
     const [hh, mm] = time.split(":").map(Number);
     d.setHours(hh, mm, 0, 0);
