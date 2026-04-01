@@ -28,6 +28,12 @@ export const INELIGIBLE_STATUS_OPTIONS = [
   "Visitor"
 ];
 
+export const ELIGIBLE_CITIES = [
+  "delta",
+  "surrey",
+  "cloverdale"
+];
+
 export const LANGUAGES = [
   "English",
   "Arabic",

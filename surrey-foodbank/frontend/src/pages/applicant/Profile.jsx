@@ -28,8 +28,10 @@ import CancelBookingDialogue from "../../components/CancelBookingDialogue";
 import { getSupabaseClient } from "../../lib/supabaseClient";
 import { formatTime } from "../../components/BookingSteps";
 import { addMinutesToTime } from "../../utils/TimeUtils";
-import { INELIGIBLE_STATUS_OPTIONS } from "../../components/RegistrationFields";
+import { INELIGIBLE_STATUS_OPTIONS, ELIGIBLE_CITIES } from "../../components/RegistrationFields";
 import IneligibleStatusDialog from "../../components/IneligibleStatusDialog";
+import IneligibleCityDialog from "../../components/IneligibleCityDialog";
+import { normalizeCity } from "../../utils/Normalize";
 
 function getApiBaseUrl() {
   const envBase = (import.meta.env.VITE_API_BASE_URL || "").trim();
@@ -112,6 +114,8 @@ function Profile() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showIneligibleStatusDialog, setShowIneligibleStatusDialog] = useState(false);
   const [ineligibleStatus, setIneligibleStatus] = useState("");
+  const [showIneligibleCityDialog, setShowIneligibleCityDialog] = useState(false);
+  const [ineligibleCity, setIneligibleCity] = useState("");
 
   // Load user and appointment data
   useEffect(() => {
@@ -217,9 +221,22 @@ function Profile() {
     // Check if status in Canada is ineligible, and show dialog
     if (INELIGIBLE_STATUS_OPTIONS.includes(updatedForm.status_in_canada)) {
       setIneligibleStatus(updatedForm.status_in_canada);
+      document.activeElement?.blur();
       setShowIneligibleStatusDialog(true);
       return;
     }
+
+    // Check if city is elibible, and show dialog if so
+    const normalized_city = normalizeCity(updatedForm.city);
+    if (!ELIGIBLE_CITIES.some((eligible) =>
+      normalized_city.includes(eligible)
+    )) {
+      setIneligibleCity(updatedForm.city);
+      document.activeElement?.blur();
+      setShowIneligibleCityDialog(true);
+      return;
+    }
+
     setSubmitError("");
     setIsSubmitting(true);
 
@@ -494,6 +511,11 @@ function Profile() {
             open={showIneligibleStatusDialog}
             onClose={() => setShowIneligibleStatusDialog(false)}
             status={ineligibleStatus}
+          />
+          <IneligibleCityDialog
+            open={showIneligibleCityDialog}
+            onClose={() => setShowIneligibleCityDialog(false)}
+            city={ineligibleCity}
           />
         </Stack>
       )}

@@ -11,9 +11,11 @@ import { useNavigate } from "react-router-dom";
 import ApplicantTopBar from "../../components/ApplicantTopBar";
 import { validateRegistrationForm } from "../../utils/ValidateRegistrationForm";
 import { getSupabaseClient } from "../../lib/supabaseClient";
-import { INELIGIBLE_STATUS_OPTIONS } from "../../components/RegistrationFields";
+import { INELIGIBLE_STATUS_OPTIONS, ELIGIBLE_CITIES } from "../../components/RegistrationFields";
 import IneligibleStatusDialog from "../../components/IneligibleStatusDialog";
+import IneligibleCityDialog from "../../components/IneligibleCityDialog";
 import IneligibleAgeDialog from "../../components/IneligibleAgeDialog";
+import { normalizeCity } from "../../utils/Normalize";
 
 function getApiBaseUrl() {
   const envBase = (import.meta.env.VITE_API_BASE_URL || "").trim();
@@ -102,6 +104,8 @@ export default function Register() {
   const [submitError, setSubmitError] = useState("");
   const [showIneligibleStatusDialog, setShowIneligibleStatusDialog] = useState(false);
   const [ineligibleStatus, setIneligibleStatus] = useState("");
+  const [showIneligibleCityDialog, setShowIneligibleCityDialog] = useState(false);
+  const [ineligibleCity, setIneligibleCity] = useState("");
   const [showIneligibleAgeDialog, setShowIneligibleAgeDialog] = useState(false);
 
   useEffect(() => {
@@ -141,12 +145,25 @@ export default function Register() {
     // Check if status in Canada is ineligible, and show dialog if so
     if (INELIGIBLE_STATUS_OPTIONS.includes(form.status_in_canada)) {
       setIneligibleStatus(form.status_in_canada);
+      document.activeElement?.blur();
       setShowIneligibleStatusDialog(true);
+      return;
+    }
+
+    // Check if city is elibible, and show dialog if so
+    const normalized_city = normalizeCity(form.city);
+    if (!ELIGIBLE_CITIES.some((eligible) =>
+      normalized_city.includes(eligible)
+    )) {
+      setIneligibleCity(form.city);
+      document.activeElement?.blur();
+      setShowIneligibleCityDialog(true);
       return;
     }
 
     // Check if applicant is under eighteen years old, and show dialog if so
     if (!form.over_eighteen) {
+      document.activeElement?.blur();
       setShowIneligibleAgeDialog(true);
       return;
     }
@@ -424,6 +441,11 @@ export default function Register() {
         open={showIneligibleStatusDialog}
         onClose={() => setShowIneligibleStatusDialog(false)}
         status={ineligibleStatus}
+      />
+      <IneligibleCityDialog
+        open={showIneligibleCityDialog}
+        onClose={() => setShowIneligibleCityDialog(false)}
+        city={ineligibleCity}
       />
       <IneligibleAgeDialog
         open={showIneligibleAgeDialog}
