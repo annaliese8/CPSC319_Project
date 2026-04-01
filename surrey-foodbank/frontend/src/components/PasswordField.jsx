@@ -49,6 +49,7 @@ function PasswordField({
               </InputAdornment>
             ),
           },
+          htmlInput: { maxLength: 254 }
         }}
         id={id}
         label={label}
