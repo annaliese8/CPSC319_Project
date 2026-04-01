@@ -55,6 +55,7 @@ function ApplicantDatabase() {
     const appt = getAppointment(applicant)
     navigate(`/staff/applicant-info`, {
       state: {
+        from: "database",
         appointment: {
           id: applicant.response_id,
           first_name: applicant.first_name || "",

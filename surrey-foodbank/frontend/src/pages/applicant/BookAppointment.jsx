@@ -35,6 +35,7 @@ export default function BookAppointment() {
   const [loadError, setLoadError] = useState("");
   const [isLoadingForm, setIsLoadingForm] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [formDirty, setFormDirty] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -95,26 +96,69 @@ export default function BookAppointment() {
   // Time Slot
   const [selectedSlot, setSelectedSlot] = useState(null);
 
-  // Confirm
-  const handleConfirm = () => next();
+  const handleFormChange = (key) => (e) => {
+    const value = e.target.type === "checkbox" ? e.target.checked : e.target.value;
+    setForm((prev) => ({ ...prev, [key]: value }));
+    setFormDirty(true);
+  };
 
-  const handleDone = async () => {
+  // Confirm: save registration edits + appointment, then advance to Thank You
+  const handleConfirm = async () => {
     if (!selectedSlot || !accessToken) return;
 
     setIsSaving(true);
     setLoadError("");
 
+    const apiBase = getApiBaseUrl();
+
+    // Save registration edits if the user changed anything
+    if (formDirty) {
+      const registerPayload = {
+        first_name: form.first_name,
+        last_name: form.last_name,
+        phone: form.phone,
+        street_addr: form.street_addr,
+        city: form.city,
+        postal_code: form.postal_code,
+        status_in_canada: form.status_in_canada,
+        tiny_bundles_program:
+          form.tiny_bundles_program === true || form.tiny_bundles_program === "yes"
+            ? "yes"
+            : "no",
+        language: form.language,
+      };
+
+      try {
+        const regResponse = await fetch(`${apiBase}/api/applicant/register`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify(registerPayload),
+        });
+        const regResult = await regResponse.json().catch(() => null);
+        if (!regResponse.ok) {
+          setLoadError(regResult?.error || "Unable to save registration changes.");
+          setIsSaving(false);
+          return;
+        }
+      } catch (_error) {
+        setLoadError("Unable to save registration changes.");
+        setIsSaving(false);
+        return;
+      }
+    }
+
+    // Save the appointment
     const duration = Number((form.householdMembers?.length ?? 0) + 1) >= 5 ? 30 : 15;
     const payload = {
       day: selectedSlot.date.toLocaleDateString("en-US", { weekday: "long" }),
       date: selectedSlot.date.toISOString(),
       startTime: selectedSlot.time,
       duration,
-      appointmentStatus: "Booked"
+      appointmentStatus: "Booked",
     };
-    
-
-    const apiBase = getApiBaseUrl();
 
     try {
       const response = await fetch(`${apiBase}/api/applicant/appointment`, {
@@ -132,12 +176,18 @@ export default function BookAppointment() {
         setIsSaving(false);
         return;
       }
-
-      navigate("/applicant/profile", { replace: true });
     } catch (_error) {
       setLoadError("Unable to save appointment.");
       setIsSaving(false);
+      return;
     }
+
+    setIsSaving(false);
+    next();
+  };
+
+  const handleDone = () => {
+    navigate("/applicant/profile", { replace: true });
   };
 
   const stepperStep = step + 1;
@@ -176,27 +226,24 @@ export default function BookAppointment() {
           )}
 
           {step === 1 && (
-            <StepReview
-              form={form}
-              selectedSlot={selectedSlot}
-              onBack={prev}
-              onConfirm={handleConfirm}
-              onTimerExpired={() => {
-                setSelectedSlot(null);
-                setStep(0);
-              }}
-            />
+            <>
+              <StepReview
+                form={form}
+                selectedSlot={selectedSlot}
+                onBack={prev}
+                onConfirm={handleConfirm}
+                onTimerExpired={() => {
+                  setSelectedSlot(null);
+                  setStep(0);
+                }}
+                onChange={handleFormChange}
+                isConfirming={isSaving}
+              />
+            </>
           )}
 
           {step === 2 && (
-            <>
-              <StepThankYou selectedSlot={selectedSlot} onDone={handleDone} />
-              {isSaving ? (
-                <Typography sx={{ px: 3, pb: 2 }} color="text.secondary">
-                  Saving appointment...
-                </Typography>
-              ) : null}
-            </>
+            <StepThankYou selectedSlot={selectedSlot} onDone={handleDone} />
           )}
         </div>
       </div>

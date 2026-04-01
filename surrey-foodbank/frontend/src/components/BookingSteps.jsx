@@ -365,7 +365,8 @@ export function StepChooseTime({
   const isLargeHousehold = householdSize >= 5;
   const bookingInterval = isLargeHousehold ? 30 : 15;
   const tinyBundles = form.applyingToTinyBundles === "yes" || form.tiny_bundles_program === true;
-  const isDimmed = (day) => tinyBundles && day !== "Wednesday";
+  // Tiny Bundles users: only Wednesday; non-TB users: all days except Wednesday
+  const isDimmed = (day) => tinyBundles ? day !== "Wednesday" : day === "Wednesday";
 
   // Saturday date (weekStart is Monday, so +5 = Saturday)
   const saturdayDate = useMemo(() => {
@@ -695,7 +696,11 @@ export function StepReview({
   onBack,
   onConfirm,
   onTimerExpired,
+  onChange,
+  errors,
+  isConfirming = false,
 }) {
+  const [isEditing, setIsEditing] = useState(false);
   const full_name = [form.first_name, form.last_name]
     .filter(Boolean)
     .join(" ");
@@ -707,7 +712,7 @@ export function StepReview({
   ]
     .filter(Boolean)
     .join(", ");
-  const rows = [
+  const infoRows = [
     { label: "Name", value: full_name },
     { label: "Address", value: full_address },
     { label: "Phone", value: form.phone },
@@ -717,7 +722,6 @@ export function StepReview({
       value: form.tiny_bundles_program === "yes" ? "Yes" : "No",
     },
     { label: "Preferred Language", value: form.language },
-    { label: "Appointment", value: formatApptString(selectedSlot) },
   ];
   const [secondsLeft, setSecondsLeft] = useState(TIMER_SECONDS);
   useEffect(() => {
@@ -731,14 +735,80 @@ export function StepReview({
   return (
     <>
       <div className="ba-body">
-        <h2>Please confirm that the following fields are correct</h2>
-        <div className="ba-review-grid">
-          {rows.map(({ label, value }) => (
-            <div key={label} className="ba-review-row">
-              <div className="ba-review-label">{label}</div>
-              <div className="ba-review-val">{value}</div>
-            </div>
-          ))}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+          <h2 style={{ margin: 0 }}>Please confirm that the following fields are correct</h2>
+          <Button
+            size="small"
+            variant="outlined"
+            onClick={() => setIsEditing((v) => !v)}
+            sx={{ ml: 2, textTransform: "none", fontWeight: 600, flexShrink: 0 }}
+          >
+            {isEditing ? "Done Editing" : "Edit Info"}
+          </Button>
+        </div>
+        {isEditing ? (
+          <RegistrationFields
+            form={form}
+            onChange={onChange}
+            errors={errors || {}}
+            isDisabled={false}
+            isStaffPage={false}
+          />
+        ) : (
+          <div className="ba-review-grid">
+            {infoRows.map(({ label, value }) => (
+              <div key={label} className="ba-review-row">
+                <div className="ba-review-label">{label}</div>
+                <div className="ba-review-val">{value}</div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <Typography variant="subtitle1" sx={{ fontWeight: 700, mt: 2, mb: 1 }}>
+          Additional Household Members{" "}
+          <span style={{ fontWeight: 400, color: "#66747F" }}>
+            ({(form.householdMembers ?? []).length})
+          </span>
+        </Typography>
+        {(form.householdMembers ?? []).length === 0 ? (
+          <Typography variant="body2" sx={{ color: "#66747F", fontStyle: "italic", mb: 1 }}>
+            No additional household members added.
+          </Typography>
+        ) : (
+          (form.householdMembers ?? []).map((m, i) => {
+            const ageGroupConfig = AGE_GROUPS.find((g) => g.key === m.ageGroup);
+            return (
+              <div
+                key={m.id ?? i}
+                className="ba-review-grid"
+                style={{
+                  marginBottom: 10,
+                  borderBottom: i < (form.householdMembers ?? []).length - 1 ? "1px solid var(--gray-200)" : "none",
+                }}
+              >
+                <div className="ba-review-row">
+                  <div className="ba-review-label">Name</div>
+                  <div className="ba-review-val">
+                    {[m.firstName, m.lastName].filter(Boolean).join(" ")}
+                  </div>
+                </div>
+                <div className="ba-review-row">
+                  <div className="ba-review-label">Age Group</div>
+                  <div className="ba-review-val">
+                    {ageGroupConfig ? `${ageGroupConfig.label} (${ageGroupConfig.range})` : "—"}
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        )}
+
+        <div className="ba-review-grid" style={{ marginTop: 8 }}>
+          <div className="ba-review-row">
+            <div className="ba-review-label">Appointment</div>
+            <div className="ba-review-val">{formatApptString(selectedSlot)}</div>
+          </div>
         </div>
       </div>
       <TimerBar secondsLeft={secondsLeft} />
@@ -749,8 +819,8 @@ export function StepReview({
         <button className="ba-btn ba-btn-secondary" onClick={onBack}>
           ← Back
         </button>
-        <button className="ba-btn ba-btn-confirm" onClick={onConfirm}>
-          Confirm
+        <button className="ba-btn ba-btn-confirm" onClick={onConfirm} disabled={isConfirming}>
+          {isConfirming ? "Saving..." : "Confirm Booking"}
         </button>
       </div>
     </>

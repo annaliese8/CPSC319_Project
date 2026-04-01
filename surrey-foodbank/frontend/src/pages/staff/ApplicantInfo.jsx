@@ -27,7 +27,10 @@ import { getAppointmentByResponseId, updateAppointment } from "../../api/appoint
 export default function ApplicantInfoPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const handleBack = () => navigate("/staff/applicant-database");
+  const handleBack = () =>
+    location.state?.from === "calendar"
+      ? navigate("/staff/home")
+      : navigate("/staff/applicant-database");
 
   const [appointment, setAppointment] = useState(location.state?.appointment);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
