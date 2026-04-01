@@ -11,6 +11,7 @@ import {
 import CloseIcon from "@mui/icons-material/Close";
 import AppointmentStatus from "./AppointmentStatus";
 import { useNavigate } from "react-router-dom";
+import { formatDateFull, formatTimeRange, formatPhone } from "../utils/TimeUtils";
 
 function AppointmentInfoDialog({
   open,
@@ -24,6 +25,7 @@ function AppointmentInfoDialog({
   const handleMoreDetails = () => {
     navigate("/staff/applicant-info", {
       state: {
+        from: "calendar",
         appointment: {
           ...appointment,
           // ApplicantInfoPage keys off `id` to fire its API calls
@@ -33,16 +35,8 @@ function AppointmentInfoDialog({
     });
   };
 
-  const dateLabel = appointment?.date
-  ? new Date(appointment.date + "T00:00:00").toLocaleDateString("en-US", {
-      weekday: "long",
-      month: "long",
-      day: "numeric",
-      year: "numeric",
-    })
-  : "";
-
-  const timeLabel = appointment?.startTime || ""
+  const dateLabel = formatDateFull(appointment?.date);
+  const timeLabel = formatTimeRange(appointment?.startTime, appointment?.duration ?? 15);
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
@@ -66,7 +60,24 @@ function AppointmentInfoDialog({
           <Typography variant="h5" sx={{ fontWeight: 700 }}>
             {appointment?.name}
           </Typography>
-          <Typography variant="body1" sx={{ m: 2 }}>
+
+          {/* Phone + household size with labels */}
+          <Box sx={{ mt: 1, display: "inline-flex", flexDirection: "column", alignItems: "flex-start", gap: 0.25 }}>
+            {appointment?.phone && (
+              <Typography variant="body2" color="text.secondary">
+                <span style={{ fontWeight: 600 }}>Phone: </span>
+                {formatPhone(appointment.phone)}
+              </Typography>
+            )}
+            {appointment?.householdSize != null && (
+              <Typography variant="body2" color="text.secondary">
+                <span style={{ fontWeight: 600 }}>Household Size: </span>
+                {appointment.householdSize}
+              </Typography>
+            )}
+          </Box>
+
+          <Typography variant="body1" sx={{ mt: 1.5, mb: 0.5 }}>
             {dateLabel}
           </Typography>
           <Typography variant="body2" color="text.secondary">

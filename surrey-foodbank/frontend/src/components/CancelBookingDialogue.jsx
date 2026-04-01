@@ -12,6 +12,7 @@ import {
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { useNavigate } from "react-router-dom";
 import { deleteAppointment } from "../api/appointmentsAPI"; // CHANGED: import API instead of localStorage
+import { formatDateFull, formatTimeRange } from "../utils/TimeUtils";
 
 function CancelBookingDialogue({
   open,
@@ -74,10 +75,17 @@ function CancelBookingDialogue({
               : appointment?.name ?? "N/A"}
           </Typography>
           <Typography variant="body1" sx={{ fontStyle: "italic", mb: 0.5 }}>
-            {appointment?.appointment_date ?? appointment?.dateLabel ?? "No date set"}
+            {formatDateFull(
+              appointment?.appointment_date ?? appointment?.date ?? appointment?.dateLabel ?? ""
+            ) || "No date set"}
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            {appointment?.appointment_time ?? appointment?.timeLabel ?? "No time set"}
+            {(appointment?.appointment_date || appointment?.date)
+              ? formatTimeRange(
+                  appointment?.appointment_time ?? appointment?.startTime,
+                  appointment?.duration
+                )
+              : (appointment?.timeLabel ?? "No time set")}
           </Typography>
         </Box>
       </DialogContent>

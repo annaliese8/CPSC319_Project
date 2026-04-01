@@ -87,18 +87,35 @@ function AdminCalendarPanel({
             <Divider sx={{my: 1}}/>
 
             {/* Legend */}
-            <Stack direction="row" spacing={1.5} sx={{mb: 1, justifyContent: "center"}}>
+            <Stack direction="row" spacing={1.5} alignItems="center" sx={{mb: 1, justifyContent: "center", flexWrap: "wrap"}}>
                 <LegendChip label="Available" sx={{bgcolor: "secondary.main"}}/>
                 <LegendChip
                     label="Booked"
                     sx={{bgcolor: "primary.main", color: "common.white"}}
                 />
-                {isEditing ? (
+                {isEditing && (
                     <LegendChip
                         label="Blocked"
                         sx={{bgcolor: "warning.main", color: "common.white"}}
                     />
-                ) : ""}
+                )}
+
+                <Typography variant="body2" sx={{ color: "text.disabled", px: 0.5 }}>|</Typography>
+
+                {STATUS_OPTIONS.map((opt) => (
+                    <Stack key={opt.label} direction="row" spacing={0.75} alignItems="center" sx={{ p: 0.5 }}>
+                        <Box sx={{
+                            width: 9,
+                            height: 9,
+                            borderRadius: "50%",
+                            bgcolor: STATUS_DOT_COLORS[opt.color] ?? STATUS_DOT_COLORS.default,
+                            flexShrink: 0,
+                        }} />
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                            {opt.label}
+                        </Typography>
+                    </Stack>
+                ))}
             </Stack>
 
             {/* Calendar */}

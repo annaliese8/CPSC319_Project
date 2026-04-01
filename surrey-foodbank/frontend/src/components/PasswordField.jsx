@@ -1,6 +1,10 @@
 import InputAdornment from "@mui/material/InputAdornment";
+import IconButton from "@mui/material/IconButton";
 import LockOutlineIcon from "@mui/icons-material/LockOutline";
+import Visibility from "@mui/icons-material/Visibility";
+import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import TextField from "@mui/material/TextField";
+import { useState } from "react";
 
 function PasswordField({
   id = "password",
@@ -10,14 +14,21 @@ function PasswordField({
   error = false,
   ...props
 }) {
+  const [showPassword, setShowPassword] = useState(false);
+
   return (
     <>
       <TextField
         required
         variant="outlined"
-        type="password"
+        type={showPassword ? "text" : "password"}
         placeholder="*****************"
-        sx={{ m: 2 }}
+        sx={{
+          m: 2,
+          "& input::-ms-reveal": {
+            display: "none",
+          },
+        }}
         slotProps={{
           input: {
             startAdornment: (
@@ -25,7 +36,20 @@ function PasswordField({
                 <LockOutlineIcon />
               </InputAdornment>
             ),
+            endAdornment: (
+              <InputAdornment position="end">
+                <IconButton
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  onMouseDown={(event) => event.preventDefault()}
+                  edge="end"
+                >
+                  {showPassword ? <VisibilityOff /> : <Visibility />}
+                </IconButton>
+              </InputAdornment>
+            ),
           },
+          htmlInput: { maxLength: 254 }
         }}
         id={id}
         label={label}
