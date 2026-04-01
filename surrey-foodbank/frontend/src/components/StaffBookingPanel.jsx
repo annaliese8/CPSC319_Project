@@ -213,9 +213,9 @@ export default function StaffBookingPanel({
   };
 
   const handleConfirm = () => {
-    // Validate all fields using snake_case keys (matching RegistrationFields)
-    const errors = validateForm(form);
-    if (!form.email?.trim()) errors.email = "Please enter the applicant's email";
+    // When rebooking, applicant info is already saved — only validate date/time
+    const errors = isRebooking ? {} : validateForm(form);
+    if (!isRebooking && !form.email?.trim()) errors.email = "Please enter the applicant's email";
     if (Object.keys(errors).length) {
       setFormErrors(errors);
       setError("Please fill in all required fields.");

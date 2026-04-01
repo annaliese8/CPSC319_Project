@@ -11,7 +11,7 @@ import {
 
 const router = express.Router()
 
-// POST /api/applicants — create a new registration entry
+// POST /api/applicants — create a new registration entry valid
 router.post("/", async (req, res) => {
   try {
     const supabase = getSupabaseServiceClient()
@@ -39,7 +39,8 @@ router.get("/", async (req, res) => {
           appointment_date,
           appointment_time,
           appointment_status
-        )
+        ),
+        householdinformation (count)
       `)
     if (error) throw error
     return res.status(200).json({ ok: true, data })

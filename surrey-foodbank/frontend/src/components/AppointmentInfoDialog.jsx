@@ -19,6 +19,7 @@ function AppointmentInfoDialog({
   appointment,
   onDelete,
   onStatusChange,
+  onChangeBooking,
 }) {
   const navigate = useNavigate();
 
@@ -97,6 +98,14 @@ function AppointmentInfoDialog({
           sx={{ fontWeight: 800, color: "common.white" }}
         >
           Delete Booking
+        </Button>
+        <Button
+          variant="outlined"
+          color="primary"
+          onClick={() => onChangeBooking?.(appointment)}
+          sx={{ fontWeight: 800 }}
+        >
+          Change Apt.
         </Button>
         <Button
           variant="contained"

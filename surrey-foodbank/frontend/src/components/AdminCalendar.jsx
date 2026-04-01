@@ -936,6 +936,18 @@ function AdminCalendar({
         appointment={appointmentData}
         onDelete={handleDeleteAppointment}
         onStatusChange={handleStatusChange}
+        onChangeBooking={(apt) => {
+          setOpenInfoDialog(false);
+          setRebookingAppointment(apt);
+          setHighlightedSlot({ day: apt.day, time: apt.startTime });
+          setSelectedSlot({
+            day: apt.day,
+            time: apt.startTime,
+            weekStart,
+            date: apt.date ? new Date(apt.date) : new Date(weekStart),
+          });
+          setShowBookingPanel(true);
+        }}
       />
 
       {showBookingPanel && (
