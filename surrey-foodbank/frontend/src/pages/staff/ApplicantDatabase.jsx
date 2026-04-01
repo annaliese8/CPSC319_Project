@@ -2,9 +2,11 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { getApplicants } from "../../api/applicantsAPI"
+import * as XLSX from "xlsx";
 
 import Typography from "@mui/material/Typography";
 import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
 import TextField from "@mui/material/TextField";
 import InputAdornment from "@mui/material/InputAdornment";
 import Table from "@mui/material/Table";
@@ -19,6 +21,7 @@ import IconButton from "@mui/material/IconButton";
 import SearchIcon from "@mui/icons-material/Search";
 import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
 import ClearIcon from "@mui/icons-material/Clear";
+import DownloadIcon from "@mui/icons-material/Download";
 import { STATUS_OPTIONS } from "../../components/AppointmentStatus";
 
 import StaffTopBar from "../../components/StaffTopBar";
@@ -50,6 +53,37 @@ function ApplicantDatabase() {
     const q = query.toLowerCase();
     return fullName.includes(q) || email.includes(q);
   });
+
+  const handleExport = () => {
+    const rows = applicants
+      .filter((a) => {
+        const appt = getAppointment(a);
+        return appt?.appointment_date && appt?.appointment_time;
+      })
+      .map((a) => {
+        const appt = getAppointment(a);
+        const date = new Date(`${appt.appointment_date}T12:00:00`);
+        const dateLabel = date.toLocaleDateString("en-US", {
+          weekday: "long", month: "long", day: "numeric", year: "numeric",
+        });
+        const householdCount = a.householdinformation?.[0]?.count ?? 0;
+        return {
+          "First Name": a.first_name || "",
+          "Last Name": a.last_name || "",
+          "Email": a.email_address || "",
+          "Phone": a.phone || "",
+          "Appointment Date": dateLabel,
+          "Appointment Time": appt.appointment_time?.slice(0, 5) || "",
+          "Household Size": householdCount,
+          "Status": appt.appointment_status || "",
+        };
+      });
+
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Appointments");
+    XLSX.writeFile(wb, "appointments.xlsx");
+  };
 
   const handleRowClick = (applicant) => {
     const appt = getAppointment(applicant)
@@ -105,9 +139,21 @@ function ApplicantDatabase() {
           <Typography variant="h4" fontWeight="bold">
             Registered Applicants
           </Typography>
-          <Typography variant="body2" color="text.secondary">
-            {filtered.length} result{filtered.length !== 1 ? "s" : ""}
-          </Typography>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+            <Typography variant="body2" color="text.secondary">
+              {filtered.length} result{filtered.length !== 1 ? "s" : ""}
+            </Typography>
+            <Button
+              variant="outlined"
+              startIcon={<DownloadIcon />}
+              onClick={handleExport}
+              disabled={applicants.length === 0}
+              size="small"
+              sx={{ fontWeight: 700 }}
+            >
+              Export
+            </Button>
+          </Box>
         </Box>
 
         <TextField
