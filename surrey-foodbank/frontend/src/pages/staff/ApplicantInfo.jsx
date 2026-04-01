@@ -66,7 +66,7 @@ export default function ApplicantInfoPage() {
       })
       .catch((err) => console.error("Failed to load household members:", err.message));
 
-    fetch(`${import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_BASE_URL || "http://localhost:3000"}/api/applicants/${responseId}`)
+    fetch(`${(import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_BASE_URL || "http://localhost:3000").replace(/\/$/, "")}/api/applicants/${responseId}`)
       .then((res) => res.json())
       .then((result) => {
         const reg = result?.data ?? null;
