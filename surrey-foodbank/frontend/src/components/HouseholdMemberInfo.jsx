@@ -420,6 +420,7 @@ function MemberCard({ member, idx, onField, onRemove, errors }) {
               required
               size="small"
               sx={{ background: "#fff", borderRadius: 1 }}
+              slotProps={{ htmlInput: { maxLength: 100 } }}
             />
             <TextField
               label="Last Name"
@@ -431,6 +432,7 @@ function MemberCard({ member, idx, onField, onRemove, errors }) {
               required
               size="small"
               sx={{ background: "#fff", borderRadius: 1 }}
+              slotProps={{ htmlInput: { maxLength: 100 } }}
             />
           </Stack>
 

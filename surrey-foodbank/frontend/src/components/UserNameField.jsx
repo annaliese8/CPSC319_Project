@@ -21,6 +21,7 @@ function UserNameField(props) {
               </InputAdornment>
             ),
           },
+          htmlInput: { maxLength: 254 }
         }}
         {...props}
       />

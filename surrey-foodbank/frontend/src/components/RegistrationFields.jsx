@@ -103,6 +103,7 @@ export default function RegistrationFields({
           size="small"
           required
           onChange={onChange("first_name")}
+          slotProps={{ htmlInput: { maxLength: 100 } }}
         />
         <TextField
           label="Last Name"
@@ -118,6 +119,7 @@ export default function RegistrationFields({
           size="small"
           required
           onChange={onChange("last_name")}
+          slotProps={{ htmlInput: { maxLength: 100 } }}
         />
       </Stack>
 
@@ -136,6 +138,7 @@ export default function RegistrationFields({
         size="small"
         required
         onChange={onChange("street_addr")}
+        slotProps={{ htmlInput: { maxLength: 100 } }}
       />
 
       {/* City / Postal Code */}
@@ -154,6 +157,7 @@ export default function RegistrationFields({
           size="small"
           required
           onChange={onChange("city")}
+          slotProps={{ htmlInput: { maxLength: 50 } }}
         />
         <TextField
           label="Postal Code"
@@ -169,6 +173,7 @@ export default function RegistrationFields({
           size="small"
           required
           onChange={onChange("postal_code")}
+          slotProps={{ htmlInput: { maxLength: 10 } }}
         />
       </Stack>
 
@@ -212,6 +217,7 @@ export default function RegistrationFields({
           size="small"
           required
           onChange={onChange("phone")}
+          slotProps={{ htmlInput: { maxLength: 30 } }}
         />
       </Stack>
 
@@ -234,6 +240,10 @@ export default function RegistrationFields({
               error={!!errors.language}
               helperText={errors.language}
               fullWidth
+              inputProps={{
+                ...params.inputProps,
+                maxLength: 50,
+              }}
             />
           )}
           size="small"

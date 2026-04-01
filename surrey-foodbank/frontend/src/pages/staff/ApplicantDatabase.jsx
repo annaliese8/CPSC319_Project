@@ -116,6 +116,7 @@ function ApplicantDatabase() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           sx={{ mb: 3 }}
+          slotProps={{ htmlInput: { maxLength: 254 } }}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
