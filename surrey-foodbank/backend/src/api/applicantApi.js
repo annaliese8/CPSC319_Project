@@ -16,11 +16,8 @@ import {
     HOUSEHOLD_LAST_NAME_COLUMN,
     HOUSEHOLD_CATEGORY_COLUMN,
 } from "../lib/supabase.js"
-import {normalizeEmail} from "../middleware/requireAuth.js"
-import {isRegistrationComplete} from "../lib/validateApplicantRegistration.js"
-import EmailClient from "./emailclient.js";
-
-const emailClient = new EmailClient();
+import { normalizeEmail } from "../middleware/requireAuth.js"
+import { isRegistrationComplete } from "../lib/validateApplicantRegistration.js"
 
 function makeHttpError(status, message) {
     const err = new Error(message)
@@ -50,7 +47,7 @@ function buildAppointmentPayload(appointmentRow) {
 
     // Parse at noon to avoid timezone day shifting for date-only values.
     const dateObj = new Date(`${dateValue}T12:00:00`)
-    const day = dateObj.toLocaleDateString("en-US", {weekday: "long"})
+    const day = dateObj.toLocaleDateString("en-US", { weekday: "long" })
 
     return {
         appointmentId: appointmentRow[APPOINTMENT_ID_COLUMN],
@@ -87,7 +84,7 @@ function intervalFromMinutes(durationMinutes) {
 }
 
 async function getApplicantResponseId(supabase, email) {
-    const {data, error} = await supabase
+    const { data, error } = await supabase
         .from(APPLICANT_TABLE)
         .select("response_id")
         .eq(APPLICANT_EMAIL_COLUMN, email)
@@ -101,12 +98,12 @@ async function getApplicantResponseId(supabase, email) {
 }
 
 async function getLatestActiveAppointment(supabase, responseId) {
-    const {data, error} = await supabase
+    const { data, error } = await supabase
         .from(APPOINTMENT_TABLE)
         .select("*")
         .eq(APPOINTMENT_RESPONSE_ID_COLUMN, responseId)
-        .order(APPOINTMENT_DATE_COLUMN, {ascending: false})
-        .order(APPOINTMENT_TIME_COLUMN, {ascending: false})
+        .order(APPOINTMENT_DATE_COLUMN, { ascending: false })
+        .order(APPOINTMENT_TIME_COLUMN, { ascending: false })
         .limit(1)
 
     if (error) {
@@ -117,7 +114,7 @@ async function getLatestActiveAppointment(supabase, responseId) {
 }
 
 async function getApplicantRegistrationByEmail(supabase, email) {
-    const {data, error} = await supabase
+    const { data, error } = await supabase
         .from(APPLICANT_TABLE)
         .select("*")
         .eq(APPLICANT_EMAIL_COLUMN, email)
@@ -133,11 +130,11 @@ async function getApplicantRegistrationByEmail(supabase, email) {
 async function getHouseholdMembersByResponseId(supabase, responseId) {
     if (!responseId) return []
 
-    const {data, error} = await supabase
+    const { data, error } = await supabase
         .from(HOUSEHOLD_TABLE)
         .select("*")
         .eq(HOUSEHOLD_RESPONSE_ID_COLUMN, responseId)
-        .order(HOUSEHOLD_ID_COLUMN, {ascending: true})
+        .order(HOUSEHOLD_ID_COLUMN, { ascending: true })
 
     if (error) {
         throw makeHttpError(500, "Unable to read household member data.")
@@ -167,7 +164,7 @@ async function syncHouseholdMembers(supabase, responseId, householdMembers) {
         }))
         .filter((member) => member[HOUSEHOLD_FIRST_NAME_COLUMN] && member[HOUSEHOLD_LAST_NAME_COLUMN])
 
-    const {error: deleteError} = await supabase
+    const { error: deleteError } = await supabase
         .from(HOUSEHOLD_TABLE)
         .delete()
         .eq(HOUSEHOLD_RESPONSE_ID_COLUMN, responseId)
@@ -178,7 +175,7 @@ async function syncHouseholdMembers(supabase, responseId, householdMembers) {
 
     if (members.length === 0) return
 
-    const {error: insertError} = await supabase
+    const { error: insertError } = await supabase
         .from(HOUSEHOLD_TABLE)
         .insert(members)
 
@@ -229,7 +226,6 @@ async function getAppointment(email) {
 }
 
 async function saveAppointment(email, payload) {
-
     const date = toDbDateOnly(payload?.date)
     const startTime = normalizeTimeForDb(payload?.startTime)
     const duration = intervalFromMinutes(payload?.duration)
@@ -245,9 +241,7 @@ async function saveAppointment(email, payload) {
         throw makeHttpError(400, "Please complete registration before booking.")
     }
 
-    const registration = await getRegistration(email)
     const existingAppointment = await getLatestActiveAppointment(supabase, responseId)
-
 
     const dbPayload = {
         [APPOINTMENT_RESPONSE_ID_COLUMN]: responseId,
@@ -260,7 +254,7 @@ async function saveAppointment(email, payload) {
     let savedRow
 
     if (existingAppointment?.[APPOINTMENT_ID_COLUMN]) {
-        const {data: updatedRows, error: updateError} = await supabase
+        const { data: updatedRows, error: updateError } = await supabase
             .from(APPOINTMENT_TABLE)
             .update(dbPayload)
             .eq(APPOINTMENT_ID_COLUMN, existingAppointment[APPOINTMENT_ID_COLUMN])
@@ -272,7 +266,7 @@ async function saveAppointment(email, payload) {
 
         savedRow = updatedRows?.[0] || null
     } else {
-        const {data: insertedRows, error: insertError} = await supabase
+        const { data: insertedRows, error: insertError } = await supabase
             .from(APPOINTMENT_TABLE)
             .insert([dbPayload])
             .select("*")
@@ -284,12 +278,6 @@ async function saveAppointment(email, payload) {
         savedRow = insertedRows?.[0] || null
     }
 
-    try {
-        await emailClient.sendConfirmation(registration.first_name.concat(" ",registration.last_name), email, date.concat(" at ", startTime));
-    } catch (e) {
-        console.log("EMAIL ERROR", e);
-    }
-
     return buildAppointmentPayload(savedRow)
 }
 
@@ -298,17 +286,16 @@ async function removeAppointment(email) {
     const responseId = await getApplicantResponseId(supabase, email)
 
     if (!responseId) {
-        return {removed: false}
+        return { removed: false }
     }
 
-    const registration = await getRegistration(email)
     const existingAppointment = await getLatestActiveAppointment(supabase, responseId)
 
     if (!existingAppointment?.[APPOINTMENT_ID_COLUMN]) {
-        return {removed: false}
+        return { removed: false }
     }
 
-    const {error: deleteError} = await supabase
+    const { error: deleteError } = await supabase
         .from(APPOINTMENT_TABLE)
         .delete()
         .eq(APPOINTMENT_ID_COLUMN, existingAppointment[APPOINTMENT_ID_COLUMN])
@@ -317,21 +304,13 @@ async function removeAppointment(email) {
         throw makeHttpError(500, "Unable to cancel appointment.")
     }
 
-    try {
-        await emailClient.sendCancellation(registration.first_name.concat(" ", registration.last_name),
-                                           email,
-                                           existingAppointment.appointment_date.concat(" at ", existingAppointment.appointment_time));
-    } catch (e) {
-        console.log("EMAIL ERROR", e);
-    }
-
-    return {removed: true}
+    return { removed: true }
 }
 
 async function getRegistrationStatus(email) {
     const supabase = getSupabaseServiceClient()
     const data = await getApplicantRegistrationByEmail(supabase, email)
-    return {completed: isRegistrationComplete(data)}
+    return { completed: isRegistrationComplete(data) }
 }
 
 async function saveRegistration(email, values, householdMembers) {
