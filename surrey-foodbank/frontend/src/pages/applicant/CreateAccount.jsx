@@ -4,13 +4,14 @@ import Button from "@mui/material/Button";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import Divider from "@mui/material/Divider";
 import EmailField from "../../components/EmailField";
-import Link from "@mui/material/Link";
+import { Link } from "react-router-dom";
 import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
+import MuiLink from "@mui/material/Link";
 import Paper from "@mui/material/Paper";
 import PasswordField from "../../components/PasswordField";
 import RadioButtonUncheckedIcon from "@mui/icons-material/RadioButtonUnchecked";
@@ -507,10 +508,9 @@ function CreateAccount() {
       {/* Navbar */}
       <AppBar position="sticky" color="transparent" elevation={1} sx={{ backgroundColor: "#fff" }}>
         <Toolbar sx={{ justifyContent: "space-between" }}>
-          <Link href="https://surreyfoodbank.org/">
+          <MuiLink component={Link} to="https://surreyfoodbank.org/" color="primary" aria-label="Surrey Food Bank Logo">
             <Box component="img" src={logo} alt="Surrey Food Bank Logo" height={40} />
-          </Link>
-
+          </MuiLink>
           {/* Language Selector */}
           <Box>
             <Tooltip title="Select Language / اختر اللغة / Seleccionar idioma">
@@ -561,7 +561,9 @@ function CreateAccount() {
                 <ListItemIcon sx={{ minWidth: 40 }}><Typography sx={listItemIconStyle}>1.</Typography></ListItemIcon>
                 <ListItemText
                   primary={t.step1}
-                  secondary={<>{t.step1sub} <Link href="/applicant/login" color="primary">{t.step1subHere}</Link></>}
+                  secondary={<>{t.step1sub} <MuiLink component={Link} to="/applicant/login" color="primary" aria-label="Log in">
+                    {t.step1subHere}
+                  </MuiLink></>}
                   slotProps={listItemTextStyle}
                 />
               </ListItem>
@@ -576,7 +578,11 @@ function CreateAccount() {
               <ListItem alignItems="flex-start" disableGutters>
                 <ListItemIcon sx={{ minWidth: 40 }}><Typography sx={listItemIconStyle}>4.</Typography></ListItemIcon>
                 <ListItemText
-                  primary={<>{t.step4} <Link href="https://maps.app.goo.gl/1H39wzvMBqmki2se6" color="primary" aria-label="Google Maps of Surrey Food Bank's registration office">{t.step4link}</Link></>}
+                  primary={<>{t.step4}{" "}
+                    <MuiLink component={Link} to="https://maps.app.goo.gl/1H39wzvMBqmki2se6" color="primary" aria-label="Google Maps of Surrey Food Bank's registration office">
+                      {t.step4link}
+                    </MuiLink>
+                  </>}
                   secondary={t.step4sub}
                   slotProps={listItemTextStyle}
                 />
@@ -624,9 +630,9 @@ function CreateAccount() {
                   spacing={2}
                   sx={{ alignItems: "center", justifyContent: "space-between", mt: 2 }}
                 >
-                  <Link href="/CPSC319_Project/#/applicant/login" underline="hover">
+                  <MuiLink component={Link} to="/applicant/login" underline="hover" color="primary" aria-label="Log in">
                     <Typography variant="body2">{t.alreadyHave}</Typography>
-                  </Link>
+                  </MuiLink>
                   <Button
                     type="submit"
                     variant="contained"
