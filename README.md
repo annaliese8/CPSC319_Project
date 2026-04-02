@@ -1,3 +1,5 @@
+README.md
+
 # Surrey Food Bank Appointment and Registration System
 
 ## Project Description
@@ -26,17 +28,31 @@ This web application allows prospective clients of The Surrey Food bank to book 
 
 ## Quick Start
 
+### Assumptions:
+- Works on macOS, Windows, and Linux. No OS‑specific version requirements. 
+- The .env variables for running locally are in the final evaluation document. They allow you to connect to the database and log into the staff side.
+- The admin login account credentials are in the final evaluation document.
+
 ### Option 1: Visit the Deployed App
-The app is hosted on GitHub Pages and can be accessed directly at:
+The app is hosted on GitHub Pages.
+
+The applicant side of the application can be accessed here:
 [https://annaliese8.github.io/CPSC319_Project/](https://annaliese8.github.io/CPSC319_Project/)
+
+To access the staff side of the application, copy the following link and replace <VITE_STAFF_BASE> with the value specified in the final project evaluation document: [http://localhost:5173/CPSC319_Project/#/<VITE_STAFF_BASE>/login](http://localhost:5173/CPSC319_Project/#/<VITE_STAFF_BASE>/login)
+
+Note: To view table contents from the database, they will be printed in your browser at https://surreyfoodbank.onrender.com/api/[TABLE_NAME] (i.e., to view the contents of the `applicants` table, navigate to https://surreyfoodbank.onrender.com/api/applicants).
 
 ### Option 2: Running Locally
 #### Prerequisites
 
-0. Requires Node.js v20+. [Download here.](https://nodejs.org/en/download)
+IMPORTANT: All .env variables can be found in the final evaluation document. They are required when running locally to be able to contact the database, and log into the staff side of the application.
+
+0. Requires Node.js v20+ and npm 9+. [Download here.](https://nodejs.org/en/download)
 ```bash
    # Check your node version with
    node -v
+
 ```
 
 1. Clone the repository
@@ -67,6 +83,7 @@ SUPABASE_SERVICE_ROLE_KEY=<your Supabase service role key>" > .env
 ```bash
    npm run dev
 ```
+Note: To view table contents from the database, they will be printed in your browser at http://localhost:3000/api/[TABLE_NAME] (i.e., to view the contents of the `applicants` table, navigate to http://localhost:3000/api/applicants).
 
 #### Frontend Setup
 
@@ -86,7 +103,10 @@ echo "VITE_STAFF_BASE=<your staff URL base>
    VITE_STAFF_USERNAME=<your staff username>
    VITE_STAFF_PASSWORD=<your staff password>
    VITE_SUPABASE_ANON_KEY=<your Supabase anon key>
-   VITE_SUPABASE_URL=<your Supabase URL>" > .env
+   VITE_SUPABASE_URL=<your Supabase URL>
+   VITE_API_BASE_URL=<your backend URL>
+   VITE_BACKEND_URL=<your backend host URL>
+" > .env
 ```
 
 9. Start the frontend server
@@ -96,10 +116,15 @@ echo "VITE_STAFF_BASE=<your staff URL base>
 
 10. Visit the app:
    - **Applicant side:** [http://localhost:5173/CPSC319_Project/](http://localhost:5173/CPSC319_Project/)
-   - **Staff side:** `http://localhost:5173/CPSC319_Project/#/<VITE_STAFF_BASE>/login`
+   - **Staff side:** `http://localhost:5173/CPSC319_Project/#/<VITE_STAFF_BASE>/login` (replace <VITE_STAFF_BASE> with value from final evaluation document)
 
 ## Testing
-Navigate to the frontend folder and run:
+Testing the backend: navigate to the backend folder and run:
+```bash
+npm run test
+```
+
+Testing the frontend: navigate to the frontend folder and run:
 ```bash
 npm run test
 ```
