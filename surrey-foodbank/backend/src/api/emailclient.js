@@ -8,20 +8,20 @@ export default class EmailClient {
     async checkEmail(email) {
     }
 
-    static async sendSimpleMessage() {
+    async sendSimpleMessage() {
         const mailgun = new Mailgun(FormData);
         const mg = mailgun.client({
             username: "api",
-            key: process.env.MAILGUN_API_KEY
+            key: process.env.MAILGUN_API_KEY || "API_KEY",
             // When you have an EU-domain, you must specify the endpoint:
             // url: "https://api.eu.mailgun.net"
         });
         try {
-            const data = await mg.messages.create("sandboxf6c87e23773145909bca7e3bd396ccd1.mailgun.org", {
-                from: "bob <nineranger@gmail.com>",
-                to: ["N Tr <nineranger@gmail.com>"],
-                subject: "Hello N",
-                text: "Congratulations, you just sent an email with Mailgun! You are truly awesome!",
+            const data = await mg.messages.create("mindyandcain.com", {
+                from: "Mailgun Sandbox <postmaster@mindyandcain.com>",
+                to: ["Surrey Foodbank <nineranger@gmail.com>"],
+                subject: "Hello Surrey Foodbank",
+                text: "Congratulations Surrey Foodbank, you just sent an email with Mailgun! You are truly awesome!",
             });
 
             console.log(data); // logs response data
@@ -31,6 +31,9 @@ export default class EmailClient {
     }
 
     async sendConfirmation(name, address, date) {
+        console.log("Sending Conf (emailclient)");
+        console.log("INFO: ",name, address, date);
+
         const mailgun = new Mailgun(FormData);
         const mg = mailgun.client({
             username: "api",
@@ -40,7 +43,7 @@ export default class EmailClient {
         });
 
         try {
-            const data = await mg.messages.create("sandboxf6c87e23773145909bca7e3bd396ccd1.mailgun.org", {
+            const data = await mg.messages.create(process.env.MAILGUN_ADDRESS, {
                 from: `${this.faceName} <${this.faceEmail}>`,
                 to: [`${name} <${address}>`],
                 subject: "Appointment Booked!",
@@ -59,6 +62,7 @@ export default class EmailClient {
 
     async sendCancellation(name, address, date) {
         console.log("called?");
+        console.log("INFO: ",name, address, date);
         const mailgun = new Mailgun(FormData);
 
         const mg = mailgun.client({
@@ -69,7 +73,7 @@ export default class EmailClient {
         });
 
         try {
-            const data = await mg.messages.create("sandboxf6c87e23773145909bca7e3bd396ccd1.mailgun.org", {
+            const data = await mg.messages.create(process.env.MAILGUN_ADDRESS, {
                 from: `${this.faceName} <${this.faceEmail}>`,
                 to: [`${name} <${address}>`],
                 subject: "Appointment Cancelled!",
@@ -88,3 +92,6 @@ export default class EmailClient {
     }
 
 }
+
+// const emailclient = new EmailClient();
+// emailclient.sendConfirmation("BOB", "cpsc.v319@gmail.com", "now");

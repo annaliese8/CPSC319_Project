@@ -1,6 +1,7 @@
 import { getSupabaseServiceClient } from "../lib/supabase.js"
 const supabase = getSupabaseServiceClient()
 import EmailClient from "./emailclient.js";
+import {response} from "express";
 const emailClient = new EmailClient();
 
 export async function getApplicants() {
@@ -57,7 +58,37 @@ export async function getAppointmentByResponseId(responseId) {
     .not('appointment_status', 'eq', 'cancelled')
     .not('appointment_status', 'eq', 'blocked')
     .order('appointment_date', { ascending: false })
+    .select(`
+      *,
+      registrationformresponse (
+        first_name,
+        last_name,
+        email_address,
+        phone
+      )
+    `)
     .limit(1)
+  if (error) throw error
+  return data?.[0] ?? null
+}
+
+export async function getAppointmentByAppointmentId(appointmentId) {
+  const { data, error } = await supabase
+      .from('appointments')
+      .select('*')
+      .eq('appointment_id', appointmentId)
+      .not('appointment_status', 'eq', 'blocked')
+      .order('appointment_date', { ascending: false })
+      .select(`
+      *,
+      registrationformresponse (
+        first_name,
+        last_name,
+        email_address,
+        phone
+      )
+    `)
+      .limit(1)
   if (error) throw error
   return data?.[0] ?? null
 }
@@ -70,7 +101,11 @@ export async function createAppointment(appointmentData) {
     .select()
   if (error) throw error
   try {
-    await emailClient.sendConfirmation("Joe", "insertEmailHere", appointmentData.appointment_date.concat(" at ").concat(appointmentData.appointment_time));
+    const info = await getAppointmentByResponseId(appointmentData.response_id);
+
+    await emailClient.sendConfirmation(info.registrationformresponse.first_name.concat(" ", info.registrationformresponse.last_name),
+                                       info.registrationformresponse.email_address,
+                                       appointmentData.appointment_date.concat(" at ").concat(appointmentData.appointment_time));
   } catch (e) {
     console.log(e);
   }
@@ -90,13 +125,18 @@ export async function updateAppointment(appointmentId, updates) {
 
 export async function deleteAppointment(appointmentId) {
   console.log(appointmentId, "DELETING APPOINTMENT")
+  const info = await getAppointmentByAppointmentId(appointmentId);
+  console.log("HERE IT IS!!!", info);
+
   const { error } = await supabase
     .from('appointments')
     .delete()
     .eq('appointment_id', appointmentId)
   if (error) throw error
   try {
-    await emailClient.sendCancellation("Joe", "insertEmailHere", "today")
+    await emailClient.sendCancellation(info.registrationformresponse.first_name.concat(" ", info.registrationformresponse.last_name),
+                                       info.registrationformresponse.email_address,
+                                       info.appointment_date.concat(" at ").concat(info.appointment_time));
   }catch (e) {
     console.log(e);
   }
