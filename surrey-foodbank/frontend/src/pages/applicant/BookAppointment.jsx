@@ -11,6 +11,10 @@ import { useNavigate } from "react-router-dom";
 import ApplicantTopBar from "../../components/ApplicantTopBar";
 import { Typography } from "@mui/material";
 import { getSupabaseClient } from "../../lib/supabaseClient";
+import { INELIGIBLE_STATUS_OPTIONS, ELIGIBLE_CITIES } from "../../components/RegistrationFields";
+import IneligibleStatusDialog from "../../components/IneligibleStatusDialog";
+import IneligibleCityDialog from "../../components/IneligibleCityDialog";
+import { normalizeCity } from "../../utils/Normalize";
 
 function getApiBaseUrl() {
   const envBase = (import.meta.env.VITE_API_BASE_URL || "").trim();
@@ -33,6 +37,11 @@ export default function BookAppointment() {
   const [form, setForm] = useState({});
   const [accessToken, setAccessToken] = useState("");
   const [loadError, setLoadError] = useState("");
+  const [formErrors, setFormErrors] = useState({});
+  const [showIneligibleStatusDialog, setShowIneligibleStatusDialog] = useState(false);
+  const [ineligibleStatus, setIneligibleStatus] = useState("");
+  const [showIneligibleCityDialog, setShowIneligibleCityDialog] = useState(false);
+  const [ineligibleCity, setIneligibleCity] = useState("");
   const [isLoadingForm, setIsLoadingForm] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [formDirty, setFormDirty] = useState(false);
@@ -103,8 +112,69 @@ export default function BookAppointment() {
 
   // Navigation
   const [step, setStep] = useState(0);
-  const next = () => setStep((s) => s + 1);
-  const prev = () => setStep((s) => s - 1);
+
+  const createHold = async (slot, token) => {
+    if (!slot || !token) return;
+    const apiBase = getApiBaseUrl();
+    const duration = Number((form.householdMembers?.length ?? 0) + 1) >= 5 ? 30 : 15;
+    try {
+      await fetch(`${apiBase}/api/applicant/hold`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          date: slot.date.toISOString(),
+          startTime: slot.time,
+          duration,
+        }),
+      });
+    } catch (_err) {
+      // Non-critical — booking will still check availability on confirm
+    }
+  };
+
+  const releaseHoldRequest = (token, { keepalive = false } = {}) => {
+    if (!token) return;
+    const apiBase = getApiBaseUrl();
+    return fetch(`${apiBase}/api/applicant/hold`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+      keepalive,
+    }).catch(() => {});
+  };
+
+  // Release the hold if the user closes the tab or navigates away while on the review step
+  useEffect(() => {
+    if (step !== 1) return;
+
+    const handleUnload = () => {
+      releaseHoldRequest(accessToken, { keepalive: true });
+    };
+
+    window.addEventListener("beforeunload", handleUnload);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleUnload);
+      // Also fires on React Router navigation away from this page while on step 1
+      releaseHoldRequest(accessToken);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, accessToken]);
+
+  const next = async () => {
+    if (step === 0) {
+      await createHold(selectedSlot, accessToken);
+    }
+    setStep((s) => s + 1);
+  };
+  const prev = async () => {
+    if (step === 1) {
+      await releaseHoldRequest(accessToken);
+    }
+    setStep((s) => s - 1);
+  };
 
   // Time Slot
   const [selectedSlot, setSelectedSlot] = useState(null);
@@ -119,8 +189,24 @@ export default function BookAppointment() {
   const handleConfirm = async () => {
     if (!selectedSlot || !accessToken) return;
 
+    // Check eligibility before saving — same checks as profile page
+    if (INELIGIBLE_STATUS_OPTIONS.includes(form.status_in_canada)) {
+      setIneligibleStatus(form.status_in_canada);
+      document.activeElement?.blur();
+      setShowIneligibleStatusDialog(true);
+      return;
+    }
+    const normalizedCity = normalizeCity(form.city);
+    if (form.city && !ELIGIBLE_CITIES.some((eligible) => normalizedCity.includes(eligible))) {
+      setIneligibleCity(form.city);
+      document.activeElement?.blur();
+      setShowIneligibleCityDialog(true);
+      return;
+    }
+
     setIsSaving(true);
     setLoadError("");
+    setFormErrors({});
 
     const apiBase = getApiBaseUrl();
 
@@ -152,7 +238,27 @@ export default function BookAppointment() {
         });
         const regResult = await regResponse.json().catch(() => null);
         if (!regResponse.ok) {
-          setLoadError(regResult?.error || "Unable to save registration changes.");
+          const details = regResult?.details;
+          if (details && typeof details === "object" && Object.keys(details).length > 0) {
+            const keyMap = {
+              firstName: "first_name",
+              lastName: "last_name",
+              streetAddress: "street_addr",
+              statusInCanada: "status_in_canada",
+              postalCode: "postal_code",
+              phone: "phone",
+              province: "province",
+              language: "language",
+              city: "city",
+            };
+            const mapped = {};
+            for (const [k, v] of Object.entries(details)) {
+              mapped[keyMap[k] || k] = v;
+            }
+            setFormErrors(mapped);
+          } else {
+            setLoadError(regResult?.error || "Unable to save registration changes.");
+          }
           setIsSaving(false);
           return;
         }
@@ -247,11 +353,13 @@ export default function BookAppointment() {
                 selectedSlot={selectedSlot}
                 onBack={prev}
                 onConfirm={handleConfirm}
-                onTimerExpired={() => {
+                onTimerExpired={async () => {
+                  await releaseHoldRequest(accessToken);
                   setSelectedSlot(null);
                   setStep(0);
                 }}
                 onChange={handleFormChange}
+                errors={formErrors}
                 isConfirming={isSaving}
               />
             </>
@@ -262,6 +370,16 @@ export default function BookAppointment() {
           )}
         </div>
       </div>
+      <IneligibleStatusDialog
+        open={showIneligibleStatusDialog}
+        onClose={() => setShowIneligibleStatusDialog(false)}
+        status={ineligibleStatus}
+      />
+      <IneligibleCityDialog
+        open={showIneligibleCityDialog}
+        onClose={() => setShowIneligibleCityDialog(false)}
+        city={ineligibleCity}
+      />
     </div>
   );
 }

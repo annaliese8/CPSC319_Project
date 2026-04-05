@@ -63,7 +63,7 @@ function AppointmentInfoDialog({
           </Typography>
 
           {/* Phone + household size with labels */}
-          <Box sx={{ mt: 1, display: "inline-flex", flexDirection: "column", alignItems: "flex-start", gap: 0.25 }}>
+          <Box sx={{ mt: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 0.25 }}>
             {appointment?.phone && (
               <Typography variant="body2" color="text.secondary">
                 <span style={{ fontWeight: 600 }}>Phone: </span>
@@ -76,6 +76,14 @@ function AppointmentInfoDialog({
                 {appointment.householdSize}
               </Typography>
             )}
+            <Button
+              variant="outlined"
+              color="primary"
+              onClick={handleMoreDetails}
+              sx={{ fontWeight: 800, mt: 1, borderRadius: "999px", px: 3 }}
+            >
+              More Details
+            </Button>
           </Box>
 
           <Typography variant="body1" sx={{ mt: 1.5, mb: 0.5 }}>
@@ -100,20 +108,12 @@ function AppointmentInfoDialog({
           Delete Booking
         </Button>
         <Button
-          variant="outlined"
-          color="primary"
-          onClick={() => onChangeBooking?.(appointment)}
-          sx={{ fontWeight: 800 }}
-        >
-          Change Apt.
-        </Button>
-        <Button
           variant="contained"
           color="primary"
-          onClick={handleMoreDetails}
+          onClick={() => onChangeBooking?.(appointment)}
           sx={{ fontWeight: 800, color: "common.white" }}
         >
-          More Details
+          Change Appointment
         </Button>
       </DialogActions>
     </Dialog>

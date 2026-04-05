@@ -193,7 +193,7 @@ export const bookingStyles = `
   .ba-review-row { display: grid; grid-template-columns: 160px 1fr; border-bottom: 1px solid var(--gray-200); }
   .ba-review-row:last-child { border-bottom: none; }
   .ba-review-label { padding: 11px 16px; font-size: 13px; font-weight: 600; color: var(--gray-700); background: var(--gray-50); border-right: 1px solid var(--gray-200); }
-  .ba-review-val { padding: 11px 16px; font-size: 13px; color: var(--gray-900); line-height: 1.5; }
+  .ba-review-val { padding: 11px 16px; font-size: 13px; color: var(--gray-900); line-height: 1.5; overflow-wrap: anywhere; min-width: 0; }
 
   /* ── Thank you ── */
   .ba-thankyou { text-align: center; padding: 8px 0 20px; }

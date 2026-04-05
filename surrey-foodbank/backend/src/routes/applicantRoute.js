@@ -3,6 +3,8 @@ import {
   getAuthenticatedEmail,
   getRegistration,
   getAppointment,
+  holdAppointment,
+  releaseHold,
   saveAppointment,
   removeAppointment,
   getRegistrationStatus,
@@ -40,6 +42,38 @@ router.get("/registration", requireAuth, requireApplicant, async (req, res) => {
     })
   } catch (_err) {
     return res.status(500).json({ error: "Unable to read registration data." })
+  }
+})
+
+router.post("/hold", requireAuth, requireApplicant, async (req, res) => {
+  const email = getAuthenticatedEmail(req.user?.email)
+  if (!email) {
+    return sendMissingEmailError(res)
+  }
+
+  try {
+    const result = await holdAppointment(email, req.body)
+    return res.status(200).json({ ok: true, data: result })
+  } catch (err) {
+    const status = err?.status || 500
+    if (status === 400 || status === 409) {
+      return res.status(status).json({ error: err.message })
+    }
+    return res.status(500).json({ error: "Unable to hold appointment slot." })
+  }
+})
+
+router.delete("/hold", requireAuth, requireApplicant, async (req, res) => {
+  const email = getAuthenticatedEmail(req.user?.email)
+  if (!email) {
+    return sendMissingEmailError(res)
+  }
+
+  try {
+    const result = await releaseHold(email)
+    return res.status(200).json({ ok: true, data: result })
+  } catch (_err) {
+    return res.status(500).json({ error: "Unable to release hold." })
   }
 })
 
