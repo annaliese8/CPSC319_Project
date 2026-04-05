@@ -58,25 +58,17 @@ export async function getAppointmentByResponseId(responseId) {
     .not('appointment_status', 'eq', 'cancelled')
     .not('appointment_status', 'eq', 'blocked')
     .order('appointment_date', { ascending: false })
-    .select(`
-      *,
-      registrationformresponse (
-        first_name,
-        last_name,
-        email_address,
-        phone
-      )
-    `)
     .limit(1)
   if (error) throw error
   return data?.[0] ?? null
 }
 
-export async function getAppointmentByAppointmentId(appointmentId) {
+export async function getFullAppointmentByResponseId(responseId) {
   const { data, error } = await supabase
       .from('appointments')
       .select('*')
-      .eq('appointment_id', appointmentId)
+      .eq('response_id', responseId)
+      .not('appointment_status', 'eq', 'cancelled')
       .not('appointment_status', 'eq', 'blocked')
       .order('appointment_date', { ascending: false })
       .select(`
@@ -93,21 +85,43 @@ export async function getAppointmentByAppointmentId(appointmentId) {
   return data?.[0] ?? null
 }
 
+export async function getAppointmentByAppointmentId(appointmentId) {
+  const { data, error } = await supabase
+      .from('appointments')
+      .select('*')
+      .eq('appointment_id', appointmentId)
+      .not('appointment_status', 'eq', 'blocked')
+      .not('appointment_status', 'eq', 'cancelled')
+      .order('appointment_date', { ascending: false })
+      .select(`
+      *,
+      registrationformresponse (
+        first_name,
+        last_name,
+        email_address,
+        phone
+      )
+    `)
+      .limit(1)
+  if (error) throw error
+  return data?.[0] ?? null
+}
+
 export async function createAppointment(appointmentData) {
-  console.log("CREATING APPOINTMENT", appointmentData)
   const { data, error } = await supabase
     .from('appointments')
     .insert(appointmentData)
     .select()
   if (error) throw error
   try {
-    const info = await getAppointmentByResponseId(appointmentData.response_id);
-    const startTime = appointmentData.appointment_time;
-    const endTime = getFinalTime(startTime, appointmentData.duration)
+    const info = await getFullAppointmentByResponseId(appointmentData.response_id);
 
-    await emailClient.sendConfirmation(info.registrationformresponse.first_name.concat(" ", info.registrationformresponse.last_name),
-                                       info.registrationformresponse.email_address,
-                                       dateToPlainText(appointmentData.appointment_date).concat(" from ", timeToPlainText(startTime), " to ", timeToPlainText(endTime)));
+    await sendConfirmationEmail(info.registrationformresponse.first_name,
+                                info.registrationformresponse.last_name,
+                                info.registrationformresponse.email_address,
+                                appointmentData.appointment_date,
+                                appointmentData.appointment_time,
+                                appointmentData.duration);
   } catch (e) {
     console.log(e);
   }
@@ -115,7 +129,6 @@ export async function createAppointment(appointmentData) {
 }
 
 export async function updateAppointment(appointmentId, updates) {
-  console.log("UPDATING APPOINTMENT", appointmentId, updates);
   const { data, error } = await supabase
     .from('appointments')
     .update(updates)
@@ -126,7 +139,6 @@ export async function updateAppointment(appointmentId, updates) {
 }
 
 export async function deleteAppointment(appointmentId) {
-  console.log(appointmentId, "DELETING APPOINTMENT")
   const info = await getAppointmentByAppointmentId(appointmentId);
 
   const { error } = await supabase
@@ -135,12 +147,27 @@ export async function deleteAppointment(appointmentId) {
     .eq('appointment_id', appointmentId)
   if (error) throw error
   try {
-    await emailClient.sendCancellation(info.registrationformresponse.first_name.concat(" ", info.registrationformresponse.last_name),
-                                       info.registrationformresponse.email_address,
-                                       dateToPlainText(info.appointment_date).concat(" at ", timeToPlainText(info.appointment_time)));
+    await sendCancellationEmail(info.registrationformresponse.first_name,
+                                info.registrationformresponse.last_name,
+                                info.registrationformresponse.email_address, info.appointment_date, info.appointment_time);
   }catch (e) {
     console.log(e);
   }
+}
+
+
+
+export async function sendCancellationEmail(firstName, lastName, email, date, startTime) {
+  await emailClient.sendCancellation(firstName.concat(" ", lastName), email,
+                                     dateToPlainText(date).concat(" at ", timeToPlainText(startTime)));
+}
+
+export async function sendConfirmationEmail(firstName, lastName, email, date, startTime, duration) {
+  const endTime = getFinalTime(startTime, duration)
+
+  await emailClient.sendConfirmation(firstName.concat(" ", lastName),
+      email,
+      dateToPlainText(date).concat(" from ", timeToPlainText(startTime), " to ", timeToPlainText(endTime)));
 }
 
 

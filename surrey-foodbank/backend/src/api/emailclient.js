@@ -8,7 +8,6 @@ export default class EmailClient {
     }
 
     async sendConfirmation(name, address, date) {
-
         const mailgun = new Mailgun(FormData);
         const mg = mailgun.client({
             username: "api",
@@ -36,8 +35,6 @@ export default class EmailClient {
     }
 
     async sendCancellation(name, address, date) {
-        console.log("called?");
-        console.log("INFO: ",name, address, date);
         const mailgun = new Mailgun(FormData);
 
         const mg = mailgun.client({
