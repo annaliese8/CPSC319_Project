@@ -1,40 +1,47 @@
-import {
-  AppBar,
-  Toolbar,
-  Typography,
-  Button,
-  Stack,
-  Box
-} from "@mui/material";
+import { AppBar, Box, Button, Link, Toolbar, Typography } from "@mui/material";
 import logo from "../styles/full-logo.png";
 
-// Used as a common top bar for the admin page
+// Used as a common top bar for the applicant page
 function ApplicantTopBar({ onLogout }) {
-
   return (
     <Box>
-      <AppBar position="static" color="transparent" elevation={1}>
+      <AppBar position="static" color="#ffffff" elevation={1}>
         <Toolbar sx={{ display: "flex", justifyContent: "space-between" }}>
-          {/* Left group */}
-          <Stack direction="row" spacing={2} alignItems="center">
-
-            {/* Adds the logo with the title as admin page*/}
-            <Stack direction="row" spacing={1.25} alignItems="center">
-              <a href="https://surreyfoodbank.org/">
-                <img
-                  src={logo}
-                  alt="Surrey Food Bank Logo"
-                  style={{ height: 40 }} />
-              </a>
-
-              <Typography variant="h4" sx={{ pl: 1, fontSize: { xs: 20, sm: 28, md: 32 }, }}>
-                Appointment System
-              </Typography>
-            </Stack>
-          </Stack>
-
-          {/* Right group */}
-          <Button onClick={onLogout} color="primary" variant="text" sx={{ fontSize: 14, fontWeight: 800, textTransform: 'none', whiteSpace: "nowrap", }}>
+          {/* Clickable logo */}
+          <Link
+            href="https://surreyfoodbank.org/"
+            aria-label="Surrey Food Bank main website"
+            underline="none"
+          >
+            <Box
+              component="img"
+              src={logo}
+              alt="Surrey Food Bank Logo"
+              sx={{ height: { xs: 35, sm: 50 } }}
+            />
+          </Link>
+          {/* Main title */}
+          <Typography
+            sx={{
+              px: 2,
+              fontSize: { xs: 18, sm: 26, md: 32 },
+              textAlign: "center",
+            }}
+          >
+            Appointment System
+          </Typography>
+          {/* Log out */}
+          <Button
+            onClick={onLogout}
+            color="primary"
+            variant="text"
+            sx={{
+              fontSize: { sm: 14, md: 18 },
+              fontWeight: 800,
+              textTransform: "none",
+              whiteSpace: "nowrap",
+            }}
+          >
             Log Out
           </Button>
         </Toolbar>

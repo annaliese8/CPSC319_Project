@@ -9,7 +9,7 @@ const theme = createTheme({
       main: "#4cc5dc",
     },
     warning: {
-      main: "#E8112E", // #f24c62
+      main: "#f24c62", // #E8112E
     },
     greyDark: {
       main: "#8f8f8f",
