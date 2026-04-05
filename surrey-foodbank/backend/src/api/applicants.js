@@ -1,8 +1,8 @@
 import { getSupabaseServiceClient } from "../lib/supabase.js"
 const supabase = getSupabaseServiceClient()
 import EmailClient from "./emailclient.js";
-import {response} from "express";
 const emailClient = new EmailClient();
+import {parse, format, addSeconds} from 'date-fns';
 
 export async function getApplicants() {
   const { data, error } = await supabase
@@ -102,10 +102,12 @@ export async function createAppointment(appointmentData) {
   if (error) throw error
   try {
     const info = await getAppointmentByResponseId(appointmentData.response_id);
+    const startTime = appointmentData.appointment_time;
+    const endTime = getFinalTime(startTime, appointmentData.duration)
 
     await emailClient.sendConfirmation(info.registrationformresponse.first_name.concat(" ", info.registrationformresponse.last_name),
                                        info.registrationformresponse.email_address,
-                                       appointmentData.appointment_date.concat(" at ").concat(appointmentData.appointment_time));
+                                       dateToPlainText(appointmentData.appointment_date).concat(" from ", timeToPlainText(startTime), " to ", timeToPlainText(endTime)));
   } catch (e) {
     console.log(e);
   }
@@ -126,7 +128,6 @@ export async function updateAppointment(appointmentId, updates) {
 export async function deleteAppointment(appointmentId) {
   console.log(appointmentId, "DELETING APPOINTMENT")
   const info = await getAppointmentByAppointmentId(appointmentId);
-  console.log("HERE IT IS!!!", info);
 
   const { error } = await supabase
     .from('appointments')
@@ -136,11 +137,36 @@ export async function deleteAppointment(appointmentId) {
   try {
     await emailClient.sendCancellation(info.registrationformresponse.first_name.concat(" ", info.registrationformresponse.last_name),
                                        info.registrationformresponse.email_address,
-                                       info.appointment_date.concat(" at ").concat(info.appointment_time));
+                                       dateToPlainText(info.appointment_date).concat(" at ", timeToPlainText(info.appointment_time)));
   }catch (e) {
     console.log(e);
   }
 }
+
+
+// ClaudeAI was used to help with the following time and date functions
+function dateToPlainText(date) {
+  const newDate = parse(date, 'yyyy-MM-dd', new Date());
+  return format(newDate, 'EEEE, MMMM d');
+}
+
+function timeToPlainText(time) {
+  const newTime = parse(time, 'HH:mm:ss', new Date());
+  return format(newTime, 'h:mma').toLowerCase();
+}
+
+function getFinalTime(startTime, duration) {
+  const start = parse(startTime, 'HH:mm:ss', new Date());
+  const secondsToAdd = hmsToSeconds(duration);
+  const finalTime = addSeconds(start, secondsToAdd);
+  return format(finalTime, 'HH:mm:ss');
+}
+
+function hmsToSeconds(hms) {
+  const [h, m, s] = hms.split(':').map(Number);
+  return h*3600 + m*60 + s;
+}
+
 
 /**
  * Insert multiple blocked slots.

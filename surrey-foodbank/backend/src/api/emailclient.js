@@ -1,6 +1,5 @@
 import Mailgun from "mailgun.js"; // mailgun.js v11.1.0
 
-
 export default class EmailClient {
     faceEmail = "no-reply@sfb.ca"
     faceName = "Surrey Food Bank"
@@ -8,31 +7,7 @@ export default class EmailClient {
     async checkEmail(email) {
     }
 
-    async sendSimpleMessage() {
-        const mailgun = new Mailgun(FormData);
-        const mg = mailgun.client({
-            username: "api",
-            key: process.env.MAILGUN_API_KEY || "API_KEY",
-            // When you have an EU-domain, you must specify the endpoint:
-            // url: "https://api.eu.mailgun.net"
-        });
-        try {
-            const data = await mg.messages.create("mindyandcain.com", {
-                from: "Mailgun Sandbox <postmaster@mindyandcain.com>",
-                to: ["Surrey Foodbank <nineranger@gmail.com>"],
-                subject: "Hello Surrey Foodbank",
-                text: "Congratulations Surrey Foodbank, you just sent an email with Mailgun! You are truly awesome!",
-            });
-
-            console.log(data); // logs response data
-        } catch (error) {
-            console.log(error); //logs any error
-        }
-    }
-
     async sendConfirmation(name, address, date) {
-        console.log("Sending Conf (emailclient)");
-        console.log("INFO: ",name, address, date);
 
         const mailgun = new Mailgun(FormData);
         const mg = mailgun.client({
@@ -57,7 +32,7 @@ export default class EmailClient {
         } catch (error) {
             console.log(error); // logs any error
         }
-        console.log("Mailgun Conf Sent");
+        console.log("Mailgun Confirm Sent");
     }
 
     async sendCancellation(name, address, date) {
@@ -91,7 +66,26 @@ export default class EmailClient {
 
     }
 
-}
+    async sendSimpleMessage() {
+        const mailgun = new Mailgun(FormData);
+        const mg = mailgun.client({
+            username: "api",
+            key: process.env.MAILGUN_API_KEY || "API_KEY",
+            // When you have an EU-domain, you must specify the endpoint:
+            // url: "https://api.eu.mailgun.net"
+        });
+        try {
+            const data = await mg.messages.create("mindyandcain.com", {
+                from: "Mailgun Sandbox <postmaster@mindyandcain.com>",
+                to: ["Surrey Foodbank <nineranger@gmail.com>"],
+                subject: "Hello Surrey Foodbank",
+                text: "Congratulations Surrey Foodbank, you just sent an email with Mailgun! You are truly awesome!",
+            });
 
-// const emailclient = new EmailClient();
-// emailclient.sendConfirmation("BOB", "cpsc.v319@gmail.com", "now");
+            console.log(data); // logs response data
+        } catch (error) {
+            console.log(error); //logs any error
+        }
+    }
+
+}
