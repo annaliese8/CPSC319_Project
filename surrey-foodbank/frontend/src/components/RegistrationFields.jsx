@@ -103,7 +103,7 @@ export default function RegistrationFields({
           size="small"
           required
           onChange={onChange("first_name")}
-          slotProps={{ htmlInput: { maxLength: 100 } }}
+          slotProps={{ htmlInput: { maxLength: 25 } }}
         />
         <TextField
           label="Last Name"
@@ -119,7 +119,7 @@ export default function RegistrationFields({
           size="small"
           required
           onChange={onChange("last_name")}
-          slotProps={{ htmlInput: { maxLength: 100 } }}
+          slotProps={{ htmlInput: { maxLength: 25 } }}
         />
       </Stack>
 

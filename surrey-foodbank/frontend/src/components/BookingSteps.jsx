@@ -181,11 +181,23 @@ export function useAvailability(weekStart) {
             }
           } else if (
             row.appointment_status === "Booked" ||
-            row.appointment_status === "booked"
+            row.appointment_status === "booked" ||
+            row.appointment_status === "held"
           ) {
+            const durStr = row.duration || "00:15:00";
+            const [dh, dm] = durStr.split(":").map(Number);
+            const durationMins = dh * 60 + dm;
+            const startMins = parseInt(timeParts[0], 10) * 60 + parseInt(timeParts[1], 10);
             if (!isWeekend) {
-              if (map[`${dayName}-${normTime}`] !== undefined) {
-                map[`${dayName}-${normTime}`] = false;
+              for (let offset = 0; offset < durationMins; offset += 15) {
+                const slotMins = startMins + offset;
+                const sh = Math.floor(slotMins / 60);
+                const sm = slotMins % 60;
+                const slotStr = `${sh.toString().padStart(2, "0")}:${sm.toString().padStart(2, "0")}`;
+                const normSlot = normalizeTime(slotStr);
+                if (map[`${dayName}-${normSlot}`] !== undefined) {
+                  map[`${dayName}-${normSlot}`] = false;
+                }
               }
             } else {
               weekendBookedKeys.add(`${dayName}-${normTime}`);
@@ -389,6 +401,26 @@ export function StepChooseTime({
 
   // ← DB-driven availability instead of localStorage
   const { availability, loading: availLoading } = useAvailability(weekStart);
+
+  // Auto-advance to first week that has bookable slots
+  useEffect(() => {
+    if (availLoading) return;
+    const hasBookable = weekDates.some((date, i) => {
+      if (isDayRestricted(date)) return false;
+      const day = DAYS_FULL[i];
+      return ALL_SLOTS.some((t) => {
+        const [h] = t.split(":").map(Number);
+        return h >= 9 && h < 13 && availability[`${day}-${t}`] === true;
+      });
+    });
+    if (!hasBookable && !isAtMaxWeek) {
+      setWeekStart((prev) => {
+        const next = new Date(prev);
+        next.setDate(prev.getDate() + 7);
+        return next;
+      });
+    }
+  }, [availLoading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const householdSize = form.household_size;
   const isLargeHousehold = householdSize >= 5;
@@ -789,7 +821,17 @@ export function StepReview({
   isConfirming = false,
 }) {
   const [isEditing, setIsEditing] = useState(false);
-  const full_name = [form.first_name, form.last_name].filter(Boolean).join(" ");
+
+  // Auto-open edit mode when field errors arrive so the user sees them highlighted
+  useEffect(() => {
+    if (errors && Object.keys(errors).length > 0) {
+      setIsEditing(true);
+    }
+  }, [errors]);
+
+    const full_name = [form.first_name, form.last_name]
+    .filter(Boolean)
+    .join(" ");
   const full_address = [
     form.street_addr,
     form.city,

@@ -78,6 +78,8 @@ export default function StaffBookingPanel({
   const [endTime, setEndTime] = React.useState("");
   const [saving, setSaving] = React.useState(false);
   const [lookupStatus, setLookupStatus] = React.useState(null); // null | 'loading' | 'found' | 'not-found'
+  // Tracks whether staff has manually edited the end time so auto-recalculation doesn't overwrite it
+  const endTimeManualRef = React.useRef(false);
 
   React.useEffect(() => {
     if (selectedSlot) {
@@ -96,8 +98,9 @@ export default function StaffBookingPanel({
       const mo = String(date.getMonth() + 1).padStart(2, "0");
       const d = String(date.getDate()).padStart(2, "0");
       setEditableDate(`${y}-${mo}-${d}`);
+      endTimeManualRef.current = false;
       setStartTime(selectedSlot.time);
-      setEndTime(addMinutesToTime(selectedSlot.time, 15));
+      setEndTime(addMinutesToTime(selectedSlot.time, rebookingAppointment?.duration ?? 15));
     }
   }, [selectedSlot]);
 
@@ -168,9 +171,21 @@ export default function StaffBookingPanel({
     return getDuration();
   };
 
+  // When start time changes, reset manual flag and recalculate end time
   React.useEffect(() => {
-    if (startTime) setEndTime(addMinutesToTime(startTime, getDuration()));
-  }, [form.householdMembers, startTime]);
+    if (startTime) {
+      endTimeManualRef.current = false;
+      setEndTime(addMinutesToTime(startTime, rebookingAppointment?.duration ?? getDuration()));
+    }
+  }, [startTime]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // When household size changes (e.g. email lookup auto-fills), only update end time
+  // if staff hasn't manually edited it
+  React.useEffect(() => {
+    if (startTime && !endTimeManualRef.current) {
+      setEndTime(addMinutesToTime(startTime, rebookingAppointment?.duration ?? getDuration()));
+    }
+  }, [form.householdMembers]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const isSlotBooked = (day, time, excludeResponseId = null) => {
     const [slotH, slotM] = time.split(":").map(Number);
@@ -381,7 +396,7 @@ export default function StaffBookingPanel({
           <TextField
             label="End Time*"
             value={endTime}
-            onChange={(e) => setEndTime(e.target.value)}
+            onChange={(e) => { endTimeManualRef.current = true; setEndTime(e.target.value); }}
             fullWidth
             size="small"
             placeholder="9:30"

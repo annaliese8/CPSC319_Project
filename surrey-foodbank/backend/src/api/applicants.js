@@ -2,6 +2,7 @@ import { getSupabaseServiceClient } from "../lib/supabase.js"
 const supabase = getSupabaseServiceClient()
 import EmailClient from "./emailclient.js";
 const emailClient = new EmailClient();
+import {parse, format, addSeconds} from 'date-fns';
 
 export async function getApplicants() {
   const { data, error } = await supabase
@@ -62,15 +63,65 @@ export async function getAppointmentByResponseId(responseId) {
   return data?.[0] ?? null
 }
 
+export async function getFullAppointmentByResponseId(responseId) {
+  const { data, error } = await supabase
+      .from('appointments')
+      .select('*')
+      .eq('response_id', responseId)
+      .not('appointment_status', 'eq', 'cancelled')
+      .not('appointment_status', 'eq', 'blocked')
+      .order('appointment_date', { ascending: false })
+      .select(`
+      *,
+      registrationformresponse (
+        first_name,
+        last_name,
+        email_address,
+        phone
+      )
+    `)
+      .limit(1)
+  if (error) throw error
+  return data?.[0] ?? null
+}
+
+export async function getAppointmentByAppointmentId(appointmentId) {
+  const { data, error } = await supabase
+      .from('appointments')
+      .select('*')
+      .eq('appointment_id', appointmentId)
+      .not('appointment_status', 'eq', 'blocked')
+      .not('appointment_status', 'eq', 'cancelled')
+      .order('appointment_date', { ascending: false })
+      .select(`
+      *,
+      registrationformresponse (
+        first_name,
+        last_name,
+        email_address,
+        phone
+      )
+    `)
+      .limit(1)
+  if (error) throw error
+  return data?.[0] ?? null
+}
+
 export async function createAppointment(appointmentData) {
-  console.log("CREATING APPOINTMENT", appointmentData)
   const { data, error } = await supabase
     .from('appointments')
     .insert(appointmentData)
     .select()
   if (error) throw error
   try {
-    await emailClient.sendConfirmation("Joe", "insertEmailHere", appointmentData.appointment_date.concat(" at ").concat(appointmentData.appointment_time));
+    const info = await getFullAppointmentByResponseId(appointmentData.response_id);
+
+    await sendConfirmationEmail(info.registrationformresponse.first_name,
+                                info.registrationformresponse.last_name,
+                                info.registrationformresponse.email_address,
+                                appointmentData.appointment_date,
+                                appointmentData.appointment_time,
+                                appointmentData.duration);
   } catch (e) {
     console.log(e);
   }
@@ -78,7 +129,6 @@ export async function createAppointment(appointmentData) {
 }
 
 export async function updateAppointment(appointmentId, updates) {
-  console.log("UPDATING APPOINTMENT", appointmentId, updates);
   const { data, error } = await supabase
     .from('appointments')
     .update(updates)
@@ -89,18 +139,61 @@ export async function updateAppointment(appointmentId, updates) {
 }
 
 export async function deleteAppointment(appointmentId) {
-  console.log(appointmentId, "DELETING APPOINTMENT")
+  const info = await getAppointmentByAppointmentId(appointmentId);
+
   const { error } = await supabase
     .from('appointments')
     .delete()
     .eq('appointment_id', appointmentId)
   if (error) throw error
   try {
-    await emailClient.sendCancellation("Joe", "insertEmailHere", "today")
+    await sendCancellationEmail(info.registrationformresponse.first_name,
+                                info.registrationformresponse.last_name,
+                                info.registrationformresponse.email_address, info.appointment_date, info.appointment_time);
   }catch (e) {
     console.log(e);
   }
 }
+
+
+
+export async function sendCancellationEmail(firstName, lastName, email, date, startTime) {
+  await emailClient.sendCancellation(firstName.concat(" ", lastName), email,
+                                     dateToPlainText(date).concat(" at ", timeToPlainText(startTime)));
+}
+
+export async function sendConfirmationEmail(firstName, lastName, email, date, startTime, duration) {
+  const endTime = getFinalTime(startTime, duration)
+
+  await emailClient.sendConfirmation(firstName.concat(" ", lastName),
+      email,
+      dateToPlainText(date).concat(" from ", timeToPlainText(startTime), " to ", timeToPlainText(endTime)));
+}
+
+
+// ClaudeAI was used to help with the following time and date functions
+function dateToPlainText(date) {
+  const newDate = parse(date, 'yyyy-MM-dd', new Date());
+  return format(newDate, 'EEEE, MMMM d');
+}
+
+function timeToPlainText(time) {
+  const newTime = parse(time, 'HH:mm:ss', new Date());
+  return format(newTime, 'h:mma').toLowerCase();
+}
+
+function getFinalTime(startTime, duration) {
+  const start = parse(startTime, 'HH:mm:ss', new Date());
+  const secondsToAdd = hmsToSeconds(duration);
+  const finalTime = addSeconds(start, secondsToAdd);
+  return format(finalTime, 'HH:mm:ss');
+}
+
+function hmsToSeconds(hms) {
+  const [h, m, s] = hms.split(':').map(Number);
+  return h*3600 + m*60 + s;
+}
+
 
 /**
  * Insert multiple blocked slots.

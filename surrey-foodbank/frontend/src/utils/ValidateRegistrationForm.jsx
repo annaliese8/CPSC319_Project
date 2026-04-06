@@ -20,7 +20,9 @@ export const validateRegistrationForm = (form) => {
 
   // All form fields are required
   if (!form.firstName?.trim()) errors.firstName = "Required";
+  else if (form.firstName.trim().length > 25) errors.firstName = "Must be 25 characters or fewer";
   if (!form.lastName?.trim()) errors.lastName = "Required";
+  else if (form.lastName.trim().length > 25) errors.lastName = "Must be 25 characters or fewer";
   if (!form.streetAddress?.trim()) errors.streetAddress = "Required";
   if (!form.city?.trim()) errors.city = "Required";
   if (!form.province?.trim()) errors.province = "Required";
