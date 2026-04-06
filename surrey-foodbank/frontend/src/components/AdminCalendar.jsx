@@ -326,7 +326,7 @@ function AdminCalendar({
         time: slotTime,
         weekStart,
         date: changeBookingAppointment.date
-          ? new Date(changeBookingAppointment.date)
+          ? new Date(changeBookingAppointment.date + "T12:00:00")
           : new Date(weekStart),
       });
       setHighlightedSlot({ day: slotDay, time: slotTime });
@@ -948,7 +948,7 @@ function AdminCalendar({
             day: apt.day,
             time: apt.startTime,
             weekStart,
-            date: apt.date ? new Date(apt.date) : new Date(weekStart),
+            date: apt.date ? new Date(apt.date + "T12:00:00") : new Date(weekStart),
           });
           setShowBookingPanel(true);
         }}

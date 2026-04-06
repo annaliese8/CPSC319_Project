@@ -118,6 +118,41 @@ export default function Register() {
 
       if (!data?.session?.user) {
         navigate("/applicant/login", { replace: true });
+        return;
+      }
+
+      // Redirect back to profile if registration was already completed
+      const storedData = applicantKey
+        ? JSON.parse(localStorage.getItem(applicantKey) || "{}")
+        : {};
+      if (storedData.registrationComplete) {
+        navigate("/applicant/profile", { replace: true });
+        return;
+      }
+
+      // Load household members already saved to the database
+      const accessToken = data.session.access_token;
+      const apiBase = getApiBaseUrl();
+      try {
+        const res = await fetch(`${apiBase}/api/applicant/registration`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        if (res.ok) {
+          const json = await res.json();
+          const members = json?.data?.registration?.householdMembers;
+          if (isMounted && Array.isArray(members) && members.length > 0) {
+            setHouseholdMembers(
+              members.map((m) => ({
+                id: m.id ?? crypto.randomUUID(),
+                firstName: m.firstName ?? "",
+                lastName: m.lastName ?? "",
+                ageGroup: m.ageGroup ?? "",
+              }))
+            );
+          }
+        }
+      } catch (_) {
+        // Non-fatal — user can still add members manually
       }
     }
 
@@ -335,6 +370,22 @@ export default function Register() {
   // ── Step 2: Review → straight to profile ──────────────────────────────────
 
   const handleConfirm = () => {
+    // Re-run eligibility checks in case the user went back and changed values
+    if (INELIGIBLE_STATUS_OPTIONS.includes(form.status_in_canada)) {
+      setIneligibleStatus(form.status_in_canada);
+      document.activeElement?.blur();
+      setShowIneligibleStatusDialog(true);
+      return;
+    }
+
+    const normalized_city = normalizeCity(form.city);
+    if (!ELIGIBLE_CITIES.some((eligible) => normalized_city.includes(eligible))) {
+      setIneligibleCity(form.city);
+      document.activeElement?.blur();
+      setShowIneligibleCityDialog(true);
+      return;
+    }
+
     if (applicantKey) {
       const existing = JSON.parse(localStorage.getItem(applicantKey) || "{}");
       localStorage.setItem(

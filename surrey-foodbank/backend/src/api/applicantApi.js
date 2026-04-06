@@ -121,6 +121,7 @@ async function getLatestActiveAppointment(supabase, responseId) {
         .from(APPOINTMENT_TABLE)
         .select("*")
         .eq(APPOINTMENT_RESPONSE_ID_COLUMN, responseId)
+        .neq(APPOINTMENT_STATUS_COLUMN, "held")
         .order(APPOINTMENT_DATE_COLUMN, { ascending: false })
         .order(APPOINTMENT_TIME_COLUMN, { ascending: false })
         .limit(1)
@@ -244,6 +245,81 @@ async function getAppointment(email) {
     return buildAppointmentPayload(latestAppointment)
 }
 
+async function holdAppointment(email, payload) {
+    const date = toDbDateOnly(payload?.date)
+    const startTime = normalizeTimeForDb(payload?.startTime)
+    const duration = intervalFromMinutes(payload?.duration)
+
+    if (!date || !startTime) {
+        throw makeHttpError(400, "Appointment date and time are required.")
+    }
+
+    const supabase = getSupabaseServiceClient()
+    const responseId = await getApplicantResponseId(supabase, email)
+
+    if (!responseId) {
+        throw makeHttpError(400, "Please complete registration before booking.")
+    }
+
+    // Check if slot is already booked or held by another user
+    const { data: conflicting, error: conflictError } = await supabase
+        .from(APPOINTMENT_TABLE)
+        .select(APPOINTMENT_ID_COLUMN)
+        .eq(APPOINTMENT_DATE_COLUMN, date)
+        .eq(APPOINTMENT_TIME_COLUMN, startTime)
+        .in(APPOINTMENT_STATUS_COLUMN, ["booked", "held", "checked in"])
+        .neq(APPOINTMENT_RESPONSE_ID_COLUMN, responseId)
+
+    if (conflictError) {
+        throw makeHttpError(500, "Unable to check slot availability.")
+    }
+
+    if (conflicting && conflicting.length > 0) {
+        throw makeHttpError(409, "This slot is no longer available.")
+    }
+
+    // Remove any existing hold for this user
+    await supabase
+        .from(APPOINTMENT_TABLE)
+        .delete()
+        .eq(APPOINTMENT_RESPONSE_ID_COLUMN, responseId)
+        .eq(APPOINTMENT_STATUS_COLUMN, "held")
+
+    const { data: insertedRows, error: insertError } = await supabase
+        .from(APPOINTMENT_TABLE)
+        .insert([{
+            [APPOINTMENT_RESPONSE_ID_COLUMN]: responseId,
+            [APPOINTMENT_DATE_COLUMN]: date,
+            [APPOINTMENT_TIME_COLUMN]: startTime,
+            [APPOINTMENT_DURATION_COLUMN]: duration,
+            [APPOINTMENT_STATUS_COLUMN]: "held",
+        }])
+        .select("*")
+
+    if (insertError) {
+        throw makeHttpError(500, "Unable to hold appointment slot.")
+    }
+
+    return { holdId: insertedRows?.[0]?.[APPOINTMENT_ID_COLUMN] || null }
+}
+
+async function releaseHold(email) {
+    const supabase = getSupabaseServiceClient()
+    const responseId = await getApplicantResponseId(supabase, email)
+
+    if (!responseId) {
+        return { released: false }
+    }
+
+    await supabase
+        .from(APPOINTMENT_TABLE)
+        .delete()
+        .eq(APPOINTMENT_RESPONSE_ID_COLUMN, responseId)
+        .eq(APPOINTMENT_STATUS_COLUMN, "held")
+
+    return { released: true }
+}
+
 async function saveAppointment(email, payload) {
     const date = toDbDateOnly(payload?.date)
     const startTime = normalizeTimeForDb(payload?.startTime)
@@ -259,6 +335,13 @@ async function saveAppointment(email, payload) {
     if (!responseId) {
         throw makeHttpError(400, "Please complete registration before booking.")
     }
+
+    // Release any hold for this user before creating the real booking
+    await supabase
+        .from(APPOINTMENT_TABLE)
+        .delete()
+        .eq(APPOINTMENT_RESPONSE_ID_COLUMN, responseId)
+        .eq(APPOINTMENT_STATUS_COLUMN, "held")
 
     const existingAppointment = await getLatestActiveAppointment(supabase, responseId)
 
@@ -389,6 +472,8 @@ export {
     getAuthenticatedEmail,
     getRegistration,
     getAppointment,
+    holdAppointment,
+    releaseHold,
     saveAppointment,
     removeAppointment,
     getRegistrationStatus,
