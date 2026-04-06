@@ -16,10 +16,18 @@ import RegistrationFields from "./RegistrationFields";
 import HouseholdMemberInfo, { AGE_GROUPS } from "./HouseholdMemberInfo";
 import { addMinutesToTime } from "../utils/TimeUtils";
 
-const BASE_URL = (import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_BASE_URL || "http://localhost:3000").replace(/\/$/, "");
+const BASE_URL = (
+  import.meta.env.VITE_BACKEND_URL ||
+  import.meta.env.VITE_API_BASE_URL ||
+  "http://localhost:3000"
+).replace(/\/$/, "");
 
 export const DAYS_FULL = [
-  "Monday", "Tuesday", "Wednesday", "Thursday", "Friday",
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
 ];
 export const DAYS_SHORT = ["Mon", "Tue", "Wed", "Thu", "Fri"];
 
@@ -28,7 +36,7 @@ const generateAllSlots = () => {
   for (let h = 0; h < 24; h++)
     for (let m = 0; m < 60; m += 15)
       slots.push(
-        `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`
+        `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`,
       );
   return slots;
 };
@@ -50,8 +58,11 @@ export const formatTime = (time) => {
   return `${h12}:${m.toString().padStart(2, "0")}${ampm}`;
 };
 
-export const formatDateShort = (date) =>
-  date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+export const formatDateShort = (date) => {
+  const month = date.toLocaleDateString("en-US", { month: "short" }) + ".";
+  const day = date.getDate();
+  return `${month} ${day}`;
+};
 
 export const formatApptString = (slot) => {
   if (!slot) return "";
@@ -63,7 +74,7 @@ export const formatApptString = (slot) => {
     year: "numeric",
   });
   return `${dateStr} · ${formatTime(slot.time)} – ${formatTime(
-    addMinutesToTime(slot.time, interval)
+    addMinutesToTime(slot.time, interval),
   )}`;
 };
 
@@ -108,14 +119,14 @@ export function useAvailability(weekStart) {
       .then((r) => r.json())
       .then((result) => {
         if (cancelled) return;
-        const rows = Array.isArray(result) ? result : result.data ?? [];
+        const rows = Array.isArray(result) ? result : (result.data ?? []);
 
         // Start with everything available for Mon-Fri
         const map = {};
         DAYS_FULL.forEach((day) =>
           ALL_SLOTS_FULL.forEach((time) => {
             map[`${day}-${time}`] = true;
-          })
+          }),
         );
 
         // Track weekend dates that have at least one blocked slot (staff-managed weekends)
@@ -126,7 +137,7 @@ export function useAvailability(weekStart) {
         for (const row of rows) {
           if (!row.appointment_date || !row.appointment_time) continue;
           const dayName = new Date(
-            `${row.appointment_date}T12:00:00`
+            `${row.appointment_date}T12:00:00`,
           ).toLocaleDateString("en-US", { weekday: "long" });
 
           // Normalize DB time "09:00:00" → "09:00"
@@ -141,7 +152,8 @@ export function useAvailability(weekStart) {
             const durStr = row.duration || "00:15:00";
             const [dh, dm] = durStr.split(":").map(Number);
             const durationMins = dh * 60 + dm;
-            const startMins = parseInt(timeParts[0], 10) * 60 + parseInt(timeParts[1], 10);
+            const startMins =
+              parseInt(timeParts[0], 10) * 60 + parseInt(timeParts[1], 10);
             if (!isWeekend) {
               for (let offset = 0; offset < durationMins; offset += 15) {
                 const slotMins = startMins + offset;
@@ -162,7 +174,9 @@ export function useAvailability(weekStart) {
                 const sh = Math.floor(slotMins / 60);
                 const sm = slotMins % 60;
                 const slotStr = `${sh.toString().padStart(2, "0")}:${sm.toString().padStart(2, "0")}`;
-                managedWeekendDates.get(row.appointment_date).add(normalizeTime(slotStr));
+                managedWeekendDates
+                  .get(row.appointment_date)
+                  .add(normalizeTime(slotStr));
               }
             }
           } else if (
@@ -184,7 +198,7 @@ export function useAvailability(weekStart) {
         managedWeekendDates.forEach((blockedTimes, dateStr) => {
           const dayName = new Date(`${dateStr}T12:00:00`).toLocaleDateString(
             "en-US",
-            { weekday: "long" }
+            { weekday: "long" },
           );
           for (let h = 9; h < 13; h++) {
             for (const m of ["00", "15", "30", "45"]) {
@@ -245,11 +259,11 @@ export function TopNav({ onLogout }) {
 export const isSlotAvailable = (availability, day, time, interval = 15) =>
   interval === 30
     ? !!availability[`${day}-${time}`] &&
-    !!availability[`${day}-${addMinutesToTime(time, 15)}`] &&
-    !!availability[`${day}-${addMinutesToTime(time, 30)}`] &&
-    !!availability[`${day}-${addMinutesToTime(time, 45)}`]
+      !!availability[`${day}-${addMinutesToTime(time, 15)}`] &&
+      !!availability[`${day}-${addMinutesToTime(time, 30)}`] &&
+      !!availability[`${day}-${addMinutesToTime(time, 45)}`]
     : !!availability[`${day}-${time}`] &&
-    !!availability[`${day}-${addMinutesToTime(time, 15)}`];
+      !!availability[`${day}-${addMinutesToTime(time, 15)}`];
 
 export function Stepper({ currentStep, steps = STEPS }) {
   return (
@@ -334,6 +348,10 @@ function TimerBar({ secondsLeft }) {
   );
 }
 
+/**
+ * An interactive calendar showing appointment slots for the next two weeks
+ * that is displayed when an applicant tries to book an appointment.
+ */
 export function StepChooseTime({
   form,
   selectedSlot,
@@ -375,9 +393,11 @@ export function StepChooseTime({
   const householdSize = form.household_size;
   const isLargeHousehold = householdSize >= 5;
   const bookingInterval = isLargeHousehold ? 30 : 15;
-  const tinyBundles = form.applyingToTinyBundles === "yes" || form.tiny_bundles_program === true;
+  const tinyBundles =
+    form.applyingToTinyBundles === "yes" || form.tiny_bundles_program === true;
   // Tiny Bundles users: only Wednesday; non-TB users: all days except Wednesday
-  const isDimmed = (day) => tinyBundles ? day !== "Wednesday" : day === "Wednesday";
+  const isDimmed = (day) =>
+    tinyBundles ? day !== "Wednesday" : day === "Wednesday";
 
   // Saturday date (weekStart is Monday, so +5 = Saturday)
   const saturdayDate = useMemo(() => {
@@ -389,7 +409,7 @@ export function StepChooseTime({
   // Show Saturday column only when staff has opened at least one slot on it
   const hasSaturday = useMemo(
     () => ALL_SLOTS_FULL.some((t) => availability[`Saturday-${t}`] === true),
-    [availability]
+    [availability],
   );
 
   // Show only 9am–1pm slots that are available on at least one displayed day
@@ -430,8 +450,9 @@ export function StepChooseTime({
     onSelectSlot({ day, time, date: d, interval: bookingInterval });
   };
 
-  const isHighlighted = (day, time) => {
+  const isHighlighted = (day, time, weekDate) => {
     if (!selectedSlot || selectedSlot.day !== day) return false;
+    if (toDateStr(weekDate) !== toDateStr(selectedSlot.date)) return false;
     if (isLargeHousehold)
       return (
         time === selectedSlot.time ||
@@ -447,33 +468,27 @@ export function StepChooseTime({
     if (!existingSlot) return false;
     if (toDateStr(weekDate) !== existingSlot.dateStr) return false;
     if (existingSlot.duration > 15)
-      return time === existingSlot.time || time === addMinutesToTime(existingSlot.time, 15);
+      return (
+        time === existingSlot.time ||
+        time === addMinutesToTime(existingSlot.time, 15)
+      );
     return time === existingSlot.time;
   };
-
-  if (availLoading) {
-    return (
-      <div className="ba-body" style={{ textAlign: "center", padding: 40 }}>
-        Loading availability…
-      </div>
-    );
-  }
 
   return (
     <>
       <div className="ba-body">
-        <h2>Select a Date and Time for your appointment</h2>
+        <h2>Select a Date and Time for Your Appointment</h2>
         {tinyBundles && (
           <p
             style={{
               textAlign: "center",
               fontSize: 13,
               color: "var(--teal)",
-              marginBottom: 12,
               fontWeight: 600,
             }}
           >
-            Showing Wednesday appointments only (Tiny Bundles program)
+            Tiny Bundles program appointments are on Wednesdays.
           </p>
         )}
         {!tinyBundles && (
@@ -482,10 +497,10 @@ export function StepChooseTime({
               textAlign: "center",
               fontSize: 13,
               color: "var(--gray-500)",
-              marginBottom: 12,
             }}
           >
-            Wednesday slots are reserved for the Tiny Bundles program and are not available for general booking.
+            Wednesday slots are reserved for the Tiny Bundles program and are
+            not available for general booking.
           </p>
         )}
         {isLargeHousehold && (
@@ -494,46 +509,42 @@ export function StepChooseTime({
               textAlign: "center",
               fontSize: 13,
               color: "var(--teal)",
-              marginBottom: 12,
               fontWeight: 600,
             }}
           >
             Your household size requires a 30-minute appointment.
           </p>
         )}
+        <div className="ba-cal-range">
+          {formatDateShort(weekDates[0])} – {formatDateShort(weekDates[4])}
+        </div>
+        {/* Buttons for navigating between weeks */}
         <div className="ba-cal-header">
-          <div style={{ display: "flex", gap: 8, minWidth: 170 }}>
-            {!isCurrentWeek && (
-              <button className="ba-cal-btn" onClick={() => shiftWeek(-7)}>
-                ← Prev Week
-              </button>
-            )}
-            {!isCurrentWeek && (
-              <button
-                className="ba-cal-btn today"
-                onClick={() => setWeekStart(todayStart)}
-              >
-                Today
-              </button>
-            )}
-          </div>
-          <div className="ba-cal-range">
-            {formatDateShort(weekDates[0])} – {formatDateShort(weekDates[4])}
-          </div>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "flex-end",
-              minWidth: 170,
-            }}
-          >
-            {!isAtMaxWeek && (
-              <button className="ba-cal-btn" onClick={() => shiftWeek(7)}>
-                Next Week →
-              </button>
-            )}
+          <div className="ba-cal-nav">
+            <button
+              className="ba-cal-btn"
+              onClick={() => shiftWeek(-7)}
+              style={{ visibility: isCurrentWeek ? "hidden" : "visible" }}
+            >
+              Prev Week
+            </button>
+            <button
+              className="ba-cal-btn today"
+              onClick={() => setWeekStart(todayStart)}
+              style={{ visibility: isCurrentWeek ? "hidden" : "visible" }}
+            >
+              Today
+            </button>
+            <button
+              className="ba-cal-btn"
+              onClick={() => shiftWeek(7)}
+              style={{ visibility: isAtMaxWeek ? "hidden" : "visible" }}
+            >
+              Next Week
+            </button>
           </div>
         </div>
+        {/* Legend for colours on the calendar */}
         <div className="ba-cal-legend">
           <span>
             <div className="ba-legend-dot avail" /> Available
@@ -543,19 +554,29 @@ export function StepChooseTime({
           </span>
           {existingSlot && (
             <span>
-              <div className="ba-legend-dot" style={{ background: "#f59e0b22", outline: "2px dashed #f59e0b", outlineOffset: "-2px" }} /> Current Appointment
+              <div
+                className="ba-legend-dot"
+                style={{
+                  background: "#f24c62",
+                }}
+              />{" "}
+              Old Appointment
             </span>
           )}
         </div>
+        {/* The calendar! */}
         <div className="ba-cal-grid">
           <table className="ba-cal-table" style={{ tableLayout: "fixed" }}>
             <colgroup>
-              <col style={{ width: 54 }} />
+              <col style={{ width: 55 }} />
               {DAYS_FULL.map((d) => (
-                <col key={d} style={{ width: "calc((100% - 54px) / 5)" }} />
+                <col key={d} style={{ width: "calc((100% - 50px) / 5)" }} />
               ))}
               {hasSaturday && (
-                <col key="Saturday" style={{ width: "calc((100% - 54px) / 5)" }} />
+                <col
+                  key="Saturday"
+                  style={{ width: "calc((100% - 50px) / 5)" }}
+                />
               )}
             </colgroup>
             <thead>
@@ -564,31 +585,34 @@ export function StepChooseTime({
                 {DAYS_FULL.map((day, i) => {
                   const isPast = isDayBeyondCutoff(weekDates[i]);
                   return (
-                    <th
-                      key={day}
-                      className="ba-cal-th"
-                      style={{ opacity: isDimmed(day) || isPast ? 0.25 : 1 }}
-                    >
+                    <th key={day} className="ba-cal-th">
                       {DAYS_SHORT[i]}
                       <br />
-                      <span style={{ fontWeight: 400, color: "var(--gray-500)" }}>
+                      <span style={{ fontWeight: 400 }}>
                         {formatDateShort(weekDates[i])}
                       </span>
                     </th>
                   );
                 })}
-                {hasSaturday && (() => {
-                  const isPast = isDayBeyondCutoff(saturdayDate);
-                  return (
-                    <th key="Saturday" className="ba-cal-th" style={{ opacity: isPast ? 0.25 : 1 }}>
-                      Sat
-                      <br />
-                      <span style={{ fontWeight: 400, color: "var(--gray-500)" }}>
-                        {formatDateShort(saturdayDate)}
-                      </span>
-                    </th>
-                  );
-                })()}
+                {hasSaturday &&
+                  (() => {
+                    const isPast = isDayBeyondCutoff(saturdayDate);
+                    return (
+                      <th
+                        key="Saturday"
+                        className="ba-cal-th"
+                        style={{ opacity: isPast ? 0.25 : 1 }}
+                      >
+                        Sat
+                        <br />
+                        <span
+                          style={{ fontWeight: 400, color: "var(--gray-500)" }}
+                        >
+                          {formatDateShort(saturdayDate)}
+                        </span>
+                      </th>
+                    );
+                  })()}
               </tr>
             </thead>
             <tbody>
@@ -598,10 +622,12 @@ export function StepChooseTime({
                     {rowIdx % 2 === 0 ? formatTime(time) : ""}
                   </td>
                   {DAYS_FULL.map((day, i) => {
-                    const dimmed = isDimmed(day) || isDayBeyondCutoff(weekDates[i]);
+                    const dimmed =
+                      isDimmed(day) || isDayBeyondCutoff(weekDates[i]);
                     const avail = !!availability[`${day}-${time}`];
-                    const selected = isHighlighted(day, time);
-                    const existing = !selected && isExistingAppt(day, time, weekDates[i]);
+                    const selected = isHighlighted(day, time, weekDates[i]);
+                    const existing =
+                      !selected && isExistingAppt(day, time, weekDates[i]);
                     return (
                       <td
                         key={day}
@@ -612,25 +638,32 @@ export function StepChooseTime({
                         }}
                       >
                         <div
-                          className={`ba-slot ${selected
-                            ? "selected"
-                            : existing
-                              ? "existing"
-                              : avail
-                                ? "avail"
-                                : "unavail"
-                            }`}
+                          style={{
+                            visibility: availLoading ? "hidden" : "visible",
+                            opacity: availLoading ? 0 : 1,
+                            transition: "opacity 3s",
+                          }}
+                          className={`ba-slot ${
+                            selected
+                              ? "selected"
+                              : existing
+                                ? "existing"
+                                : avail
+                                  ? "avail"
+                                  : "unavail"
+                          }`}
                           onClick={() => handleSlotClick(day, time)}
                           tabIndex={0}
                           role="button"
-                          aria-label={`${selected
-                            ? "Appointment selected"
-                            : existing
-                              ? "Current appointment"
-                              : avail
-                                ? "Available"
-                                : "Unavailable"
-                            } slot: ${day} at ${time}`}
+                          aria-label={`${
+                            selected
+                              ? "Appointment selected"
+                              : existing
+                                ? "Current appointment"
+                                : avail
+                                  ? "Available"
+                                  : "Unavailable"
+                          } slot: ${day} at ${time}`}
                           onKeyDown={(e) => {
                             if (e.key === "Enter" || e.key === " ") {
                               e.preventDefault();
@@ -641,36 +674,45 @@ export function StepChooseTime({
                       </td>
                     );
                   })}
-                  {hasSaturday && (() => {
-                    const day = "Saturday";
-                    const satPast = isDayBeyondCutoff(saturdayDate);
-                    const avail = !!availability[`${day}-${time}`];
-                    const selected = isHighlighted(day, time);
-                    const existing = !selected && isExistingAppt(day, time, saturdayDate);
-                    return (
-                      <td key="Saturday" className="ba-cal-td"
-                        style={{ opacity: satPast ? 0.15 : 1, pointerEvents: satPast ? "none" : "auto" }}>
-                        <div
-                          className={`ba-slot ${selected ? "selected" : existing ? "existing" : avail ? "avail" : "unavail"}`}
-                          onClick={() => handleSlotClick(day, time)}
-                          tabIndex={0}
-                          role="button"
-                          aria-label={`${selected ? "Appointment selected" : avail ? "Available" : "Unavailable"} slot: Saturday at ${time}`}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" || e.key === " ") {
-                              e.preventDefault();
-                              handleSlotClick(day, time);
-                            }
+                  {hasSaturday &&
+                    (() => {
+                      const day = "Saturday";
+                      const satPast = isDayBeyondCutoff(saturdayDate);
+                      const avail = !!availability[`${day}-${time}`];
+                      const selected = isHighlighted(day, time, saturdayDate);
+                      const existing =
+                        !selected && isExistingAppt(day, time, saturdayDate);
+                      return (
+                        <td
+                          key="Saturday"
+                          className="ba-cal-td"
+                          style={{
+                            opacity: satPast ? 0.15 : 1,
+                            pointerEvents: satPast ? "none" : "auto",
                           }}
-                        />
-                      </td>
-                    );
-                  })()}
+                        >
+                          <div
+                            className={`ba-slot ${selected ? "selected" : existing ? "existing" : avail ? "avail" : "unavail"}`}
+                            onClick={() => handleSlotClick(day, time)}
+                            tabIndex={0}
+                            role="button"
+                            aria-label={`${selected ? "Appointment selected" : avail ? "Available" : "Unavailable"} slot: Saturday at ${time}`}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" || e.key === " ") {
+                                e.preventDefault();
+                                handleSlotClick(day, time);
+                              }
+                            }}
+                          />
+                        </td>
+                      );
+                    })()}
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+        {/* Information about the selected slot that is shows underneath the calendar */}
         {selectedSlot ? (
           <div
             style={{ display: "flex", justifyContent: "center", marginTop: 14 }}
@@ -683,7 +725,7 @@ export function StepChooseTime({
                 <div className="ba-pill-time">
                   {formatTime(selectedSlot.time)} –{" "}
                   {formatTime(
-                    addMinutesToTime(selectedSlot.time, bookingInterval)
+                    addMinutesToTime(selectedSlot.time, bookingInterval),
                   )}
                   &nbsp;·&nbsp;
                   {selectedSlot.date.toLocaleDateString("en-US", {
@@ -715,6 +757,7 @@ export function StepChooseTime({
           </p>
         )}
       </div>
+      {/* Buttons for navigating between steps */}
       <div className="ba-footer">
         <button className="ba-btn ba-btn-secondary" onClick={onBack}>
           ← Back
@@ -731,6 +774,10 @@ export function StepChooseTime({
   );
 }
 
+/**
+ * Component displayed when an applicant completes the steps of booking an appointment
+ * and is reviewing their information before confirming
+ */
 export function StepReview({
   form,
   selectedSlot,
@@ -742,9 +789,7 @@ export function StepReview({
   isConfirming = false,
 }) {
   const [isEditing, setIsEditing] = useState(false);
-  const full_name = [form.first_name, form.last_name]
-    .filter(Boolean)
-    .join(" ");
+  const full_name = [form.first_name, form.last_name].filter(Boolean).join(" ");
   const full_address = [
     form.street_addr,
     form.city,
@@ -776,16 +821,50 @@ export function StepReview({
   return (
     <>
       <div className="ba-body">
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-          <h2 style={{ margin: 0 }}>Please confirm that the following fields are correct</h2>
-          <Button
-            size="small"
-            variant="outlined"
-            onClick={() => setIsEditing((v) => !v)}
-            sx={{ ml: 2, textTransform: "none", fontWeight: 600, flexShrink: 0 }}
+        <div
+          style={{
+            marginBottom: 8,
+          }}
+        >
+          <h2>Please confirm that the following information is correct</h2>
+          {/* Review appointment section*/}
+          <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+            Appointment Details
+          </Typography>
+          <div className="ba-review-grid" style={{ marginTop: 8 }}>
+            <div className="ba-review-row">
+              <div className="ba-review-label">Appointment</div>
+              <div className="ba-review-val">
+                {formatApptString(selectedSlot)}
+              </div>
+            </div>
+          </div>
+          {/* Review registration form section*/}
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginTop: 8,
+            }}
           >
-            {isEditing ? "Done Editing" : "Edit Info"}
-          </Button>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+              Registration Form Responses
+            </Typography>
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={() => setIsEditing((v) => !v)}
+              sx={{
+                ml: 2,
+                textTransform: "none",
+                fontWeight: 600,
+                flexShrink: 0,
+              }}
+            >
+              {isEditing ? "Done Editing" : "Edit Info"}
+            </Button>
+          </div>
         </div>
         {isEditing ? (
           <RegistrationFields
@@ -805,7 +884,7 @@ export function StepReview({
             ))}
           </div>
         )}
-
+        {/* Review additional household members section*/}
         <Typography variant="subtitle1" sx={{ fontWeight: 700, mt: 2, mb: 1 }}>
           Additional Household Members{" "}
           <span style={{ fontWeight: 400, color: "#66747F" }}>
@@ -813,7 +892,10 @@ export function StepReview({
           </span>
         </Typography>
         {(form.householdMembers ?? []).length === 0 ? (
-          <Typography variant="body2" sx={{ color: "#66747F", fontStyle: "italic", mb: 1 }}>
+          <Typography
+            variant="body2"
+            sx={{ color: "#66747F", fontStyle: "italic", mb: 1 }}
+          >
             No additional household members added.
           </Typography>
         ) : (
@@ -825,7 +907,10 @@ export function StepReview({
                 className="ba-review-grid"
                 style={{
                   marginBottom: 10,
-                  borderBottom: i < (form.householdMembers ?? []).length - 1 ? "1px solid var(--gray-200)" : "none",
+                  borderBottom:
+                    i < (form.householdMembers ?? []).length - 1
+                      ? "1px solid var(--gray-200)"
+                      : "none",
                 }}
               >
                 <div className="ba-review-row">
@@ -837,22 +922,19 @@ export function StepReview({
                 <div className="ba-review-row">
                   <div className="ba-review-label">Age Group</div>
                   <div className="ba-review-val">
-                    {ageGroupConfig ? `${ageGroupConfig.label} (${ageGroupConfig.range})` : "—"}
+                    {ageGroupConfig
+                      ? `${ageGroupConfig.label} (${ageGroupConfig.range})`
+                      : "—"}
                   </div>
                 </div>
               </div>
             );
           })
         )}
-
-        <div className="ba-review-grid" style={{ marginTop: 8 }}>
-          <div className="ba-review-row">
-            <div className="ba-review-label">Appointment</div>
-            <div className="ba-review-val">{formatApptString(selectedSlot)}</div>
-          </div>
-        </div>
       </div>
+      {/* Timer */}
       <TimerBar secondsLeft={secondsLeft} />
+      {/* Buttons to go back or proceed */}
       <div
         className="ba-footer"
         style={{ justifyContent: "center", gap: 16, marginTop: 12 }}
@@ -860,7 +942,11 @@ export function StepReview({
         <button className="ba-btn ba-btn-secondary" onClick={onBack}>
           ← Back
         </button>
-        <button className="ba-btn ba-btn-confirm" onClick={onConfirm} disabled={isConfirming}>
+        <button
+          className="ba-btn ba-btn-confirm"
+          onClick={onConfirm}
+          disabled={isConfirming}
+        >
           {isConfirming ? "Saving..." : "Confirm Booking"}
         </button>
       </div>
@@ -919,7 +1005,8 @@ export function StepHouseholdMembers({
   );
 
   const hasInfantMember = useMemo(
-    () => (householdMembers || []).some((member) => member?.ageGroup === "infant"),
+    () =>
+      (householdMembers || []).some((member) => member?.ageGroup === "infant"),
     [householdMembers],
   );
 
@@ -991,11 +1078,12 @@ export function StepHouseholdMembers({
             We noticed you added an infant (0-12 months) to your household.
           </Typography>
           <Typography variant="body2" sx={{ mb: 1.5 }}>
-            If your household has someone currently pregnant or a child under 12 months,
-            you may be eligible for our Tiny Bundles program.
+            If your household has someone currently pregnant or a child under 12
+            months, you may be eligible for our Tiny Bundles program.
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            You can update your Tiny Bundles selection in the registration details if needed.
+            You can update your Tiny Bundles selection in the registration
+            details if needed.
           </Typography>
         </DialogContent>
         <DialogActions sx={{ px: 2, pb: 2 }}>
@@ -1012,10 +1100,13 @@ export function StepHouseholdMembers({
   );
 }
 
-export function StepSignupReview({ form, householdMembers, onBack, onConfirm }) {
-  const fullName = [form.first_name, form.last_name]
-    .filter(Boolean)
-    .join(" ");
+export function StepSignupReview({
+  form,
+  householdMembers,
+  onBack,
+  onConfirm,
+}) {
+  const fullName = [form.first_name, form.last_name].filter(Boolean).join(" ");
   const fullAddress = [
     form.street_addr,
     form.city,
