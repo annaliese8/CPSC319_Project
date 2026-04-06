@@ -18,6 +18,7 @@ import {
 } from "../lib/supabase.js"
 import { normalizeEmail } from "../middleware/requireAuth.js"
 import { isRegistrationComplete } from "../lib/validateApplicantRegistration.js"
+import { sendCancellationEmail, sendConfirmationEmail } from "./applicants.js"
 
 function makeHttpError(status, message) {
     const err = new Error(message)
@@ -95,6 +96,24 @@ async function getApplicantResponseId(supabase, email) {
     }
 
     return data?.response_id || null
+}
+
+async function getApplicantName(supabase, email) {
+    const { data, error } = await supabase
+        .from(APPLICANT_TABLE)
+        .select(`
+        first_name,
+        last_name
+            )
+         `)
+        .eq(APPLICANT_EMAIL_COLUMN, email)
+        .maybeSingle()
+
+    if (error) {
+        throw makeHttpError(500, "Unable to read applicant data.")
+    }
+
+    return data;
 }
 
 async function getLatestActiveAppointment(supabase, responseId) {
@@ -363,6 +382,10 @@ async function saveAppointment(email, payload) {
         savedRow = insertedRows?.[0] || null
     }
 
+    // send email
+    let names = await getApplicantName(supabase, email);
+    await sendConfirmationEmail(names.first_name, names.last_name, email, date, startTime, duration);
+
     return buildAppointmentPayload(savedRow)
 }
 
@@ -388,6 +411,9 @@ async function removeAppointment(email) {
     if (deleteError) {
         throw makeHttpError(500, "Unable to cancel appointment.")
     }
+
+    let names = await getApplicantName(supabase, email);
+    await sendCancellationEmail(names.first_name, names.last_name, email, existingAppointment.appointment_date,  existingAppointment.appointment_time);
 
     return { removed: true }
 }
