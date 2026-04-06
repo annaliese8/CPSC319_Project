@@ -225,3 +225,31 @@ export async function deleteBlockedSlots(appointmentIds) {
     .in('appointment_id', appointmentIds)
   if (error) throw error
 }
+
+const DEFAULT_SCHEDULE_CONFIG = [
+  { day_of_week: 'Monday',    open_time: '09:00', close_time: '13:00', is_active: true  },
+  { day_of_week: 'Tuesday',   open_time: '09:00', close_time: '13:00', is_active: true  },
+  { day_of_week: 'Wednesday', open_time: '09:00', close_time: '13:00', is_active: true  },
+  { day_of_week: 'Thursday',  open_time: '09:00', close_time: '13:00', is_active: true  },
+  { day_of_week: 'Friday',    open_time: '09:00', close_time: '13:00', is_active: true  },
+  { day_of_week: 'Saturday',  open_time: '09:00', close_time: '13:00', is_active: false },
+  { day_of_week: 'Sunday',    open_time: '09:00', close_time: '13:00', is_active: false },
+]
+
+export async function getScheduleConfig() {
+  const { data, error } = await supabase
+    .from('schedule_config')
+    .select('*')
+    .order('id', { ascending: true })
+  if (error) return DEFAULT_SCHEDULE_CONFIG
+  return data && data.length > 0 ? data : DEFAULT_SCHEDULE_CONFIG
+}
+
+export async function updateScheduleConfig(configs) {
+  const { data, error } = await supabase
+    .from('schedule_config')
+    .upsert(configs, { onConflict: 'day_of_week' })
+    .select()
+  if (error) throw error
+  return data
+}

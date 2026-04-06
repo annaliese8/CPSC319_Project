@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 export const STEPS = ["Personal Info", "Choose Time", "Review", "Thank You"];
 import logo from "../styles/full-logo.png";
 import {
@@ -30,6 +30,22 @@ export const DAYS_FULL = [
   "Friday",
 ];
 export const DAYS_SHORT = ["Mon", "Tue", "Wed", "Thu", "Fri"];
+
+// Map day name → offset from Monday (weekStart in StepChooseTime)
+const DAY_OFFSET_FROM_MON = {
+  Monday: 0, Tuesday: 1, Wednesday: 2, Thursday: 3, Friday: 4, Saturday: 5, Sunday: 6,
+};
+
+const WEEK_DAY_ORDER = [
+  "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday",
+];
+
+const DEFAULT_SCHEDULE = WEEK_DAY_ORDER.map((d) => ({
+  day_of_week: d,
+  open_time: "09:00",
+  close_time: "13:00",
+  is_active: d !== "Saturday" && d !== "Sunday",
+}));
 
 const generateAllSlots = () => {
   const slots = [];
@@ -94,12 +110,14 @@ export const getWeekDates = (weekStart) =>
   });
 
 /**
- * Fetch blocked + booked slots from the DB for a given week and build an
- * availability map keyed by "DayName-HH:MM".
- * Returns { availability, loading, error }
+ * Fetch schedule config + blocked/booked slots and build an availability map
+ * keyed by "DayName-HH:MM". Active days and their open hours come from
+ * schedule_config; inactive days are not added to the map at all.
+ * Returns { availability, scheduleConfig, loading, error }
  */
 export function useAvailability(weekStart) {
   const [availability, setAvailability] = useState({});
+  const [scheduleConfig, setScheduleConfig] = useState([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(null);
 
@@ -108,122 +126,90 @@ export function useAvailability(weekStart) {
     setLoading(true);
     setFetchError(null);
 
-    const weekDates = getWeekDates(weekStart);
-    // We only show Mon-Fri, but fetch Sun-Sat to pick up any weekend unblocking
     const startStr = new Date(weekStart).toISOString().slice(0, 10);
     const endDate = new Date(weekStart);
     endDate.setDate(weekStart.getDate() + 6);
     const endStr = endDate.toISOString().slice(0, 10);
 
-    fetch(`${BASE_URL}/api/appointments?start=${startStr}&end=${endStr}`)
-      .then((r) => r.json())
-      .then((result) => {
+    Promise.all([
+      fetch(`${BASE_URL}/api/appointments/schedule-config`)
+        .then((r) => (r.ok ? r.json() : []))
+        .catch(() => []),
+      fetch(`${BASE_URL}/api/appointments?start=${startStr}&end=${endStr}`)
+        .then((r) => r.json()),
+    ])
+      .then(([configData, apptData]) => {
         if (cancelled) return;
-        const rows = Array.isArray(result) ? result : (result.data ?? []);
 
-        // Start with everything available for Mon-Fri
+        const configRows = Array.isArray(configData) && configData.length > 0
+          ? configData
+          : DEFAULT_SCHEDULE;
+        const rows = Array.isArray(apptData) ? apptData : apptData.data ?? [];
+
+        // Build day → config map
+        const schedMap = {};
+        configRows.forEach((c) => { schedMap[c.day_of_week] = c; });
+
+        // Initialize availability map: only slots within each active day's open hours
         const map = {};
-        DAYS_FULL.forEach((day) =>
-          ALL_SLOTS_FULL.forEach((time) => {
-            map[`${day}-${time}`] = true;
-          }),
-        );
+        for (let i = 0; i < 7; i++) {
+          const d = new Date(weekStart);
+          d.setDate(weekStart.getDate() + i);
+          const dayName = d.toLocaleDateString("en-US", { weekday: "long" });
+          const cfg = schedMap[dayName];
+          if (!cfg || !cfg.is_active) continue;
 
-        // Track weekend dates that have at least one blocked slot (staff-managed weekends)
-        // dateStr → Set of blocked normTimes
-        const managedWeekendDates = new Map();
-        const weekendBookedKeys = new Set();
+          const [oh, om] = cfg.open_time.split(":").map(Number);
+          const [ch, cm] = cfg.close_time.split(":").map(Number);
+          const openMins = oh * 60 + om;
+          const closeMins = ch * 60 + cm;
 
+          for (let mins = openMins; mins < closeMins; mins += 15) {
+            const h = Math.floor(mins / 60);
+            const m = mins % 60;
+            const time = `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
+            map[`${dayName}-${time}`] = true;
+          }
+        }
+
+        // Mark blocked / booked / held slots as unavailable
         for (const row of rows) {
           if (!row.appointment_date || !row.appointment_time) continue;
           const dayName = new Date(
             `${row.appointment_date}T12:00:00`,
           ).toLocaleDateString("en-US", { weekday: "long" });
 
-          // Normalize DB time "09:00:00" → "09:00"
           const timeParts = row.appointment_time.split(":");
-          const gridTime = `${timeParts[0]}:${timeParts[1]}`;
-          const normTime = normalizeTime(gridTime);
+          const status = (row.appointment_status || "").toLowerCase();
+          const isBlockedOrBooked =
+            status === "blocked" ||
+            status === "booked" ||
+            status === "held" ||
+            status === "checked in" ||
+            status === "no show";
 
-          const isWeekend = dayName === "Saturday" || dayName === "Sunday";
+          if (!isBlockedOrBooked) continue;
 
-          if (row.appointment_status === "blocked") {
-            // Expand duration-based blocked rows (e.g. single 4-hour weekend block)
-            const durStr = row.duration || "00:15:00";
-            const [dh, dm] = durStr.split(":").map(Number);
-            const durationMins = dh * 60 + dm;
-            const startMins =
-              parseInt(timeParts[0], 10) * 60 + parseInt(timeParts[1], 10);
-            if (!isWeekend) {
-              for (let offset = 0; offset < durationMins; offset += 15) {
-                const slotMins = startMins + offset;
-                const sh = Math.floor(slotMins / 60);
-                const sm = slotMins % 60;
-                const slotStr = `${sh.toString().padStart(2, "0")}:${sm.toString().padStart(2, "0")}`;
-                const normSlot = normalizeTime(slotStr);
-                if (map[`${dayName}-${normSlot}`] !== undefined) {
-                  map[`${dayName}-${normSlot}`] = false;
-                }
-              }
-            } else {
-              if (!managedWeekendDates.has(row.appointment_date)) {
-                managedWeekendDates.set(row.appointment_date, new Set());
-              }
-              for (let offset = 0; offset < durationMins; offset += 15) {
-                const slotMins = startMins + offset;
-                const sh = Math.floor(slotMins / 60);
-                const sm = slotMins % 60;
-                const slotStr = `${sh.toString().padStart(2, "0")}:${sm.toString().padStart(2, "0")}`;
-                managedWeekendDates
-                  .get(row.appointment_date)
-                  .add(normalizeTime(slotStr));
-              }
-            }
-          } else if (
-            row.appointment_status === "Booked" ||
-            row.appointment_status === "booked" ||
-            row.appointment_status === "held"
-          ) {
-            const durStr = row.duration || "00:15:00";
-            const [dh, dm] = durStr.split(":").map(Number);
-            const durationMins = dh * 60 + dm;
-            const startMins = parseInt(timeParts[0], 10) * 60 + parseInt(timeParts[1], 10);
-            if (!isWeekend) {
-              for (let offset = 0; offset < durationMins; offset += 15) {
-                const slotMins = startMins + offset;
-                const sh = Math.floor(slotMins / 60);
-                const sm = slotMins % 60;
-                const slotStr = `${sh.toString().padStart(2, "0")}:${sm.toString().padStart(2, "0")}`;
-                const normSlot = normalizeTime(slotStr);
-                if (map[`${dayName}-${normSlot}`] !== undefined) {
-                  map[`${dayName}-${normSlot}`] = false;
-                }
-              }
-            } else {
-              weekendBookedKeys.add(`${dayName}-${normTime}`);
-            }
+          const durStr = row.duration || "00:15:00";
+          const [dh, dm] = durStr.split(":").map(Number);
+          const durationMins = dh * 60 + dm;
+          const startMins =
+            parseInt(timeParts[0], 10) * 60 + parseInt(timeParts[1], 10);
+
+          for (let offset = 0; offset < durationMins; offset += 15) {
+            const slotMins = startMins + offset;
+            const sh = Math.floor(slotMins / 60);
+            const sm = slotMins % 60;
+            const slotStr = `${sh.toString().padStart(2, "0")}:${sm.toString().padStart(2, "0")}`;
+            const normSlot = normalizeTime(slotStr);
+            const key = `${dayName}-${normSlot}`;
+            if (map[key] !== undefined) map[key] = false;
           }
         }
 
-        // For staff-managed weekend dates, any slot NOT blocked and NOT booked
-        // in the 9am–1pm visible range is available for applicants to book.
-        managedWeekendDates.forEach((blockedTimes, dateStr) => {
-          const dayName = new Date(`${dateStr}T12:00:00`).toLocaleDateString(
-            "en-US",
-            { weekday: "long" },
-          );
-          for (let h = 9; h < 13; h++) {
-            for (const m of ["00", "15", "30", "45"]) {
-              const time = `${h.toString().padStart(2, "0")}:${m}`;
-              const key = `${dayName}-${time}`;
-              if (!blockedTimes.has(time) && !weekendBookedKeys.has(key)) {
-                map[key] = true;
-              }
-            }
-          }
-        });
 
         setAvailability(map);
+        setScheduleConfig(configRows);
         setLoading(false);
       })
       .catch((err) => {
@@ -238,7 +224,7 @@ export function useAvailability(weekStart) {
     };
   }, [weekStart]);
 
-  return { availability, loading, error: fetchError };
+  return { availability, scheduleConfig, loading, error: fetchError };
 }
 
 // Keep generateAvailability exported for any legacy callers but make it a
@@ -375,7 +361,19 @@ export function StepChooseTime({
 }) {
   const todayStart = getWeekStart(new Date());
   const [weekStart, setWeekStart] = useState(todayStart);
-  const weekDates = getWeekDates(weekStart);
+
+  // All 7 dates starting from Monday of this week
+  const allWeekDates = useMemo(
+    () =>
+      Array.from({ length: 7 }, (_, i) => {
+        const d = new Date(weekStart);
+        d.setDate(weekStart.getDate() + i);
+        return d;
+      }),
+    [weekStart]
+  );
+  // Keep weekDates (Mon-Fri) for legacy references; use allWeekDates[6] for Sun end of range
+  const weekDates = allWeekDates.slice(0, 5);
 
   // Applicants can only book up to 14 days in advance
   const cutoffDate = useMemo(() => {
@@ -396,22 +394,36 @@ export function StepChooseTime({
   }, []);
   // Restrict days that are in the past OR beyond the 2-week cutoff
   const isDayRestricted = (date) => date < todayDate || date > cutoffDate;
-  // Keep old name as alias so all call sites work without change
   const isDayBeyondCutoff = isDayRestricted;
 
-  // ← DB-driven availability instead of localStorage
-  const { availability, loading: availLoading } = useAvailability(weekStart);
+  // DB-driven availability + schedule config
+  const { availability, scheduleConfig, loading: availLoading } = useAvailability(weekStart);
 
-  // Auto-advance to first week that has bookable slots
+  // Active day configs sorted Mon → Sun
+  const activeDayConfigs = useMemo(() => {
+    const base = scheduleConfig.length > 0 ? scheduleConfig : DEFAULT_SCHEDULE;
+    return base
+      .filter((c) => c.is_active)
+      .sort(
+        (a, b) =>
+          (DAY_OFFSET_FROM_MON[a.day_of_week] ?? 7) -
+          (DAY_OFFSET_FROM_MON[b.day_of_week] ?? 7)
+      );
+  }, [scheduleConfig]);
+
+  // Track whether the user manually navigated (Today / Prev / Next).
+  // Auto-advance is suppressed after manual navigation so Today actually shows today.
+  const userNavigatedRef = useRef(false);
+
+  // Auto-advance to first week that has bookable slots (initial load only)
   useEffect(() => {
     if (availLoading) return;
-    const hasBookable = weekDates.some((date, i) => {
-      if (isDayRestricted(date)) return false;
-      const day = DAYS_FULL[i];
-      return ALL_SLOTS.some((t) => {
-        const [h] = t.split(":").map(Number);
-        return h >= 9 && h < 13 && availability[`${day}-${t}`] === true;
-      });
+    if (userNavigatedRef.current) return;
+    const hasBookable = activeDayConfigs.some((cfg) => {
+      const offset = DAY_OFFSET_FROM_MON[cfg.day_of_week] ?? 0;
+      const date = allWeekDates[offset];
+      if (!date || isDayRestricted(date)) return false;
+      return ALL_SLOTS_FULL.some((t) => availability[`${cfg.day_of_week}-${t}`] === true);
     });
     if (!hasBookable && !isAtMaxWeek) {
       setWeekStart((prev) => {
@@ -425,53 +437,37 @@ export function StepChooseTime({
   const householdSize = form.household_size;
   const isLargeHousehold = householdSize >= 5;
   const bookingInterval = isLargeHousehold ? 30 : 15;
-  const tinyBundles =
-    form.applyingToTinyBundles === "yes" || form.tiny_bundles_program === true;
-  // Tiny Bundles users: only Wednesday; non-TB users: all days except Wednesday
-  const isDimmed = (day) =>
-    tinyBundles ? day !== "Wednesday" : day === "Wednesday";
+  const tinyBundles = form.applyingToTinyBundles === "yes" || form.tiny_bundles_program === true;
+  const isDimmed = (day) => (tinyBundles ? day !== "Wednesday" : day === "Wednesday");
 
-  // Saturday date (weekStart is Monday, so +5 = Saturday)
-  const saturdayDate = useMemo(() => {
-    const d = new Date(weekStart);
-    d.setDate(weekStart.getDate() + 5);
-    return d;
-  }, [weekStart]);
-
-  // Show Saturday column only when staff has opened at least one slot on it
-  const hasSaturday = useMemo(
-    () => ALL_SLOTS_FULL.some((t) => availability[`Saturday-${t}`] === true),
-    [availability],
+  // Show only slots available on at least one active day
+  const visibleSlots = useMemo(
+    () =>
+      ALL_SLOTS_FULL.filter((t) =>
+        activeDayConfigs.some((cfg) => availability[`${cfg.day_of_week}-${t}`] === true)
+      ),
+    [activeDayConfigs, availability]
   );
-
-  // Show only 9am–1pm slots that are available on at least one displayed day
-  const visibleSlots = useMemo(() => {
-    return ALL_SLOTS_FULL.filter((t) => {
-      const [h] = t.split(":").map(Number);
-      if (h < 9 || h >= 13) return false;
-      return (
-        DAYS_FULL.some((day) => availability[`${day}-${t}`] === true) ||
-        (hasSaturday && availability[`Saturday-${t}`] === true)
-      );
-    });
-  }, [availability, hasSaturday]);
 
   const isCurrentWeek = weekStart.getTime() === todayStart.getTime();
 
   const shiftWeek = (delta) => {
+    userNavigatedRef.current = true;
     const d = new Date(weekStart);
     d.setDate(d.getDate() + delta);
     setWeekStart(d);
   };
 
+  const toDateStr = (d) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
   const handleSlotClick = (day, time) => {
     if (isDimmed(day)) return;
+    const offset = DAY_OFFSET_FROM_MON[day] ?? 0;
     const d = new Date(weekStart);
-    const dayOffset = day === "Saturday" ? 5 : DAYS_FULL.indexOf(day);
-    d.setDate(weekStart.getDate() + dayOffset);
+    d.setDate(weekStart.getDate() + offset);
     if (isDayBeyondCutoff(d)) return;
-    const slotOk = (t) =>
-      !!availability[`${day}-${t}`] || isExistingAppt(day, t, d);
+    const slotOk = (t) => !!availability[`${day}-${t}`] || isExistingAppt(day, t, d);
     if (isLargeHousehold) {
       if (!slotOk(time) || !slotOk(addMinutesToTime(time, 15))) return;
     } else {
@@ -486,15 +482,9 @@ export function StepChooseTime({
     if (!selectedSlot || selectedSlot.day !== day) return false;
     if (toDateStr(weekDate) !== toDateStr(selectedSlot.date)) return false;
     if (isLargeHousehold)
-      return (
-        time === selectedSlot.time ||
-        time === addMinutesToTime(selectedSlot.time, 15)
-      );
+      return time === selectedSlot.time || time === addMinutesToTime(selectedSlot.time, 15);
     return time === selectedSlot.time;
   };
-
-  const toDateStr = (d) =>
-    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
   const isExistingAppt = (day, time, weekDate) => {
     if (!existingSlot) return false;
@@ -507,83 +497,66 @@ export function StepChooseTime({
     return time === existingSlot.time;
   };
 
+  if (availLoading) {
+    return (
+      <div className="ba-body" style={{ textAlign: "center", padding: 40 }}>
+        Loading availability…
+      </div>
+    );
+  }
+
   return (
     <>
       <div className="ba-body">
         <h2>Select a Date and Time for Your Appointment</h2>
         {tinyBundles && (
-          <p
-            style={{
-              textAlign: "center",
-              fontSize: 13,
-              color: "var(--teal)",
-              fontWeight: 600,
-            }}
-          >
-            Tiny Bundles program appointments are on Wednesdays.
+          <p style={{ textAlign: "center", fontSize: 13, color: "var(--teal)", marginBottom: 12, fontWeight: 600 }}>
+            Showing Wednesday appointments only (Tiny Bundles program)
           </p>
         )}
         {!tinyBundles && (
-          <p
-            style={{
-              textAlign: "center",
-              fontSize: 13,
-              color: "var(--gray-500)",
-            }}
-          >
-            Wednesday slots are reserved for the Tiny Bundles program and are
-            not available for general booking.
+          <p style={{ textAlign: "center", fontSize: 13, color: "var(--gray-500)", marginBottom: 12 }}>
+            Wednesday slots are reserved for the Tiny Bundles program and are not available for general booking.
           </p>
         )}
         {isLargeHousehold && (
-          <p
-            style={{
-              textAlign: "center",
-              fontSize: 13,
-              color: "var(--teal)",
-              fontWeight: 600,
-            }}
-          >
+          <p style={{ textAlign: "center", fontSize: 13, color: "var(--teal)", marginBottom: 12, fontWeight: 600 }}>
             Your household size requires a 30-minute appointment.
           </p>
         )}
-        <div className="ba-cal-range">
-          {formatDateShort(weekDates[0])} – {formatDateShort(weekDates[4])}
-        </div>
         {/* Buttons for navigating between weeks */}
-        <div className="ba-cal-header">
-          <div className="ba-cal-nav">
+        <div className="ba-cal-nav">
+          <div style={{ display: "flex", gap: 8 }}>
             <button
               className="ba-cal-btn"
-              onClick={() => shiftWeek(-7)}
+              onClick={() => { userNavigatedRef.current = true; shiftWeek(-7); }}
               style={{ visibility: isCurrentWeek ? "hidden" : "visible" }}
             >
               Prev Week
             </button>
             <button
               className="ba-cal-btn today"
-              onClick={() => setWeekStart(todayStart)}
+              onClick={() => { userNavigatedRef.current = true; setWeekStart(todayStart); }}
               style={{ visibility: isCurrentWeek ? "hidden" : "visible" }}
             >
               Today
             </button>
-            <button
-              className="ba-cal-btn"
-              onClick={() => shiftWeek(7)}
-              style={{ visibility: isAtMaxWeek ? "hidden" : "visible" }}
-            >
-              Next Week
-            </button>
           </div>
+          <div className="ba-cal-range">
+            {formatDateShort(allWeekDates[0])} – {formatDateShort(allWeekDates[6])}
+          </div>
+          <button
+            className="ba-cal-btn"
+            onClick={() => { userNavigatedRef.current = true; shiftWeek(7); }}
+            style={{ visibility: isAtMaxWeek ? "hidden" : "visible" }}
+          >
+            Next Week
+          </button>
         </div>
         {/* Legend for colours on the calendar */}
         <div className="ba-cal-legend">
-          <span>
-            <div className="ba-legend-dot avail" /> Available
-          </span>
-          <span>
-            <div className="ba-legend-dot booked" /> Unavailable
-          </span>
+          <span><div className="ba-legend-dot avail" /> Available</span>
+          <span><div className="ba-legend-dot booked" /> Unavailable</span>
           {existingSlot && (
             <span>
               <div
@@ -600,51 +573,34 @@ export function StepChooseTime({
         <div className="ba-cal-grid">
           <table className="ba-cal-table" style={{ tableLayout: "fixed" }}>
             <colgroup>
-              <col style={{ width: 55 }} />
-              {DAYS_FULL.map((d) => (
-                <col key={d} style={{ width: "calc((100% - 50px) / 5)" }} />
+              <col style={{ width: 54 }} />
+              {WEEK_DAY_ORDER.map((day) => (
+                <col key={day} style={{ width: `calc((100% - 54px) / 7)` }} />
               ))}
-              {hasSaturday && (
-                <col
-                  key="Saturday"
-                  style={{ width: "calc((100% - 50px) / 5)" }}
-                />
-              )}
             </colgroup>
             <thead>
               <tr>
                 <th className="ba-cal-th" />
-                {DAYS_FULL.map((day, i) => {
-                  const isPast = isDayBeyondCutoff(weekDates[i]);
+                {WEEK_DAY_ORDER.map((day) => {
+                  const isActive = activeDayConfigs.some((c) => c.day_of_week === day);
+                  const offset = DAY_OFFSET_FROM_MON[day] ?? 0;
+                  const date = allWeekDates[offset];
+                  const isPast = isDayBeyondCutoff(date);
+                  const shortName = day.slice(0, 3);
                   return (
-                    <th key={day} className="ba-cal-th">
-                      {DAYS_SHORT[i]}
+                    <th
+                      key={day}
+                      className="ba-cal-th"
+                      style={{ opacity: !isActive || isDimmed(day) || isPast ? 0.25 : 1 }}
+                    >
+                      {shortName}
                       <br />
-                      <span style={{ fontWeight: 400 }}>
-                        {formatDateShort(weekDates[i])}
+                      <span style={{ fontWeight: 400, color: "var(--gray-500)" }}>
+                        {formatDateShort(date)}
                       </span>
                     </th>
                   );
                 })}
-                {hasSaturday &&
-                  (() => {
-                    const isPast = isDayBeyondCutoff(saturdayDate);
-                    return (
-                      <th
-                        key="Saturday"
-                        className="ba-cal-th"
-                        style={{ opacity: isPast ? 0.25 : 1 }}
-                      >
-                        Sat
-                        <br />
-                        <span
-                          style={{ fontWeight: 400, color: "var(--gray-500)" }}
-                        >
-                          {formatDateShort(saturdayDate)}
-                        </span>
-                      </th>
-                    );
-                  })()}
               </tr>
             </thead>
             <tbody>
@@ -653,82 +609,32 @@ export function StepChooseTime({
                   <td className="ba-cal-td time-col">
                     {rowIdx % 2 === 0 ? formatTime(time) : ""}
                   </td>
-                  {DAYS_FULL.map((day, i) => {
-                    const dimmed =
-                      isDimmed(day) || isDayBeyondCutoff(weekDates[i]);
+                  {WEEK_DAY_ORDER.map((day) => {
+                    const isActive = activeDayConfigs.some((c) => c.day_of_week === day);
+                    const offset = DAY_OFFSET_FROM_MON[day] ?? 0;
+                    const date = allWeekDates[offset];
+                    const restricted = !isActive || isDimmed(day) || isDayBeyondCutoff(date);
                     const avail = !!availability[`${day}-${time}`];
-                    const selected = isHighlighted(day, time, weekDates[i]);
-                    const existing =
-                      !selected && isExistingAppt(day, time, weekDates[i]);
+                    const selected = isHighlighted(day, time, date);
+                    const existing = !selected && isExistingAppt(day, time, date);
+                    const showSlot = !restricted && (selected || existing || avail);
                     return (
                       <td
                         key={day}
                         className="ba-cal-td"
-                        style={{
-                          opacity: dimmed ? 0.15 : 1,
-                          pointerEvents: dimmed ? "none" : "auto",
-                        }}
+                        style={{ pointerEvents: showSlot ? "auto" : "none" }}
                       >
-                        <div
-                          style={{
-                            visibility: availLoading ? "hidden" : "visible",
-                            opacity: availLoading ? 0 : 1,
-                            transition: "opacity 3s",
-                          }}
-                          className={`ba-slot ${
-                            selected
-                              ? "selected"
-                              : existing
-                                ? "existing"
-                                : avail
-                                  ? "avail"
-                                  : "unavail"
-                          }`}
-                          onClick={() => handleSlotClick(day, time)}
-                          tabIndex={0}
-                          role="button"
-                          aria-label={`${
-                            selected
-                              ? "Appointment selected"
-                              : existing
-                                ? "Current appointment"
-                                : avail
-                                  ? "Available"
-                                  : "Unavailable"
-                          } slot: ${day} at ${time}`}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" || e.key === " ") {
-                              e.preventDefault();
-                              handleSlotClick(day, time);
-                            }
-                          }}
-                        />
-                      </td>
-                    );
-                  })}
-                  {hasSaturday &&
-                    (() => {
-                      const day = "Saturday";
-                      const satPast = isDayBeyondCutoff(saturdayDate);
-                      const avail = !!availability[`${day}-${time}`];
-                      const selected = isHighlighted(day, time, saturdayDate);
-                      const existing =
-                        !selected && isExistingAppt(day, time, saturdayDate);
-                      return (
-                        <td
-                          key="Saturday"
-                          className="ba-cal-td"
-                          style={{
-                            opacity: satPast ? 0.15 : 1,
-                            pointerEvents: satPast ? "none" : "auto",
-                          }}
-                        >
+                        {showSlot && (
                           <div
-                            className={`ba-slot ${selected ? "selected" : existing ? "existing" : avail ? "avail" : "unavail"}`}
+                            className={`ba-slot ${
+                              selected ? "selected" : existing ? "existing" : "avail"
+                            }`}
                             onClick={() => handleSlotClick(day, time)}
                             tabIndex={0}
                             role="button"
-                            aria-label={`${selected ? "Appointment selected" : avail ? "Available" : "Unavailable"} slot: Saturday at ${time}`}
+                            aria-label={`${
+                              selected ? "Appointment selected" : existing ? "Current appointment" : "Available"
+                            } slot: ${day} at ${time}`}
                             onKeyDown={(e) => {
                               if (e.key === "Enter" || e.key === " ") {
                                 e.preventDefault();
@@ -736,9 +642,10 @@ export function StepChooseTime({
                               }
                             }}
                           />
-                        </td>
-                      );
-                    })()}
+                        )}
+                      </td>
+                    );
+                  })}
                 </tr>
               ))}
             </tbody>

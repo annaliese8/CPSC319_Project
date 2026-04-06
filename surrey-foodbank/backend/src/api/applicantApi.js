@@ -101,11 +101,7 @@ async function getApplicantResponseId(supabase, email) {
 async function getApplicantName(supabase, email) {
     const { data, error } = await supabase
         .from(APPLICANT_TABLE)
-        .select(`
-        first_name,
-        last_name
-            )
-         `)
+        .select("first_name, last_name")
         .eq(APPLICANT_EMAIL_COLUMN, email)
         .maybeSingle()
 
@@ -122,6 +118,8 @@ async function getLatestActiveAppointment(supabase, responseId) {
         .select("*")
         .eq(APPOINTMENT_RESPONSE_ID_COLUMN, responseId)
         .neq(APPOINTMENT_STATUS_COLUMN, "held")
+        .neq(APPOINTMENT_STATUS_COLUMN, "cancelled")
+        .neq(APPOINTMENT_STATUS_COLUMN, "blocked")
         .order(APPOINTMENT_DATE_COLUMN, { ascending: false })
         .order(APPOINTMENT_TIME_COLUMN, { ascending: false })
         .limit(1)
@@ -267,7 +265,7 @@ async function holdAppointment(email, payload) {
         .select(APPOINTMENT_ID_COLUMN)
         .eq(APPOINTMENT_DATE_COLUMN, date)
         .eq(APPOINTMENT_TIME_COLUMN, startTime)
-        .in(APPOINTMENT_STATUS_COLUMN, ["booked", "held", "checked in"])
+        .in(APPOINTMENT_STATUS_COLUMN, ["booked", "held", "checked in", "no show"])
         .neq(APPOINTMENT_RESPONSE_ID_COLUMN, responseId)
 
     if (conflictError) {
@@ -380,9 +378,10 @@ async function saveAppointment(email, payload) {
         savedRow = insertedRows?.[0] || null
     }
 
-    // send email
-    let names = await getApplicantName(supabase, email);
-    await sendConfirmationEmail(names.first_name, names.last_name, email, date, startTime, duration);
+    // send email — fire-and-forget so email failures don't block the booking response
+    getApplicantName(supabase, email)
+        .then((names) => sendConfirmationEmail(names.first_name, names.last_name, email, date, startTime, duration))
+        .catch((err) => console.error("Confirmation email failed:", err));
 
     return buildAppointmentPayload(savedRow)
 }
@@ -410,8 +409,10 @@ async function removeAppointment(email) {
         throw makeHttpError(500, "Unable to cancel appointment.")
     }
 
-    let names = await getApplicantName(supabase, email);
-    await sendCancellationEmail(names.first_name, names.last_name, email, existingAppointment.appointment_date,  existingAppointment.appointment_time);
+    // send email — fire-and-forget so email failures don't block the cancel response
+    getApplicantName(supabase, email)
+        .then((names) => sendCancellationEmail(names.first_name, names.last_name, email, existingAppointment.appointment_date, existingAppointment.appointment_time))
+        .catch((err) => console.error("Cancellation email failed:", err));
 
     return { removed: true }
 }

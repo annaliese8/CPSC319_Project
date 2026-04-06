@@ -3,6 +3,7 @@ import "./AdminCalendar.css";
 import AppointmentInfoDialog from "./AppointmentInfoDialog.jsx";
 import StaffBookingPanel from "./StaffBookingPanel.jsx";
 import {
+  Box,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -12,9 +13,12 @@ import {
   List,
   ListItem,
   ListItemText,
+  Switch,
+  TextField,
 } from "@mui/material";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import {
+  getAppointments,
   getAppointmentsByDateRange,
   createAppointment,
   updateAppointment,
@@ -22,15 +26,24 @@ import {
   createBlockedSlots,
   deleteBlockedSlots,
 } from "../api/appointmentsAPI";
+import { getScheduleConfig, updateScheduleConfig } from "../api/scheduleConfigAPI";
 import { getApplicant, getApplicantByEmail, createApplicant } from "../api/applicantsAPI";
 import { STATUS_OPTIONS } from "./AppointmentStatus.jsx";
+
+const WEEK_DAY_ORDER = [
+  "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday",
+];
+
+const DEFAULT_SCHEDULE_CONFIG = WEEK_DAY_ORDER.map((d) => ({
+  day_of_week: d,
+  open_time: "09:00",
+  close_time: "13:00",
+  is_active: d !== "Saturday" && d !== "Sunday",
+}));
 
 const days = [
   "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday",
 ];
-
-const VISIBLE_START_HOUR = 9;
-const VISIBLE_END_HOUR = 13;
 
 const generateTimeSlots = (startHour, endHour) => {
   const slots = [];
@@ -42,8 +55,6 @@ const generateTimeSlots = (startHour, endHour) => {
   }
   return slots;
 };
-
-const visibleTimeSlots = generateTimeSlots(VISIBLE_START_HOUR, VISIBLE_END_HOUR);
 
 // Map MUI color names → actual hex values to render dots without MUI theme overhead
 export const STATUS_DOT_COLORS = {
@@ -268,10 +279,16 @@ function AdminCalendar({
   const [rebookingAppointment, setRebookingAppointment] = useState(null);
   const [openInfoDialog, setOpenInfoDialog] = useState(false);
   const [pendingConflicts, setPendingConflicts] = useState(null);
+  const [conflictSource, setConflictSource] = useState(null); // "blocks" | "schedule"
   const [isBlocking, setIsBlocking] = useState(false);
   const [isUnblocking, setIsUnblocking] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Schedule config (open hours + active days)
+  const [savedScheduleConfig, setSavedScheduleConfig] = useState(DEFAULT_SCHEDULE_CONFIG);
+  const [pendingScheduleConfig, setPendingScheduleConfig] = useState(DEFAULT_SCHEDULE_CONFIG);
+  const [showScheduleDialog, setShowScheduleDialog] = useState(false);
 
   // Drag state for move/resize
   const dragStateRef = React.useRef(null);
@@ -316,6 +333,16 @@ function AdminCalendar({
     loadWeekData();
   }, [loadWeekData]);
 
+  // Load schedule config once on mount
+  useEffect(() => {
+    getScheduleConfig().then((cfg) => {
+      if (cfg && cfg.length > 0) {
+        setSavedScheduleConfig(cfg);
+        setPendingScheduleConfig(cfg.map((c) => ({ ...c })));
+      }
+    }).catch(() => {});
+  }, []);
+
   useEffect(() => {
     if (changeBookingAppointment) {
       setRebookingAppointment(changeBookingAppointment);
@@ -347,8 +374,42 @@ function AdminCalendar({
 
   const dateForDay = (day) => dayDateMap[day];
 
+  // Active schedule config for current mode (pending in edit, saved in view)
+  const scheduleConfigMap = React.useMemo(() => {
+    const source = isEditing ? pendingScheduleConfig : savedScheduleConfig;
+    const m = {};
+    source.forEach((c) => { m[c.day_of_week] = c; });
+    return m;
+  }, [isEditing, pendingScheduleConfig, savedScheduleConfig]);
+
+  // Dynamic visible time range based on active day hours
+  const visibleTimeSlots = React.useMemo(() => {
+    const source = isEditing ? pendingScheduleConfig : savedScheduleConfig;
+    let minH = 9, maxH = 13;
+    let hasActive = false;
+    source.forEach((cfg) => {
+      if (!cfg.is_active) return;
+      hasActive = true;
+      const [oh] = cfg.open_time.split(":").map(Number);
+      const [ch] = cfg.close_time.split(":").map(Number);
+      minH = Math.min(minH, oh);
+      maxH = Math.max(maxH, ch);
+    });
+    if (!hasActive) return generateTimeSlots(9, 13);
+    return generateTimeSlots(minH, maxH);
+  }, [isEditing, pendingScheduleConfig, savedScheduleConfig]);
+
   const isBlocked = (day, time) => {
-    if (day === "Saturday" || day === "Sunday") return true;
+    const cfg = scheduleConfigMap[day];
+    if (!cfg || !cfg.is_active) return true;
+
+    // Block slots outside this day's configured open hours
+    const [th, tm] = time.split(":").map(Number);
+    const timeMins = th * 60 + tm;
+    const [oh, om] = cfg.open_time.split(":").map(Number);
+    const [ch, cm] = cfg.close_time.split(":").map(Number);
+    if (timeMins < oh * 60 + om || timeMins >= ch * 60 + cm) return true;
+
     const date = dateForDay(day);
     const set = isEditing ? blockedSlotsSet : savedBlockedSet;
     return set.has(`${date}|${time}`);
@@ -382,11 +443,54 @@ function AdminCalendar({
     const newlyBlocked = blockedSlots.filter(
       (s) => !savedBlocked.some((b) => b.date === s.date && b.time === s.time)
     );
-    const conflicts = appointments.filter((apt) =>
+    const blockConflicts = appointments.filter((apt) =>
       newlyBlocked.some((s) => s.date === apt.date && timeIsConflicting(s.time, apt.startTime, apt.duration))
     );
-    if (conflicts.length > 0) {
-      setPendingConflicts(conflicts);
+
+    // Detect whether the schedule config actually changed
+    const scheduleChanged = pendingScheduleConfig.some((p) => {
+      const s = savedScheduleConfig.find((c) => c.day_of_week === p.day_of_week);
+      return !s || s.is_active !== p.is_active || s.open_time !== p.open_time || s.close_time !== p.close_time;
+    });
+
+    let scheduleConflicts = [];
+    if (scheduleChanged) {
+      // Fetch every appointment in the DB (no date filter) so all weeks are checked
+      const allRows = await getAppointments();
+      const allApts = (Array.isArray(allRows) ? allRows : [])
+        .filter((r) => r.appointment_status !== "blocked" && r.appointment_status !== "cancelled")
+        .map(normaliseAppointment);
+
+      scheduleConflicts = allApts.filter((apt) => {
+        if (!apt.date) return false;
+        const dayName = new Date(`${apt.date}T12:00:00`).toLocaleDateString("en-US", { weekday: "long" });
+        const savedCfg = savedScheduleConfig.find((c) => c.day_of_week === dayName);
+        const pendingCfg = pendingScheduleConfig.find((c) => c.day_of_week === dayName);
+        if (!pendingCfg) return false;
+        if (savedCfg?.is_active && !pendingCfg.is_active) return true;
+        if (pendingCfg.is_active) {
+          const [aptH, aptM] = apt.startTime.split(":").map(Number);
+          const aptMins = aptH * 60 + aptM;
+          const [oh, om] = pendingCfg.open_time.split(":").map(Number);
+          const [ch, cm] = pendingCfg.close_time.split(":").map(Number);
+          if (aptMins < oh * 60 + om || aptMins >= ch * 60 + cm) return true;
+        }
+        return false;
+      });
+    }
+
+    // Merge, deduplicating by appointment_id
+    const seen = new Set();
+    const allConflicts = [...blockConflicts, ...scheduleConflicts].filter((apt) => {
+      const key = apt.appointment_id ?? `${apt.date}-${apt.startTime}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+
+    if (allConflicts.length > 0) {
+      setConflictSource(scheduleConflicts.length > 0 ? "schedule" : "blocks");
+      setPendingConflicts(allConflicts);
     } else {
       await commitSave([]);
       saveConfirmed();
@@ -434,6 +538,9 @@ function AdminCalendar({
       : appointments;
     setSavedBlocked(newSavedBlocked);
     if (cancelledAppts.length > 0) setAppointments(newBooked);
+    // If appointments from other weeks were cancelled, clear those cached weeks too
+    const otherWeeksCancelled = cancelledAppts.some((a) => a.date < weekStartStr || a.date > weekEndStr);
+    if (otherWeeksCancelled) weekCache.current = {};
     weekCache.current[weekStartStr] = { blocked: newSavedBlocked, booked: newBooked };
     clearMouseTrackers();
 
@@ -452,9 +559,21 @@ function AdminCalendar({
         }));
         ops.push(createBlockedSlots(rows));
       }
-      cancelledAppts.forEach((apt) =>
-        ops.push(updateAppointment(apt.appointment_id, { appointment_status: "cancelled" }))
-      );
+      cancelledAppts.forEach((apt) => {
+        if (apt.appointment_id != null) ops.push(deleteAppointment(apt.appointment_id));
+      });
+      // Save schedule config if it changed
+      const scheduleChanged = pendingScheduleConfig.some((p) => {
+        const s = savedScheduleConfig.find((c) => c.day_of_week === p.day_of_week);
+        return !s || s.is_active !== p.is_active || s.open_time !== p.open_time || s.close_time !== p.close_time;
+      });
+      if (scheduleChanged) {
+        ops.push(
+          updateScheduleConfig(pendingScheduleConfig).then(() => {
+            setSavedScheduleConfig(pendingScheduleConfig.map((c) => ({ ...c })));
+          })
+        );
+      }
       await Promise.all(ops);
     } catch (err) {
       delete weekCache.current[weekStartStr];
@@ -465,18 +584,24 @@ function AdminCalendar({
   const handleModalConfirm = async () => {
     const cancelled = [...pendingConflicts];
     setPendingConflicts(null);
+    setConflictSource(null);
     await commitSave(cancelled);
     saveConfirmed();
   };
 
   const handleModalCancel = () => {
-    setPendingConflicts(null)
-    setSaveState(false);
-
-
+    const src = conflictSource;
+    setPendingConflicts(null);
+    setConflictSource(null);
+    if (src === "schedule") {
+      setShowScheduleDialog(true);
+    } else {
+      setSaveState(false);
+    }
   };
   const handleDiscard = () => {
     setBlockedSlots(savedBlocked);
+    setPendingScheduleConfig(savedScheduleConfig.map((c) => ({ ...c })));
     clearMouseTrackers();
   };
 
@@ -611,13 +736,20 @@ function AdminCalendar({
     setHighlightedSlot(null);
 
     try {
-      await createAppointment({
+      const created = await createAppointment({
         response_id: responseId,
         appointment_date: dateStr,
         appointment_time: gridTimeToDb(newData.startTime),
         duration: (() => { const m = newData.duration || 15; return `${String(Math.floor(m/60)).padStart(2,"0")}:${String(m%60).padStart(2,"0")}:00`; })(),
         appointment_status: "Booked",
       });
+      // Patch the real appointment_id back so delete works immediately
+      const realId = Array.isArray(created) ? created[0]?.appointment_id : created?.appointment_id;
+      if (realId != null) {
+        setAppointments((prev) =>
+          prev.map((a) => a === optimisticAppt ? { ...a, appointment_id: realId } : a)
+        );
+      }
     } catch (err) {
       setError("Failed to book appointment: " + err.message);
       setAppointments((prev) => prev.filter((a) => a !== optimisticAppt));
@@ -655,8 +787,8 @@ function AdminCalendar({
     setHighlightedSlot(null);
 
     try {
-      await Promise.all([
-        oldId ? updateAppointment(oldId, { appointment_status: "cancelled" }) : Promise.resolve(),
+      const [, created] = await Promise.all([
+        oldId ? deleteAppointment(oldId) : Promise.resolve(),
         createAppointment({
           response_id: newData.response_id ?? rebookingAppointment?.response_id ?? null,
           appointment_date: dateStr,
@@ -665,6 +797,17 @@ function AdminCalendar({
           appointment_status: "Booked",
         }),
       ]);
+      // Patch the real appointment_id into local state so delete works immediately
+      const realId = Array.isArray(created) ? created[0]?.appointment_id : created?.appointment_id;
+      if (realId != null) {
+        setAppointments((prev) =>
+          prev.map((a) =>
+            a.appointment_id === null && a.date === dateStr && a.startTime === newData.startTime
+              ? { ...a, appointment_id: realId }
+              : a
+          )
+        );
+      }
     } catch (err) {
       setError("Failed to rebook: " + err.message);
       delete weekCache.current[weekStartStr];
@@ -682,6 +825,12 @@ function AdminCalendar({
         );
     }
     setOpenInfoDialog(false);
+    if (apt.appointment_id == null) {
+      // Appointment not yet persisted — just remove from local state and refresh
+      delete weekCache.current[weekStartStr];
+      loadWeekData({ forceRefresh: true });
+      return;
+    }
     try {
       await deleteAppointment(apt.appointment_id);
     } catch (err) {
@@ -721,6 +870,12 @@ function AdminCalendar({
     const updated = { ...ds, targetDay: day, targetTime: time, targetDate: dayDateMap[day] };
     dragStateRef.current = updated;
     setDragState({ ...updated });
+  };
+
+  const handleScheduleChange = (day, key, value) => {
+    setPendingScheduleConfig((prev) =>
+      prev.map((c) => (c.day_of_week === day ? { ...c, [key]: value } : c))
+    );
   };
 
   useEffect(() => { if (saveChanges) handleSave(); }, [saveChanges]);
@@ -817,6 +972,20 @@ function AdminCalendar({
         />
       )}
 
+      {/* Configure Days & Hours button — only in edit mode */}
+      {isEditing && (
+        <Box sx={{ display: "flex", justifyContent: "flex-end", px: 1, pb: 1 }}>
+          <Button
+            variant="outlined"
+            color="primary"
+            onClick={() => setShowScheduleDialog(true)}
+            sx={{ fontWeight: 700, borderRadius: "999px", px: 2.5 }}
+          >
+            Configure Days &amp; Hours
+          </Button>
+        </Box>
+      )}
+
       <div className="calendar-header-wrapper">
         <div className="calendar-header">
           <div className="time-column"></div>
@@ -845,18 +1014,41 @@ function AdminCalendar({
               const booked = isSlotBooked(day, time);
               const isHighlighted = highlightedSlot?.day === day && highlightedSlot?.time === time;
 
+              // Whether this slot is blocked by an explicit staff record (vs inactive day/out-of-hours)
+              const date = dateForDay(day);
+              const explicitlyBlocked = blockedSlotsSet.has(`${date}|${time}`);
+              const dayCfg = scheduleConfigMap[day];
+              const dayActive = dayCfg && dayCfg.is_active;
+              const [th, tm] = time.split(":").map(Number);
+              const timeMins = th * 60 + tm;
+              const inHours = dayActive && (() => {
+                const [oh, om] = (dayCfg.open_time || "09:00").split(":").map(Number);
+                const [ch, cm] = (dayCfg.close_time || "13:00").split(":").map(Number);
+                return timeMins >= oh * 60 + om && timeMins < ch * 60 + cm;
+              })();
+              const canInteract = inHours;
+
               if (isEditing) {
                 return (
                   <div
                     key={day + time}
                     className={`slot ${blocked ? "unavailable-vis" : booked ? "admin-booked" : "admin-available"}`}
-                    onMouseDown={() => { if (!blocked) setIsBlocking(true); else setIsUnblocking(true); }}
+                    onMouseDown={() => {
+                      if (!canInteract) return;
+                      if (!explicitlyBlocked) setIsBlocking(true); else setIsUnblocking(true);
+                    }}
                     onMouseUp={clearMouseTrackers}
                     onMouseOver={() => {
-                      if (isBlocking && !blocked) addBlockedSlot(day, time);
-                      if (isUnblocking && blocked) removeBlockedSlot(day, time);
+                      if (!canInteract) return;
+                      if (isBlocking && !explicitlyBlocked) addBlockedSlot(day, time);
+                      if (isUnblocking && explicitlyBlocked) removeBlockedSlot(day, time);
                     }}
-                    onClick={() => !blocked ? addBlockedSlot(day, time) : removeBlockedSlot(day, time)}
+                    onClick={() => {
+                      if (!canInteract) return;
+                      if (!explicitlyBlocked) addBlockedSlot(day, time);
+                      else removeBlockedSlot(day, time);
+                    }}
+                    style={{ cursor: canInteract ? "pointer" : "default" }}
                   />
                 );
               } else {
@@ -933,6 +1125,69 @@ function AdminCalendar({
           </div>
         ))}
       </div>
+
+      {/* Schedule Config Dialog */}
+      <Dialog open={showScheduleDialog} onClose={() => setShowScheduleDialog(false)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ fontWeight: 800, color: "primary.main" }}>Configure Days &amp; Hours</DialogTitle>
+        <DialogContent>
+          <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1.5 }}>
+            Enable days and set their open/close times. Changes take effect when you Confirm Changes.
+          </Typography>
+          {WEEK_DAY_ORDER.map((day) => {
+            const cfg = pendingScheduleConfig.find((c) => c.day_of_week === day);
+            if (!cfg) return null;
+            return (
+              <Box
+                key={day}
+                sx={{ display: "flex", alignItems: "center", gap: 2, py: 1, borderBottom: "1px solid #eee" }}
+              >
+                <Typography sx={{ width: 100, fontWeight: cfg.is_active ? 700 : 400, color: cfg.is_active ? "text.primary" : "text.disabled" }}>
+                  {day}
+                </Typography>
+                <Switch
+                  checked={!!cfg.is_active}
+                  onChange={(e) => handleScheduleChange(day, "is_active", e.target.checked)}
+                  size="small"
+                  color="primary"
+                />
+                <TextField
+                  type="time"
+                  size="small"
+                  label="Open"
+                  value={cfg.open_time}
+                  onChange={(e) => handleScheduleChange(day, "open_time", e.target.value)}
+                  disabled={!cfg.is_active}
+                  sx={{ width: 120 }}
+                  InputLabelProps={{ shrink: true }}
+                />
+                <TextField
+                  type="time"
+                  size="small"
+                  label="Close"
+                  value={cfg.close_time}
+                  onChange={(e) => handleScheduleChange(day, "close_time", e.target.value)}
+                  disabled={!cfg.is_active}
+                  sx={{ width: 120 }}
+                  InputLabelProps={{ shrink: true }}
+                />
+              </Box>
+            );
+          })}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2, justifyContent: "space-between" }}>
+          <Button variant="outlined" onClick={() => setShowScheduleDialog(false)} sx={{ fontWeight: 700 }}>
+            Done
+          </Button>
+          <Button
+            variant="contained"
+            color="secondary"
+            onClick={() => { setShowScheduleDialog(false); handleSave(); }}
+            sx={{ fontWeight: 800, color: "common.white" }}
+          >
+            Save &amp; Exit Edit Mode
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <AppointmentInfoDialog
         open={openInfoDialog}

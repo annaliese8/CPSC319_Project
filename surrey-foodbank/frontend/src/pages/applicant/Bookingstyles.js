@@ -151,7 +151,7 @@ export const bookingStyles = `
   }
   .ba-cal-btn:hover { background: var(--gray-200); }
   .ba-cal-btn.today { background: var(--teal); border-color: var(--teal); color: var(--white); }
-  .ba-cal-range { font-size: 18px; font-weight: 600; color: var(--gray-700); min-width: unset; text-align: center; margin: 10px; }
+  .ba-cal-range { font-size: 18px; font-weight: 600; color: var(--gray-700); min-width: unset; text-align: center; margin: 10px 70px 10px 0; }
   .ba-cal-legend { display: flex; gap: 16px; justify-content: flex-end; margin-bottom: 10px; font-size: 12px; color: #6D757E;}
   .ba-cal-legend span { display: flex; align-items: center; gap: 5px; }
   .ba-legend-dot { width: 12px; height: 12px; border-radius: 3px; }
