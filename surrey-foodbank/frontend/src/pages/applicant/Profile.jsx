@@ -14,6 +14,13 @@ import {
   Tabs,
   Typography,
 } from "@mui/material";
+import ApplicantTopBar from "../../components/ApplicantTopBar";
+import BookingInfo from "../../components/BookingInfo";
+import CancelBookingDialogue from "../../components/CancelBookingDialogue";
+import HouseholdMemberInfo from "../../components/HouseholdMemberInfo";
+import IneligibleStatusDialog from "../../components/IneligibleStatusDialog";
+import IneligibleCityDialog from "../../components/IneligibleCityDialog";
+import RegistrationFormInfo from "../../components/RegistrationFormInfo";
 import {
   Badge as BadgeIcon,
   CalendarMonth as CalendarMonthIcon,
@@ -26,17 +33,23 @@ import {
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect, useMemo } from "react";
-import BookingInfo from "../../components/BookingInfo";
-import RegistrationFormInfo from "../../components/RegistrationFormInfo";
-import ApplicantTopBar from "../../components/ApplicantTopBar";
-import CancelBookingDialogue from "../../components/CancelBookingDialogue";
+import { useTheme } from "@mui/material/styles";
+import { useMediaQuery } from "@mui/material";
 import { getSupabaseClient } from "../../lib/supabaseClient";
-import { formatTime } from "../../components/BookingSteps";
 import { addMinutesToTime } from "../../utils/TimeUtils";
-import { INELIGIBLE_STATUS_OPTIONS, ELIGIBLE_CITIES } from "../../components/RegistrationFields";
-import IneligibleStatusDialog from "../../components/IneligibleStatusDialog";
-import IneligibleCityDialog from "../../components/IneligibleCityDialog";
+import { formatTime } from "../../components/BookingSteps";
 import { normalizeCity } from "../../utils/Normalize";
+import { validateHouseholdMembers } from "../../utils/ValidateHouseholdMembers";
+import {
+  INELIGIBLE_STATUS_OPTIONS,
+  ELIGIBLE_CITIES,
+} from "../../components/RegistrationFields";
+
+const sectionHeadingStyle = {
+  fontWeight: 800,
+  mb: 2,
+  fontSize: { xs: "2rem", md: "2.5rem" },
+};
 
 function getApiBaseUrl() {
   const envBase = (import.meta.env.VITE_API_BASE_URL || "").trim();
@@ -61,8 +74,7 @@ function toAppointmentDisplay(appointment) {
 
   return {
     day:
-      appointment.day ||
-      date.toLocaleDateString("en-US", { weekday: "long" }),
+      appointment.day || date.toLocaleDateString("en-US", { weekday: "long" }),
     startTime: appointment.startTime,
     date: appointment.date,
     duration,
@@ -77,11 +89,11 @@ function toAppointmentDisplay(appointment) {
     )}`,
   };
 }
-import HouseholdMemberInfo from "../../components/HouseholdMemberInfo";
-import { validateHouseholdMembers } from "../../utils/ValidateHouseholdMembers";
 
 function Profile() {
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
   const [activeTab, setActiveTab] = useState("appointment");
   const [showCancelDialog, setShowCancelDialog] = useState(false);
@@ -117,24 +129,29 @@ function Profile() {
     JSON.stringify(appointment.householdMembers ?? []);
   const [submitError, setSubmitError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showIneligibleStatusDialog, setShowIneligibleStatusDialog] = useState(false);
+  const [showIneligibleStatusDialog, setShowIneligibleStatusDialog] =
+    useState(false);
   const [ineligibleStatus, setIneligibleStatus] = useState("");
-  const [showIneligibleCityDialog, setShowIneligibleCityDialog] = useState(false);
+  const [showIneligibleCityDialog, setShowIneligibleCityDialog] =
+    useState(false);
   const [ineligibleCity, setIneligibleCity] = useState("");
   const [showSizeUpgradeDialog, setShowSizeUpgradeDialog] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [showInfantPrompt, setShowInfantPrompt] = useState(false);
-  const [infantPromptAcknowledged, setInfantPromptAcknowledged] = useState(false);
+  const [infantPromptAcknowledged, setInfantPromptAcknowledged] =
+    useState(false);
 
   const pendingMembersSignature = useMemo(
     () => JSON.stringify(pendingHouseholdMembers ?? []),
     [pendingHouseholdMembers],
   );
   const hasInfantInPendingMembers = useMemo(
-    () => (pendingHouseholdMembers ?? []).some((member) => member?.ageGroup === "infant"),
+    () =>
+      (pendingHouseholdMembers ?? []).some(
+        (member) => member?.ageGroup === "infant",
+      ),
     [pendingHouseholdMembers],
   );
-
 
   // Load user and appointment data
   useEffect(() => {
@@ -156,16 +173,21 @@ function Profile() {
       const apiBase = getApiBaseUrl();
 
       try {
-        const registrationResponse = await fetch(`${apiBase}/api/applicant/registration`, {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
+        const registrationResponse = await fetch(
+          `${apiBase}/api/applicant/registration`,
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
           },
-        });
+        );
 
         const result = await registrationResponse.json().catch(() => null);
         if (!registrationResponse.ok) {
           if (!isMounted) return;
-          setSubmitError(result?.error || "Unable to load registration form data.");
+          setSubmitError(
+            result?.error || "Unable to load registration form data.",
+          );
           setAppointment((prev) => ({
             ...prev,
             applicantEmail: userEmail,
@@ -182,18 +204,23 @@ function Profile() {
           return;
         }
 
-        const appointmentResponse = await fetch(`${apiBase}/api/applicant/appointment`, {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
+        const appointmentResponse = await fetch(
+          `${apiBase}/api/applicant/appointment`,
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
           },
-        });
-        const appointmentResult = await appointmentResponse.json().catch(() => null);
+        );
+        const appointmentResult = await appointmentResponse
+          .json()
+          .catch(() => null);
         if (!isMounted) return;
 
         if (!appointmentResponse.ok) {
           setSubmitError(
             appointmentResult?.error ||
-            "Unable to load appointment data from database.",
+              "Unable to load appointment data from database.",
           );
         }
 
@@ -207,7 +234,9 @@ function Profile() {
           ...appointmentFromDb,
           ...(registration || {}),
           name:
-            [registration?.first_name, registration?.last_name].filter(Boolean).join(" ") ||
+            [registration?.first_name, registration?.last_name]
+              .filter(Boolean)
+              .join(" ") ||
             userEmail.split("@")[0] ||
             prev.name,
         }));
@@ -282,9 +311,9 @@ function Profile() {
 
     // Check if city is elibible, and show dialog if so
     const normalized_city = normalizeCity(updatedForm.city);
-    if (!ELIGIBLE_CITIES.some((eligible) =>
-      normalized_city.includes(eligible)
-    )) {
+    if (
+      !ELIGIBLE_CITIES.some((eligible) => normalized_city.includes(eligible))
+    ) {
       setIneligibleCity(updatedForm.city);
       document.activeElement?.blur();
       setShowIneligibleCityDialog(true);
@@ -310,7 +339,8 @@ function Profile() {
     const registerPayload = {
       ...updatedForm,
       tiny_bundles_program:
-        updatedForm?.tiny_bundles_program === true || updatedForm?.tiny_bundles_program === "yes"
+        updatedForm?.tiny_bundles_program === true ||
+        updatedForm?.tiny_bundles_program === "yes"
           ? "yes"
           : "no",
     };
@@ -387,7 +417,7 @@ function Profile() {
         duration: 0,
         dateLabel: "",
         timeLabel: "",
-        appointmentStatus: ""
+        appointmentStatus: "",
       }));
     } catch (_error) {
       setSubmitError("Unable to cancel appointment.");
@@ -419,14 +449,17 @@ function Profile() {
     const apiBase = getApiBaseUrl();
 
     try {
-      const response = await fetch(`${apiBase}/api/applicant/household-members`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
+      const response = await fetch(
+        `${apiBase}/api/applicant/household-members`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({ householdMembers: pendingHouseholdMembers }),
         },
-        body: JSON.stringify({ householdMembers: pendingHouseholdMembers }),
-      });
+      );
 
       const result = await response.json().catch(() => null);
       if (!response.ok) {
@@ -474,6 +507,7 @@ function Profile() {
     setMemberErrors({});
   };
 
+  // Render
   return (
     <>
       <title>My Profile | Surrey Food Bank</title>
@@ -483,11 +517,12 @@ function Profile() {
       <Tabs
         value={activeTab}
         onChange={handleTabChange}
-        centered
+        variant={isMobile ? "fullWidth" : "standard"}
+        centered={!isMobile}
         sx={{
-          my: 4,
+          my: { xs: 2, md: 4 },
           "& .Mui-selected": {
-            border: "2px solid",
+            border: "4px solid",
             borderColor: "secondary.main",
             borderRadius: 2,
           },
@@ -499,20 +534,23 @@ function Profile() {
         <Tab
           value="appointment"
           icon={<CalendarMonthIcon />}
-          iconPosition="start"
-          label="Appointment Information"
+          iconPosition={isMobile ? "top" : "start"}
+          label="Appointment"
+          sx={{ fontSize: { xs: "0.7rem", md: "1rem" } }}
         />
         <Tab
           value="registration-form"
           icon={<FormatListBulletedIcon />}
-          iconPosition="start"
-          label="Registration Form"
+          iconPosition={isMobile ? "top" : "start"}
+          label="Registration"
+          sx={{ fontSize: { xs: "0.7rem", md: "1rem" } }}
         />
         <Tab
           value="household-members"
           icon={<FamilyRestroomIcon />}
-          iconPosition="start"
-          label="Household Members"
+          iconPosition={isMobile ? "top" : "start"}
+          label="Household"
+          sx={{ fontSize: { xs: "0.7rem", md: "1rem" } }}
         />
       </Tabs>
       {/* Shows Appointment Information when tab is active */}
@@ -526,8 +564,8 @@ function Profile() {
             alignItems: "stretch",
           }}
         >
-          <Box sx={{ flex: 1, px: 5 }}>
-            <Typography variant="h4" sx={{ fontWeight: 800, mb: 2 }}>
+          <Box sx={{ flex: 1, px: { xs: 1, md: 5 } }}>
+            <Typography variant="h4" sx={sectionHeadingStyle}>
               Booking Information
             </Typography>
             <BookingInfo
@@ -560,8 +598,8 @@ function Profile() {
             alignItems: "stretch",
           }}
         >
-          <Box sx={{ flex: 1, px: 5 }}>
-            <Typography variant="h4" sx={{ fontWeight: 800, mb: 2 }}>
+          <Box sx={{ flex: 1, px: { xs: 1, md: 5 } }}>
+            <Typography variant="h4" sx={sectionHeadingStyle}>
               Registration Form
             </Typography>
             <RegistrationFormInfo
@@ -602,9 +640,9 @@ function Profile() {
             divider={<Divider orientation="vertical" flexItem />}
             sx={{ justifyContent: "center", alignItems: "stretch" }}
           >
-            <Box sx={{ flex: 1, px: 5 }}>
-              <Typography variant="h4" sx={{ fontWeight: 800, mb: 2 }}>
-                Household Members
+            <Box sx={{ flex: 1, px: { xs: 1, md: 5 } }}>
+              <Typography variant="h4" sx={sectionHeadingStyle}>
+                Additional Household Members
               </Typography>
               <Paper
                 variant="outlined"
@@ -629,7 +667,11 @@ function Profile() {
                           color="primary"
                           size="large"
                           startIcon={<CheckIcon />}
-                          sx={{ fontWeight: 800, color: "common.white", flex: 1 }}
+                          sx={{
+                            fontWeight: 800,
+                            color: "common.white",
+                            flex: 1,
+                          }}
                           onClick={handleHouseholdSave}
                         >
                           Save Changes
@@ -661,7 +703,10 @@ function Profile() {
             }}
           >
             <DialogTitle id="tiny-bundles-profile-info-title">
-              <Typography variant="h6" sx={{ fontWeight: 800, color: "#0B5F7A" }}>
+              <Typography
+                variant="h6"
+                sx={{ fontWeight: 800, color: "#0B5F7A" }}
+              >
                 Tiny Bundles Program Information
               </Typography>
             </DialogTitle>
@@ -670,11 +715,12 @@ function Profile() {
                 We noticed you added an infant (0-12 months) to your household.
               </Typography>
               <Typography variant="body2" sx={{ mb: 1.5 }}>
-                If your household has someone currently pregnant or a child under 12 months,
-                you may be eligible for our Tiny Bundles program.
+                If your household has someone currently pregnant or a child
+                under 12 months, you are eligible for our Tiny Bundles program.
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                You can update your Tiny Bundles selection in the Registration Form tab.
+                You can update your Tiny Bundles selection in the Registration
+                Form tab.
               </Typography>
             </DialogContent>
             <DialogActions sx={{ px: 2, pb: 2 }}>
@@ -697,23 +743,35 @@ function Profile() {
         maxWidth="xs"
         fullWidth
       >
-        <DialogTitle sx={{ fontWeight: 800 }}>Appointment Time Change Required</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 800 }}>
+          Appointment Time Change Required
+        </DialogTitle>
         <DialogContent>
           <Typography variant="body2" sx={{ mb: 1.5 }}>
-            Your household now has <strong>{(appointment.householdMembers?.length ?? 0) + 1} members</strong>, which requires a <strong>30-minute</strong> appointment slot instead of 15 minutes.
+            Your household now has{" "}
+            <strong>
+              {(appointment.householdMembers?.length ?? 0) + 1} members
+            </strong>
+            , which requires a <strong>30-minute</strong> appointment slot
+            instead of 15 minutes.
           </Typography>
           {appointment.dateLabel && (
             <Typography variant="body2" sx={{ mb: 1.5 }}>
-              Your current appointment is booked for <strong>{appointment.dateLabel}</strong>
+              Your current appointment is booked for{" "}
+              <strong>{appointment.dateLabel}</strong>
               {appointment.timeLabel ? ` at ${appointment.timeLabel}` : ""}.
             </Typography>
           )}
           <Typography variant="body2" color="text.secondary">
-            Please change your appointment to make sure you have enough time at your visit.
+            Please change your appointment to make sure you have enough time at
+            your visit.
           </Typography>
         </DialogContent>
         <DialogActions sx={{ px: 2, pb: 2, gap: 1 }}>
-          <Button variant="outlined" onClick={() => setShowSizeUpgradeDialog(false)}>
+          <Button
+            variant="outlined"
+            onClick={() => setShowSizeUpgradeDialog(false)}
+          >
             Later
           </Button>
           <Button
@@ -735,8 +793,8 @@ function Profile() {
 // Component that shows what an applicants next steps are after booking an appt
 function NextSteps() {
   return (
-    <Box sx={{ flex: 1, px: 5 }}>
-      <Typography variant="h4" sx={{ fontWeight: 800, mb: 2 }}>
+    <Box sx={{ flex: 1, px: { xs: 1, md: 5 } }}>
+      <Typography variant="h4" sx={sectionHeadingStyle}>
         Next Steps
       </Typography>
       <Paper
