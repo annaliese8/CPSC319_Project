@@ -20,7 +20,7 @@ export default class EmailClient {
             const data = await mg.messages.create(process.env.MAILGUN_ADDRESS, {
                 from: `${this.faceName} <${this.faceEmail}>`,
                 to: [`${name} <${address}>`],
-                subject: "Appointment Booked!",
+                subject: "Appointment Booked! [DEMO EMAIL]",
                 template: "Confirmation",
                 "h:X-Mailgun-Variables": JSON.stringify({
                     name: name,
@@ -48,7 +48,7 @@ export default class EmailClient {
             const data = await mg.messages.create(process.env.MAILGUN_ADDRESS, {
                 from: `${this.faceName} <${this.faceEmail}>`,
                 to: [`${name} <${address}>`],
-                subject: "Appointment Cancelled!",
+                subject: "Appointment Cancelled! [DEMO EMAIL]",
                 template: "cancellation",
                 "h:X-Mailgun-Variables": JSON.stringify({
                     name: name,
@@ -61,28 +61,6 @@ export default class EmailClient {
         }
         console.log("Mailgun Cancel Sent");
 
-    }
-
-    async sendSimpleMessage() {
-        const mailgun = new Mailgun(FormData);
-        const mg = mailgun.client({
-            username: "api",
-            key: process.env.MAILGUN_API_KEY || "API_KEY",
-            // When you have an EU-domain, you must specify the endpoint:
-            // url: "https://api.eu.mailgun.net"
-        });
-        try {
-            const data = await mg.messages.create("mindyandcain.com", {
-                from: "Mailgun Sandbox <postmaster@mindyandcain.com>",
-                to: ["Surrey Foodbank <nineranger@gmail.com>"],
-                subject: "Hello Surrey Foodbank",
-                text: "Congratulations Surrey Foodbank, you just sent an email with Mailgun! You are truly awesome!",
-            });
-
-            console.log(data); // logs response data
-        } catch (error) {
-            console.log(error); //logs any error
-        }
     }
 
 }
