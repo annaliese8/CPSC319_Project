@@ -20,7 +20,10 @@ function getApiBaseUrl() {
 
 function Login() {
   const [submitError, setSubmitError] = useState("");
+  const [resetError, setResetError] = useState("");
+  const [resetMessage, setResetMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
 
   const emailField = useTextField(
     "",
@@ -96,6 +99,39 @@ function Login() {
     }
   };
 
+  const handleForgotPassword = async () => {
+    if (isResetting) return;
+
+    setResetError("");
+    setResetMessage("");
+
+    const emailError = emailField.validate();
+    if (emailError || !emailField.value) {
+      setResetError("Enter your email first, then select Forgot password.");
+      return;
+    }
+
+    setIsResetting(true);
+
+    try {
+      const supabase = getSupabaseClient();
+      const redirectTo = `${window.location.origin}/#/reset-password?role=applicant`;
+      const { error } = await supabase.auth.resetPasswordForEmail(emailField.value, {
+        redirectTo,
+      });
+
+      if (error) {
+        setResetError("Unable to send reset link. Please try again.");
+      } else {
+        setResetMessage("If an account exists, a reset link has been sent to your email.");
+      }
+    } catch (_err) {
+      setResetError("Unable to send reset link. Please try again.");
+    } finally {
+      setIsResetting(false);
+    }
+  };
+
   return (
     <>
       <title>Login | Surrey Food Bank</title>
@@ -118,6 +154,20 @@ function Login() {
             error={Boolean(submitError)}
             helperText={submitError || passwordField.errorMessage}
           />
+          <Stack sx={{ px: 2, pt: 0.5 }} spacing={0.5}>
+            <MuiLink
+              component="button"
+              type="button"
+              underline="hover"
+              sx={{ textAlign: "left", width: "fit-content" }}
+              onClick={handleForgotPassword}
+              disabled={isResetting}
+            >
+              <Typography>{isResetting ? "Sending reset link..." : "Forgot password?"}</Typography>
+            </MuiLink>
+            {resetError ? <Typography color="error">{resetError}</Typography> : null}
+            {resetMessage ? <Typography color="success.main">{resetMessage}</Typography> : null}
+          </Stack>
           <Stack
             direction="row"
             spacing={2}

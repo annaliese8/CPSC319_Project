@@ -11,6 +11,7 @@ import ApplicantCreateAccount from "./pages/applicant/CreateAccount";
 import ApplicantRegistrationForm from "./pages/applicant/RegistrationForm";
 import ApplicantBookAppointment from "./pages/applicant/BookAppointment";
 import ApplicantProfile from "./pages/applicant/Profile";
+import ResetPassword from "./pages/ResetPassword";
 
 const staffBase = import.meta.env.VITE_STAFF_BASE;
 
@@ -18,6 +19,7 @@ function StaffRoute({ children }) {
   if (!localStorage.getItem("staffAuth")) {
     return <Navigate to={`/${staffBase}/login`} replace />;
   }
+
   return children;
 }
 
@@ -44,6 +46,7 @@ function App() {
           <Route path="/applicant/register" element={<ApplicantRegistrationForm />} />
           <Route path="/applicant/book-appointment" element={<ApplicantBookAppointment />} />
           <Route path="/applicant/profile" element={<ApplicantProfile />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
         </Routes>
       </ThemeProvider>
     </>
