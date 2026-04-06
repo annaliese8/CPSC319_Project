@@ -101,11 +101,7 @@ async function getApplicantResponseId(supabase, email) {
 async function getApplicantName(supabase, email) {
     const { data, error } = await supabase
         .from(APPLICANT_TABLE)
-        .select(`
-        first_name,
-        last_name
-            )
-         `)
+        .select("first_name, last_name")
         .eq(APPLICANT_EMAIL_COLUMN, email)
         .maybeSingle()
 
@@ -382,9 +378,10 @@ async function saveAppointment(email, payload) {
         savedRow = insertedRows?.[0] || null
     }
 
-    // send email
-    let names = await getApplicantName(supabase, email);
-    await sendConfirmationEmail(names.first_name, names.last_name, email, date, startTime, duration);
+    // send email — fire-and-forget so email failures don't block the booking response
+    getApplicantName(supabase, email)
+        .then((names) => sendConfirmationEmail(names.first_name, names.last_name, email, date, startTime, duration))
+        .catch((err) => console.error("Confirmation email failed:", err));
 
     return buildAppointmentPayload(savedRow)
 }
@@ -412,8 +409,10 @@ async function removeAppointment(email) {
         throw makeHttpError(500, "Unable to cancel appointment.")
     }
 
-    let names = await getApplicantName(supabase, email);
-    await sendCancellationEmail(names.first_name, names.last_name, email, existingAppointment.appointment_date,  existingAppointment.appointment_time);
+    // send email — fire-and-forget so email failures don't block the cancel response
+    getApplicantName(supabase, email)
+        .then((names) => sendCancellationEmail(names.first_name, names.last_name, email, existingAppointment.appointment_date, existingAppointment.appointment_time))
+        .catch((err) => console.error("Cancellation email failed:", err));
 
     return { removed: true }
 }

@@ -17,7 +17,7 @@ import IneligibleCityDialog from "../../components/IneligibleCityDialog";
 import { normalizeCity } from "../../utils/Normalize";
 
 function getApiBaseUrl() {
-  const envBase = (import.meta.env.VITE_API_BASE_URL || "").trim();
+  const envBase = (import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_BASE_URL || "").trim();
   if (envBase) return envBase.replace(/\/$/, "");
   return import.meta.env.DEV ? "http://localhost:3000" : "";
 }

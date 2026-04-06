@@ -372,7 +372,7 @@ export function StepChooseTime({
       }),
     [weekStart]
   );
-  // Keep weekDates (Mon-Fri) for header range display
+  // Keep weekDates (Mon-Fri) for legacy references; use allWeekDates[6] for Sun end of range
   const weekDates = allWeekDates.slice(0, 5);
 
   // Applicants can only book up to 14 days in advance
@@ -505,8 +505,6 @@ export function StepChooseTime({
     );
   }
 
-  const numActiveCols = activeDayConfigs.length;
-
   return (
     <>
       <div className="ba-body">
@@ -526,27 +524,34 @@ export function StepChooseTime({
             Your household size requires a 30-minute appointment.
           </p>
         )}
-        <div className="ba-cal-range">
-          {formatDateShort(weekDates[0])} – {formatDateShort(weekDates[4])}
-        </div>
         {/* Buttons for navigating between weeks */}
-        <div className="ba-cal-header">
-          <div style={{ display: "flex", gap: 8, minWidth: 170 }}>
-            {!isCurrentWeek && (
-              <button className="ba-cal-btn" onClick={() => shiftWeek(-7)}>← Prev Week</button>
-            )}
-            {!isCurrentWeek && (
-              <button className="ba-cal-btn today" onClick={() => { userNavigatedRef.current = true; setWeekStart(todayStart); }}>Today</button>
-            )}
+        <div className="ba-cal-nav">
+          <div style={{ display: "flex", gap: 8 }}>
+            <button
+              className="ba-cal-btn"
+              onClick={() => { userNavigatedRef.current = true; shiftWeek(-7); }}
+              style={{ visibility: isCurrentWeek ? "hidden" : "visible" }}
+            >
+              Prev Week
+            </button>
+            <button
+              className="ba-cal-btn today"
+              onClick={() => { userNavigatedRef.current = true; setWeekStart(todayStart); }}
+              style={{ visibility: isCurrentWeek ? "hidden" : "visible" }}
+            >
+              Today
+            </button>
           </div>
           <div className="ba-cal-range">
-            {formatDateShort(weekDates[0])} – {formatDateShort(weekDates[4])}
+            {formatDateShort(allWeekDates[0])} – {formatDateShort(allWeekDates[6])}
           </div>
-          <div style={{ display: "flex", justifyContent: "flex-end", minWidth: 170 }}>
-            {!isAtMaxWeek && (
-              <button className="ba-cal-btn" onClick={() => shiftWeek(7)}>Next Week →</button>
-            )}
-          </div>
+          <button
+            className="ba-cal-btn"
+            onClick={() => { userNavigatedRef.current = true; shiftWeek(7); }}
+            style={{ visibility: isAtMaxWeek ? "hidden" : "visible" }}
+          >
+            Next Week
+          </button>
         </div>
         {/* Legend for colours on the calendar */}
         <div className="ba-cal-legend">
@@ -569,15 +574,15 @@ export function StepChooseTime({
           <table className="ba-cal-table" style={{ tableLayout: "fixed" }}>
             <colgroup>
               <col style={{ width: 54 }} />
-              {activeDayConfigs.map((cfg) => (
-                <col key={cfg.day_of_week} style={{ width: `calc((100% - 54px) / ${numActiveCols})` }} />
+              {WEEK_DAY_ORDER.map((day) => (
+                <col key={day} style={{ width: `calc((100% - 54px) / 7)` }} />
               ))}
             </colgroup>
             <thead>
               <tr>
                 <th className="ba-cal-th" />
-                {activeDayConfigs.map((cfg) => {
-                  const day = cfg.day_of_week;
+                {WEEK_DAY_ORDER.map((day) => {
+                  const isActive = activeDayConfigs.some((c) => c.day_of_week === day);
                   const offset = DAY_OFFSET_FROM_MON[day] ?? 0;
                   const date = allWeekDates[offset];
                   const isPast = isDayBeyondCutoff(date);
@@ -586,7 +591,7 @@ export function StepChooseTime({
                     <th
                       key={day}
                       className="ba-cal-th"
-                      style={{ opacity: isDimmed(day) || isPast ? 0.25 : 1 }}
+                      style={{ opacity: !isActive || isDimmed(day) || isPast ? 0.25 : 1 }}
                     >
                       {shortName}
                       <br />
@@ -604,37 +609,40 @@ export function StepChooseTime({
                   <td className="ba-cal-td time-col">
                     {rowIdx % 2 === 0 ? formatTime(time) : ""}
                   </td>
-                  {activeDayConfigs.map((cfg) => {
-                    const day = cfg.day_of_week;
+                  {WEEK_DAY_ORDER.map((day) => {
+                    const isActive = activeDayConfigs.some((c) => c.day_of_week === day);
                     const offset = DAY_OFFSET_FROM_MON[day] ?? 0;
                     const date = allWeekDates[offset];
-                    const dimmed = isDimmed(day) || isDayBeyondCutoff(date);
+                    const restricted = !isActive || isDimmed(day) || isDayBeyondCutoff(date);
                     const avail = !!availability[`${day}-${time}`];
                     const selected = isHighlighted(day, time, date);
                     const existing = !selected && isExistingAppt(day, time, date);
+                    const showSlot = !restricted && (selected || existing || avail);
                     return (
                       <td
                         key={day}
                         className="ba-cal-td"
-                        style={{ opacity: dimmed ? 0.15 : 1, pointerEvents: dimmed ? "none" : "auto" }}
+                        style={{ pointerEvents: showSlot ? "auto" : "none" }}
                       >
-                        <div
-                          className={`ba-slot ${
-                            selected ? "selected" : existing ? "existing" : avail ? "avail" : "unavail"
-                          }`}
-                          onClick={() => handleSlotClick(day, time)}
-                          tabIndex={0}
-                          role="button"
-                          aria-label={`${
-                            selected ? "Appointment selected" : existing ? "Current appointment" : avail ? "Available" : "Unavailable"
-                          } slot: ${day} at ${time}`}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" || e.key === " ") {
-                              e.preventDefault();
-                              handleSlotClick(day, time);
-                            }
-                          }}
-                        />
+                        {showSlot && (
+                          <div
+                            className={`ba-slot ${
+                              selected ? "selected" : existing ? "existing" : "avail"
+                            }`}
+                            onClick={() => handleSlotClick(day, time)}
+                            tabIndex={0}
+                            role="button"
+                            aria-label={`${
+                              selected ? "Appointment selected" : existing ? "Current appointment" : "Available"
+                            } slot: ${day} at ${time}`}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" || e.key === " ") {
+                                e.preventDefault();
+                                handleSlotClick(day, time);
+                              }
+                            }}
+                          />
+                        )}
                       </td>
                     );
                   })}
