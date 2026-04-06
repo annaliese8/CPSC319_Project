@@ -829,7 +829,7 @@ export function StepReview({
     }
   }, [errors]);
 
-    const full_name = [form.first_name, form.last_name].filter(Boolean).join(" ");
+    const full_name = [form.first_name, form.last_name]
     .filter(Boolean)
     .join(" ");
   const full_address = [
