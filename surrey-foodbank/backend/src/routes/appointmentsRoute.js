@@ -8,6 +8,8 @@ import {
   deleteAppointment,
   createBlockedSlots,
   deleteBlockedSlots,
+  getScheduleConfig,
+  updateScheduleConfig,
 } from "../api/applicants.js"
 
 const router = express.Router()
@@ -69,6 +71,30 @@ router.delete("/blocked", async (req, res) => {
     }
     await deleteBlockedSlots(appointmentIds)
     res.json({ success: true })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// GET /api/appointments/schedule-config
+router.get("/schedule-config", async (req, res) => {
+  try {
+    const data = await getScheduleConfig()
+    res.json(data)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// PUT /api/appointments/schedule-config
+router.put("/schedule-config", async (req, res) => {
+  try {
+    const { configs } = req.body
+    if (!Array.isArray(configs) || configs.length === 0) {
+      return res.status(400).json({ error: "configs must be a non-empty array" })
+    }
+    const data = await updateScheduleConfig(configs)
+    res.json(data)
   } catch (err) {
     res.status(500).json({ error: err.message })
   }

@@ -103,6 +103,8 @@ async function getLatestActiveAppointment(supabase, responseId) {
         .select("*")
         .eq(APPOINTMENT_RESPONSE_ID_COLUMN, responseId)
         .neq(APPOINTMENT_STATUS_COLUMN, "held")
+        .neq(APPOINTMENT_STATUS_COLUMN, "cancelled")
+        .neq(APPOINTMENT_STATUS_COLUMN, "blocked")
         .order(APPOINTMENT_DATE_COLUMN, { ascending: false })
         .order(APPOINTMENT_TIME_COLUMN, { ascending: false })
         .limit(1)
@@ -248,7 +250,7 @@ async function holdAppointment(email, payload) {
         .select(APPOINTMENT_ID_COLUMN)
         .eq(APPOINTMENT_DATE_COLUMN, date)
         .eq(APPOINTMENT_TIME_COLUMN, startTime)
-        .in(APPOINTMENT_STATUS_COLUMN, ["booked", "held", "checked in"])
+        .in(APPOINTMENT_STATUS_COLUMN, ["booked", "held", "checked in", "no show"])
         .neq(APPOINTMENT_RESPONSE_ID_COLUMN, responseId)
 
     if (conflictError) {
