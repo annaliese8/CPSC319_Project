@@ -683,10 +683,7 @@ function AdminCalendar({
   };
 
   const handleConfirmBooking = async (newData) => {
-    const dayIndex = days.indexOf(newData.day);
-    const date = new Date(weekStart);
-    date.setDate(weekStart.getDate() + dayIndex);
-    const dateStr = toDateStr(date);
+    const dateStr = newData.date;
 
     let responseId = newData.response_id ?? null;
     if (!responseId && newData.email) {
@@ -758,10 +755,7 @@ function AdminCalendar({
 
   const handleConfirmRebooking = async (newData) => {
     const oldId = rebookingAppointment?.appointment_id;
-    const dayIndex = days.indexOf(newData.day);
-    const date = new Date(weekStart);
-    date.setDate(weekStart.getDate() + dayIndex);
-    const dateStr = toDateStr(date);
+    const dateStr = newData.date;
 
     setAppointments((prev) => [
       ...prev.filter((a) => a.appointment_id !== oldId),
@@ -1229,6 +1223,7 @@ function AdminCalendar({
               : appointments
           }
           blockedSlots={savedBlocked}
+          scheduleConfig={savedScheduleConfig}
           rebookingAppointment={rebookingAppointment}
           isNewBooking={isNewBooking}
         />
