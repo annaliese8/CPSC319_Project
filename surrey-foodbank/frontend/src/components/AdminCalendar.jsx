@@ -27,7 +27,7 @@ import {
   deleteBlockedSlots,
 } from "../api/appointmentsAPI";
 import { getScheduleConfig, updateScheduleConfig } from "../api/scheduleConfigAPI";
-import { getApplicant, getApplicantByEmail, createApplicant } from "../api/applicantsAPI";
+import { getApplicant, getApplicantByEmail, createApplicant, getHouseholdMembers } from "../api/applicantsAPI";
 import { STATUS_OPTIONS } from "./AppointmentStatus.jsx";
 
 const WEEK_DAY_ORDER = [
@@ -1189,16 +1189,43 @@ function AdminCalendar({
         appointment={appointmentData}
         onDelete={handleDeleteAppointment}
         onStatusChange={handleStatusChange}
-        onChangeBooking={(apt) => {
+        onChangeBooking={async (apt) => {
           setOpenInfoDialog(false);
-          setRebookingAppointment(apt);
-          setHighlightedSlot({ day: apt.day, time: apt.startTime });
+          const slotDay = apt.day;
+          const slotTime = apt.startTime;
+          setHighlightedSlot({ day: slotDay, time: slotTime });
           setSelectedSlot({
-            day: apt.day,
-            time: apt.startTime,
+            day: slotDay,
+            time: slotTime,
             weekStart,
             date: apt.date ? new Date(apt.date + "T12:00:00") : new Date(weekStart),
           });
+          // Fetch full registration data so the locked fields are pre-filled
+          let fullApt = { ...apt };
+          if (apt.response_id) {
+            try {
+              const [reg, members] = await Promise.all([
+                getApplicant(apt.response_id),
+                getHouseholdMembers(apt.response_id),
+              ]);
+              if (reg) {
+                fullApt = {
+                  ...fullApt,
+                  email: reg.email_address || fullApt.email || "",
+                  phone: reg.phone || fullApt.phone || "",
+                  street_addr: reg.street_addr || "",
+                  city: reg.city || "",
+                  province: reg.province || "British Columbia",
+                  postal_code: reg.postal_code || "",
+                  status_in_canada: reg.status_in_canada || "",
+                  language: reg.language || "English",
+                  tiny_bundles_program: reg.tiny_bundles_program ?? false,
+                  householdMembers: members?.data ?? members ?? [],
+                };
+              }
+            } catch { /* non-fatal — panel will open with whatever data is available */ }
+          }
+          setRebookingAppointment(fullApt);
           setShowBookingPanel(true);
         }}
       />
