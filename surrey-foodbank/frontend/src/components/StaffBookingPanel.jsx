@@ -44,6 +44,7 @@ export default function StaffBookingPanel({
   onConfirmBooking,
   existingAppointments = [],
   blockedSlots = [],           // savedBlocked from AdminCalendar: [{date, time}]
+  scheduleConfig = [],         // savedScheduleConfig from AdminCalendar: [{day_of_week, is_active, open_time, close_time}]
   rebookingAppointment = null, // pre-fills the form with applicant data
   isNewBooking = false,        // true = new booking from profile (pre-fill but don't cancel old)
 }) {
@@ -192,7 +193,7 @@ export default function StaffBookingPanel({
     const slotMins = slotH * 60 + slotM;
     return existingAppointments.some((apt) => {
       if (excludeResponseId && apt.response_id === excludeResponseId) return false;
-      if (apt.day !== day) return false;
+      if (apt.date !== editableDate) return false;
       const [aptH, aptM] = apt.startTime.split(":").map(Number);
       const aptStart = aptH * 60 + aptM;
       return slotMins >= aptStart && slotMins < aptStart + (apt.duration || 15);
@@ -250,9 +251,22 @@ export default function StaffBookingPanel({
     const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
     const dayName = dayNames[dateObj.getDay()];
 
-    if (dayName === "Saturday" || dayName === "Sunday") {
-      setError("Cannot book appointments on weekends.");
-      return;
+    // Check schedule config: reject if the day is turned off or time is outside configured hours
+    if (scheduleConfig && scheduleConfig.length > 0) {
+      const dayCfg = scheduleConfig.find((c) => c.day_of_week === dayName);
+      if (!dayCfg || !dayCfg.is_active) {
+        setError(`${dayName} is not an available booking day.`);
+        return;
+      }
+      const [oh, om] = dayCfg.open_time.split(":").map(Number);
+      const [ch, cm] = dayCfg.close_time.split(":").map(Number);
+      const [sh2, sm2] = startTime.split(":").map(Number);
+      const startMinsForCfg = sh2 * 60 + sm2;
+      const duration2 = getEffectiveDuration();
+      if (startMinsForCfg < oh * 60 + om || startMinsForCfg + duration2 > ch * 60 + cm) {
+        setError(`The selected time is outside the configured hours for ${dayName} (${dayCfg.open_time}–${dayCfg.close_time}).`);
+        return;
+      }
     }
 
     const duration = getEffectiveDuration();

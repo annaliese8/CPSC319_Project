@@ -240,15 +240,15 @@ function EditSlot({ startDate, endDate }) {
       }
 
       if (cancelledAppts.length > 0) {
-        const idsToCancel = cancelledAppts
+        const idsToDelete = cancelledAppts
           .map((a) => a.appointment_id)
           .filter(Boolean);
-        if (idsToCancel.length > 0) {
-          const { error: cancelError } = await supabase
+        if (idsToDelete.length > 0) {
+          const { error: deleteError } = await supabase
             .from("appointments")
-            .update({ appointment_status: "cancelled" })
-            .in("appointment_id", idsToCancel);
-          if (cancelError) throw cancelError;
+            .delete()
+            .in("appointment_id", idsToDelete);
+          if (deleteError) throw deleteError;
         }
       }
 
