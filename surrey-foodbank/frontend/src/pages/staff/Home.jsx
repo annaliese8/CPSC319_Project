@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Box } from "@mui/material";
 import StaffTopBar from "../../components/StaffTopBar";
 import WelcomePanel from "../../components/WelcomePanel";
@@ -16,11 +16,20 @@ function Home() {
   const location = useLocation();
   const staffBase = import.meta.env.VITE_STAFF_BASE;
 
-  // Detect if we arrived here from "Change Booking" on ApplicantInfoPage
-  const changeBookingAppointment = location.state?.changeBooking
-    ? location.state.appointment
-    : null;
-    const isNewBooking = location.state?.isNewBooking ?? false;
+  // Capture booking state once on mount (location.state is only valid on initial navigation)
+  const [changeBookingAppointment] = useState(() =>
+    location.state?.changeBooking ? location.state.appointment : null
+  );
+  const [isNewBooking] = useState(() => location.state?.isNewBooking ?? false);
+
+  // Immediately clear location.state so that:
+  // 1. A page refresh doesn't re-open the booking panel
+  // 2. isNewBooking doesn't linger and cause "Change Appointment" to misbehave
+  useEffect(() => {
+    if (location.state?.changeBooking) {
+      navigate(location.pathname, { replace: true, state: null });
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleLogout = () => {
     localStorage.removeItem("staffAuth");

@@ -277,6 +277,9 @@ function AdminCalendar({
   const [highlightedSlot, setHighlightedSlot] = useState(null);
   const [showBookingPanel, setShowBookingPanel] = useState(false);
   const [rebookingAppointment, setRebookingAppointment] = useState(null);
+  // Track isNewBooking as resettable state so it clears after the first booking,
+  // preventing subsequent "Change Appointment" clicks from using the wrong handler.
+  const [isNewBookingActive, setIsNewBookingActive] = useState(isNewBooking);
   const [openInfoDialog, setOpenInfoDialog] = useState(false);
   const [pendingConflicts, setPendingConflicts] = useState(null);
   const [conflictSource, setConflictSource] = useState(null); // "blocks" | "schedule"
@@ -731,6 +734,7 @@ function AdminCalendar({
     setSelectedSlot(null);
     setRebookingAppointment(null);
     setHighlightedSlot(null);
+    setIsNewBookingActive(false);
 
     try {
       const created = await createAppointment({
@@ -1226,6 +1230,7 @@ function AdminCalendar({
             } catch { /* non-fatal — panel will open with whatever data is available */ }
           }
           setRebookingAppointment(fullApt);
+          setIsNewBookingActive(false);
           setShowBookingPanel(true);
         }}
       />
@@ -1240,19 +1245,19 @@ function AdminCalendar({
             setHighlightedSlot(null);
           }}
           onConfirmBooking={
-            rebookingAppointment && !isNewBooking
+            rebookingAppointment && !isNewBookingActive
               ? handleConfirmRebooking
               : handleConfirmBooking
           }
           existingAppointments={
-            rebookingAppointment && !isNewBooking
+            rebookingAppointment && !isNewBookingActive
               ? appointments.filter((a) => a.response_id !== rebookingAppointment.response_id)
               : appointments
           }
           blockedSlots={savedBlocked}
           scheduleConfig={savedScheduleConfig}
           rebookingAppointment={rebookingAppointment}
-          isNewBooking={isNewBooking}
+          isNewBooking={isNewBookingActive}
         />
       )}
     </div>
