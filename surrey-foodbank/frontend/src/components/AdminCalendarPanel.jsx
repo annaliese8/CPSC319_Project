@@ -6,7 +6,7 @@ import AdminCalendar from "./AdminCalendar.jsx";
 import { STATUS_OPTIONS } from "./AppointmentStatus.jsx";
 const STATUS_DOT_COLORS = {
 info: "#0288d1", // Booked
-primary: "#1976d2", // Checked In 
+primary: "#f59e0b", // Checked In 
 success: "#2e7d32",  // Complete
 error:   "#d32f2f", // No Show
 default: "#9e9e9e",

@@ -59,7 +59,7 @@ const generateTimeSlots = (startHour, endHour) => {
 // Map MUI color names → actual hex values to render dots without MUI theme overhead
 export const STATUS_DOT_COLORS = {
   info:    "#4cc5dc", // Booked
-  primary: "#1981cb", // Checked In
+  primary: "#f59e0b", // Checked In
   success: "#2fb036", // Complete
   error:   "#d32f2f", // No Show
   default: "#9e9e9e",
