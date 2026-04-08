@@ -15,6 +15,8 @@ export const STATUS_OPTIONS = [
     { label: "No Show", color: "error" },
 ];
 
+const CHECKED_IN_COLOR = "#f59e0b";
+
 /**  A reusable status selector created for staff use.
  *  Displays the current appointment status as a Chip, and opens a dropdown
  *  menu allowing staff to update the status. to the options above in STATUS_OPTIONS
@@ -72,6 +74,7 @@ export default function AppointmentStatus({ appointment, onStatusChange }) {
     const selectedOption = STATUS_OPTIONS.find(
         (option) => option.label === normalizeLabel(status)
     );
+    const isCheckedIn = normalizeLabel(status) === "Checked In";
 
     return (
         <Box sx={{ maxWidth: 160, mx: "auto", pt: 2 }}>
@@ -84,7 +87,7 @@ export default function AppointmentStatus({ appointment, onStatusChange }) {
                     </Stack>
                 }
                 onClick={handleOpen}
-                color={selectedOption?.color || "default"}
+                color={isCheckedIn ? "default" : (selectedOption?.color || "default")}
                 variant={status ? "filled" : "outlined"}
                 sx={{
                     minWidth: 140,
@@ -92,6 +95,13 @@ export default function AppointmentStatus({ appointment, onStatusChange }) {
                     py: 0.5,
                     fontWeight: 700,
                     borderRadius: "16px",
+                    ...(isCheckedIn && {
+                        bgcolor: CHECKED_IN_COLOR,
+                        color: "common.white",
+                        "&:hover": {
+                            bgcolor: "#d97706",
+                        },
+                    }),
                     "&:hover": {
                         opacity: 0.9,
                     },
@@ -114,15 +124,23 @@ export default function AppointmentStatus({ appointment, onStatusChange }) {
                         sx={{
                             py: 1,
                             "&:hover": {
-                                bgcolor: `${option.color}.light`,
+                                bgcolor: option.label === "Checked In"
+                                    ? "rgba(245, 158, 11, 0.12)"
+                                    : `${option.color}.light`,
                             },
                         }}
                     >
                         <Chip
                             label={option.label}
-                            color={option.color}
+                            color={option.label === "Checked In" ? "default" : option.color}
                             size="small"
-                            sx={{ fontWeight: 700 }}
+                            sx={{
+                                fontWeight: 700,
+                                ...(option.label === "Checked In" && {
+                                    bgcolor: CHECKED_IN_COLOR,
+                                    color: "common.white",
+                                }),
+                            }}
                         />
                     </MenuItem>
                 ))}
