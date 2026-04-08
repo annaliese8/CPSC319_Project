@@ -44,6 +44,7 @@ export default function BookAppointment() {
   const [ineligibleCity, setIneligibleCity] = useState("");
   const [isLoadingForm, setIsLoadingForm] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
   const [formDirty, setFormDirty] = useState(false);
   const [existingSlot, setExistingSlot] = useState(null);
 
@@ -160,20 +161,32 @@ export default function BookAppointment() {
       // Also fires on React Router navigation away from this page while on step 1
       releaseHoldRequest(accessToken);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step, accessToken]);
 
   const next = async () => {
-    if (step === 0) {
-      await createHold(selectedSlot, accessToken);
+    if (isNavigating) return;
+    setIsNavigating(true);
+    try {
+      if (step === 0) {
+        await createHold(selectedSlot, accessToken);
+      }
+      setStep((s) => s + 1);
+    } finally {
+      setIsNavigating(false);
     }
-    setStep((s) => s + 1);
   };
   const prev = async () => {
-    if (step === 1) {
-      await releaseHoldRequest(accessToken);
+    if (isNavigating) return;
+    setIsNavigating(true);
+    try {
+      if (step === 1) {
+        await releaseHoldRequest(accessToken);
+      }
+      setStep((s) => s - 1);
+    } finally {
+      setIsNavigating(false);
     }
-    setStep((s) => s - 1);
   };
 
   // Time Slot
@@ -341,7 +354,7 @@ export default function BookAppointment() {
               onSelectSlot={setSelectedSlot}
               onClearSlot={() => setSelectedSlot(null)}
               onBack={() => navigate("/applicant/profile")}
-              onNext={selectedSlot && !isLoadingForm ? next : undefined}
+              onNext={selectedSlot && !isLoadingForm && !isNavigating ? next : undefined}
               existingSlot={existingSlot}
             />
           )}
@@ -351,7 +364,7 @@ export default function BookAppointment() {
               <StepReview
                 form={form}
                 selectedSlot={selectedSlot}
-                onBack={prev}
+                onBack={!isNavigating ? prev : undefined}
                 onConfirm={handleConfirm}
                 onTimerExpired={async () => {
                   await releaseHoldRequest(accessToken);

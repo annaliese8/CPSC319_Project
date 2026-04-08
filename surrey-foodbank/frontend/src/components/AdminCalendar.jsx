@@ -70,7 +70,7 @@ const normalizeStatus = (status) => {
   if (!status) return "";
   switch (status.trim().toLowerCase()) {
     case "booked":       return "Booked";
-    case "checked in":
+    case "checked in":   return "Checked In";
     case "checked-in":   return "Checked In";
     case "complete":     return "Complete";
     case "no show":      return "No Show";
@@ -536,8 +536,8 @@ function AdminCalendar({
     const newSavedBlocked = blockedSlots.map((s) => ({ ...s }));
     const newBooked = cancelledAppts.length > 0
       ? appointments.filter(
-          (a) => !cancelledAppts.some((c) => c.appointment_id === a.appointment_id)
-        )
+        (a) => !cancelledAppts.some((c) => c.appointment_id === a.appointment_id)
+      )
       : appointments;
     setSavedBlocked(newSavedBlocked);
     if (cancelledAppts.length > 0) setAppointments(newBooked);
@@ -1085,11 +1085,11 @@ function AdminCalendar({
 
                 const slotClass = blocked ? "unavailable-invis"
                   : isDragTarget && dragState?.type === "move" ? "admin-drop-target"
-                  : isHighlighted ? "admin-selected"
-                  : isDragSource ? "admin-booked admin-booked-ghost"
-                  : isMultiStart || isResizePreview ? "admin-booked-start"
-                  : booked ? "admin-booked"
-                  : "admin-available";
+                    : isHighlighted ? "admin-selected"
+                      : isDragSource ? "admin-booked admin-booked-ghost"
+                        : isMultiStart || isResizePreview ? "admin-booked-start"
+                          : booked ? "admin-booked"
+                            : "admin-available";
 
                 const displayName = slotAppt?.name || "";
                 const hhSize = slotAppt?.householdSize;
@@ -1216,6 +1216,8 @@ function AdminCalendar({
                 fullApt = {
                   ...fullApt,
                   email: reg.email_address || fullApt.email || "",
+                  first_name: reg.first_name || "",
+                  last_name: reg.last_name || "",
                   phone: reg.phone || fullApt.phone || "",
                   street_addr: reg.street_addr || "",
                   city: reg.city || "",
