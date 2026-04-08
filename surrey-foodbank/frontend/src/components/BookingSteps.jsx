@@ -257,11 +257,11 @@ export function TopNav({ onLogout }) {
 export const isSlotAvailable = (availability, day, time, interval = 15) =>
   interval === 30
     ? !!availability[`${day}-${time}`] &&
-      !!availability[`${day}-${addMinutesToTime(time, 15)}`] &&
-      !!availability[`${day}-${addMinutesToTime(time, 30)}`] &&
-      !!availability[`${day}-${addMinutesToTime(time, 45)}`]
+    !!availability[`${day}-${addMinutesToTime(time, 15)}`] &&
+    !!availability[`${day}-${addMinutesToTime(time, 30)}`] &&
+    !!availability[`${day}-${addMinutesToTime(time, 45)}`]
     : !!availability[`${day}-${time}`] &&
-      !!availability[`${day}-${addMinutesToTime(time, 15)}`];
+    !!availability[`${day}-${addMinutesToTime(time, 15)}`];
 
 export function Stepper({ currentStep, steps = STEPS }) {
   return (
@@ -497,36 +497,31 @@ export function StepChooseTime({
     return time === existingSlot.time;
   };
 
-  if (availLoading) {
-    return (
-      <div className="ba-body" style={{ textAlign: "center", padding: 40 }}>
-        Loading availability…
-      </div>
-    );
-  }
-
   return (
     <>
       <div className="ba-body">
         <h2>Select a Date and Time for Your Appointment</h2>
         {tinyBundles && (
-          <p style={{ textAlign: "center", fontSize: 13, color: "var(--teal)", marginBottom: 12, fontWeight: 600 }}>
-            Showing Wednesday appointments only (Tiny Bundles program)
+          <p style={{ textAlign: "center", fontSize: 13, color: "var(--teal)", fontWeight: 600 }}>
+            We offer Tiny Bundles appointments on Wednesdays.
           </p>
         )}
         {!tinyBundles && (
-          <p style={{ textAlign: "center", fontSize: 13, color: "var(--gray-500)", marginBottom: 12 }}>
+          <p style={{ textAlign: "center", fontSize: 13, color: "var(--teal)", fontWeight: 600 }}>
             Wednesday slots are reserved for the Tiny Bundles program and are not available for general booking.
           </p>
         )}
         {isLargeHousehold && (
-          <p style={{ textAlign: "center", fontSize: 13, color: "var(--teal)", marginBottom: 12, fontWeight: 600 }}>
+          <p style={{ textAlign: "center", fontSize: 13, color: "var(--teal)", fontWeight: 600 }}>
             Your household size requires a 30-minute appointment.
           </p>
         )}
+        <div className="ba-cal-range">
+          {formatDateShort(weekDates[0])} – {formatDateShort(weekDates[4])}
+        </div>
         {/* Buttons for navigating between weeks */}
-        <div className="ba-cal-nav">
-          <div style={{ display: "flex", gap: 8 }}>
+        <div className="ba-cal-header">
+          <div className="ba-cal-nav">
             <button
               className="ba-cal-btn"
               onClick={() => { userNavigatedRef.current = true; shiftWeek(-7); }}
@@ -541,17 +536,15 @@ export function StepChooseTime({
             >
               Today
             </button>
+
+            <button
+              className="ba-cal-btn"
+              onClick={() => { userNavigatedRef.current = true; shiftWeek(7); }}
+              style={{ visibility: isAtMaxWeek ? "hidden" : "visible" }}
+            >
+              Next Week
+            </button>
           </div>
-          <div className="ba-cal-range">
-            {formatDateShort(allWeekDates[0])} – {formatDateShort(allWeekDates[6])}
-          </div>
-          <button
-            className="ba-cal-btn"
-            onClick={() => { userNavigatedRef.current = true; shiftWeek(7); }}
-            style={{ visibility: isAtMaxWeek ? "hidden" : "visible" }}
-          >
-            Next Week
-          </button>
         </div>
         {/* Legend for colours on the calendar */}
         <div className="ba-cal-legend">
@@ -591,11 +584,10 @@ export function StepChooseTime({
                     <th
                       key={day}
                       className="ba-cal-th"
-                      style={{ opacity: !isActive || isDimmed(day) || isPast ? 0.25 : 1 }}
                     >
                       {shortName}
                       <br />
-                      <span style={{ fontWeight: 400, color: "var(--gray-500)" }}>
+                      <span style={{ fontWeight: 400, }}>
                         {formatDateShort(date)}
                       </span>
                     </th>
@@ -607,7 +599,7 @@ export function StepChooseTime({
               {visibleSlots.map((time, rowIdx) => (
                 <tr key={time}>
                   <td className="ba-cal-td time-col">
-                    {rowIdx % 2 === 0 ? formatTime(time) : ""}
+                    {rowIdx % 2 === 0 ? formatTime(time) : "\u00A0"}
                   </td>
                   {WEEK_DAY_ORDER.map((day) => {
                     const isActive = activeDayConfigs.some((c) => c.day_of_week === day);
@@ -624,17 +616,20 @@ export function StepChooseTime({
                         className="ba-cal-td"
                         style={{ pointerEvents: showSlot ? "auto" : "none" }}
                       >
-                        {showSlot && (
+                        {showSlot ? (
                           <div
-                            className={`ba-slot ${
-                              selected ? "selected" : existing ? "existing" : "avail"
-                            }`}
+                            className={`ba-slot ${selected ? "selected" : existing ? "existing" : "avail"
+                              }`}
+                            style={{
+                              visibility: availLoading ? "hidden" : "visible",
+                              opacity: availLoading ? 0 : 1,
+                              transition: "opacity 3s",
+                            }}
                             onClick={() => handleSlotClick(day, time)}
                             tabIndex={0}
                             role="button"
-                            aria-label={`${
-                              selected ? "Appointment selected" : existing ? "Current appointment" : "Available"
-                            } slot: ${day} at ${time}`}
+                            aria-label={`${selected ? "Appointment selected" : existing ? "Current appointment" : "Available"
+                              } slot: ${day} at ${time}`}
                             onKeyDown={(e) => {
                               if (e.key === "Enter" || e.key === " ") {
                                 e.preventDefault();
@@ -642,6 +637,8 @@ export function StepChooseTime({
                               }
                             }}
                           />
+                        ) : (
+                          "\u00A0"
                         )}
                       </td>
                     );
@@ -736,7 +733,7 @@ export function StepReview({
     }
   }, [errors]);
 
-    const full_name = [form.first_name, form.last_name]
+  const full_name = [form.first_name, form.last_name]
     .filter(Boolean)
     .join(" ");
   const full_address = [

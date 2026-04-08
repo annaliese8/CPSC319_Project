@@ -27,7 +27,7 @@ import {
   deleteBlockedSlots,
 } from "../api/appointmentsAPI";
 import { getScheduleConfig, updateScheduleConfig } from "../api/scheduleConfigAPI";
-import { getApplicant, getApplicantByEmail, createApplicant } from "../api/applicantsAPI";
+import { getApplicant, getApplicantByEmail, createApplicant, getHouseholdMembers } from "../api/applicantsAPI";
 import { STATUS_OPTIONS } from "./AppointmentStatus.jsx";
 
 const WEEK_DAY_ORDER = [
@@ -277,6 +277,9 @@ function AdminCalendar({
   const [highlightedSlot, setHighlightedSlot] = useState(null);
   const [showBookingPanel, setShowBookingPanel] = useState(false);
   const [rebookingAppointment, setRebookingAppointment] = useState(null);
+  // Track isNewBooking as resettable state so it clears after the first booking,
+  // preventing subsequent "Change Appointment" clicks from using the wrong handler.
+  const [isNewBookingActive, setIsNewBookingActive] = useState(isNewBooking);
   const [openInfoDialog, setOpenInfoDialog] = useState(false);
   const [pendingConflicts, setPendingConflicts] = useState(null);
   const [conflictSource, setConflictSource] = useState(null); // "blocks" | "schedule"
@@ -683,10 +686,7 @@ function AdminCalendar({
   };
 
   const handleConfirmBooking = async (newData) => {
-    const dayIndex = days.indexOf(newData.day);
-    const date = new Date(weekStart);
-    date.setDate(weekStart.getDate() + dayIndex);
-    const dateStr = toDateStr(date);
+    const dateStr = newData.date;
 
     let responseId = newData.response_id ?? null;
     if (!responseId && newData.email) {
@@ -734,6 +734,7 @@ function AdminCalendar({
     setSelectedSlot(null);
     setRebookingAppointment(null);
     setHighlightedSlot(null);
+    setIsNewBookingActive(false);
 
     try {
       const created = await createAppointment({
@@ -758,10 +759,7 @@ function AdminCalendar({
 
   const handleConfirmRebooking = async (newData) => {
     const oldId = rebookingAppointment?.appointment_id;
-    const dayIndex = days.indexOf(newData.day);
-    const date = new Date(weekStart);
-    date.setDate(weekStart.getDate() + dayIndex);
-    const dateStr = toDateStr(date);
+    const dateStr = newData.date;
 
     setAppointments((prev) => [
       ...prev.filter((a) => a.appointment_id !== oldId),
@@ -1195,16 +1193,44 @@ function AdminCalendar({
         appointment={appointmentData}
         onDelete={handleDeleteAppointment}
         onStatusChange={handleStatusChange}
-        onChangeBooking={(apt) => {
+        onChangeBooking={async (apt) => {
           setOpenInfoDialog(false);
-          setRebookingAppointment(apt);
-          setHighlightedSlot({ day: apt.day, time: apt.startTime });
+          const slotDay = apt.day;
+          const slotTime = apt.startTime;
+          setHighlightedSlot({ day: slotDay, time: slotTime });
           setSelectedSlot({
-            day: apt.day,
-            time: apt.startTime,
+            day: slotDay,
+            time: slotTime,
             weekStart,
             date: apt.date ? new Date(apt.date + "T12:00:00") : new Date(weekStart),
           });
+          // Fetch full registration data so the locked fields are pre-filled
+          let fullApt = { ...apt };
+          if (apt.response_id) {
+            try {
+              const [reg, members] = await Promise.all([
+                getApplicant(apt.response_id),
+                getHouseholdMembers(apt.response_id),
+              ]);
+              if (reg) {
+                fullApt = {
+                  ...fullApt,
+                  email: reg.email_address || fullApt.email || "",
+                  phone: reg.phone || fullApt.phone || "",
+                  street_addr: reg.street_addr || "",
+                  city: reg.city || "",
+                  province: reg.province || "British Columbia",
+                  postal_code: reg.postal_code || "",
+                  status_in_canada: reg.status_in_canada || "",
+                  language: reg.language || "English",
+                  tiny_bundles_program: reg.tiny_bundles_program ?? false,
+                  householdMembers: members?.data ?? members ?? [],
+                };
+              }
+            } catch { /* non-fatal — panel will open with whatever data is available */ }
+          }
+          setRebookingAppointment(fullApt);
+          setIsNewBookingActive(false);
           setShowBookingPanel(true);
         }}
       />
@@ -1219,18 +1245,19 @@ function AdminCalendar({
             setHighlightedSlot(null);
           }}
           onConfirmBooking={
-            rebookingAppointment && !isNewBooking
+            rebookingAppointment && !isNewBookingActive
               ? handleConfirmRebooking
               : handleConfirmBooking
           }
           existingAppointments={
-            rebookingAppointment && !isNewBooking
+            rebookingAppointment && !isNewBookingActive
               ? appointments.filter((a) => a.response_id !== rebookingAppointment.response_id)
               : appointments
           }
           blockedSlots={savedBlocked}
+          scheduleConfig={savedScheduleConfig}
           rebookingAppointment={rebookingAppointment}
-          isNewBooking={isNewBooking}
+          isNewBooking={isNewBookingActive}
         />
       )}
     </div>
