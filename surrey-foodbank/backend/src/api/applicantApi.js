@@ -56,7 +56,7 @@ function buildAppointmentPayload(appointmentRow) {
         date: new Date(`${dateValue}T${String(timeValue).slice(0, 8)}`).toISOString(),
         startTime: startTimeHHMM,
         duration: durationMinutes,
-        status: appointmentRow[APPOINTMENT_STATUS_COLUMN] || "booked",
+        status: appointmentRow[APPOINTMENT_STATUS_COLUMN] || "Booked",
     }
 }
 
@@ -348,7 +348,7 @@ async function saveAppointment(email, payload) {
         [APPOINTMENT_DATE_COLUMN]: date,
         [APPOINTMENT_TIME_COLUMN]: startTime,
         [APPOINTMENT_DURATION_COLUMN]: duration,
-        [APPOINTMENT_STATUS_COLUMN]: "booked",
+        [APPOINTMENT_STATUS_COLUMN]: "Booked",
     }
 
     let savedRow

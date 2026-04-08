@@ -701,7 +701,7 @@ export function StepChooseTime({
         <button
           className="ba-btn ba-btn-primary"
           onClick={onNext}
-          disabled={!selectedSlot}
+          disabled={!selectedSlot || !onNext}
         >
           Next →
         </button>
@@ -885,7 +885,7 @@ export function StepReview({
         className="ba-footer"
         style={{ justifyContent: "center", gap: 16, marginTop: 12 }}
       >
-        <button className="ba-btn ba-btn-secondary" onClick={onBack}>
+        <button className="ba-btn ba-btn-secondary" onClick={onBack} disabled={!onBack}>
           ← Back
         </button>
         <button
