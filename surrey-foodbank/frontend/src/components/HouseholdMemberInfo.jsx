@@ -97,8 +97,6 @@ function AgeGroupPicker({
   /*dob,*/ onAgeGroup,
   /*onDob,*/ ageGroupError /*dobError*/,
 }) {
-  // const [showDob, setShowDob] = useState(!!dob);
-
   return (
     <Box>
       {/* Tiles */}
@@ -191,42 +189,6 @@ function AgeGroupPicker({
           {ageGroupError}
         </Typography>
       )}
-
-      {/* <Box
-        component="button"
-        type="button"
-        onClick={() => setShowDob((v) => !v)}
-        sx={{
-          background: "none",
-          border: "none",
-          cursor: "pointer",
-          display: "flex",
-          alignItems: "center",
-          gap: 0.5,
-          color: "var(--teal, #009688)",
-          fontSize: 12,
-          fontWeight: 600,
-          p: 0,
-          mb: showDob ? 1.5 : 0,
-          "&:hover": { textDecoration: "underline" },
-        }}
-      >
-        {showDob ? "▾" : "▸"} {showDob ? "Hide exact date of birth" : "Enter exact date of birth (optional)"}
-      </Box>
-
-      <Collapse in={showDob}>
-        <TextField
-          label="Date of Birth"
-          type="date"
-          value={dob}
-          onChange={(e) => onDob(e.target.value)}
-          error={!!dobError}
-          helperText={dobError}
-          InputLabelProps={{ shrink: true }}
-          size="small"
-          sx={{ background: "#fff", borderRadius: 1, width: "100%", maxWidth: 240 }}
-        />
-      </Collapse> */}
     </Box>
   );
 }
@@ -248,10 +210,6 @@ function MemberCard({ member, idx, onField, onRemove, errors }) {
     [member.firstName, member.lastName].filter(Boolean).join(" ") ||
     "New Member";
   const ageGroupConfig = AGE_GROUPS.find((g) => g.key === member.ageGroup);
-
-  // const dobFormatted = member.dob
-  //   ? new Date(member.dob + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
-  //   : null;
 
   return (
     <Box
@@ -446,17 +404,7 @@ function MemberCard({ member, idx, onField, onRemove, errors }) {
             ageGroup={member.ageGroup}
             onAgeGroup={(val) => onField("ageGroup", val)}
             ageGroupError={errors?.ageGroup}
-          // dobError={errors?.dob}
-          // dob={member.dob}
-          // onDob={(val) => onField("dob", val)}
           />
-
-          {/* <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}>
-            <Button size="small" variant="contained" onClick={() => setExpanded(false)}
-              sx={{ textTransform: "none", fontWeight: 600, fontSize: 13, borderRadius: "8px", px: 2.5 }}>
-              Done
-            </Button>
-          </Box> */}
         </Box>
       </Collapse>
     </Box>

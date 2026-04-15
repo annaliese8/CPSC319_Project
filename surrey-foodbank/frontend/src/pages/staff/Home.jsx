@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from "react";
-import { Box } from "@mui/material";
+import React, { useState, useEffect, useCallback } from "react";
+import { Box, Button, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions } from "@mui/material";
 import StaffTopBar from "../../components/StaffTopBar";
 import WelcomePanel from "../../components/WelcomePanel";
 import AdminCalendarPanel from "../../components/AdminCalendarPanel";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useSessionTimeout } from "../../hooks/useSessionTimeout";
 
 function Home() {
   const [isEditing, setIsEditing] = useState(false);
@@ -11,6 +12,7 @@ function Home() {
   const [saved, setSaved] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
   const [toggleBookingPanel, setToggleBookingPanel] = useState(0);
+  const [showTimeoutWarning, setShowTimeoutWarning] = useState(false);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -31,9 +33,20 @@ function Home() {
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleLogout = () => {
-    localStorage.removeItem("staffAuth");
+  const handleLogout = useCallback(() => {
+    sessionStorage.removeItem("staffAuth");
     navigate(`/${staffBase}/login`);
+  }, [navigate, staffBase]);
+
+  const handleWarning = useCallback(() => {
+    setShowTimeoutWarning(true);
+  }, []);
+
+  const resetTimer = useSessionTimeout(handleLogout, handleWarning);
+
+  const handleStayLoggedIn = () => {
+    setShowTimeoutWarning(false);
+    resetTimer();
   };
 
   const handleEditSlots = () => {
@@ -93,6 +106,23 @@ function Home() {
           saveConfirmed={handleConfirm}
         />
       </Box>
+
+      <Dialog open={showTimeoutWarning} onClose={handleStayLoggedIn}>
+        <DialogTitle>Session Expiring Soon</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            You will be logged out in 1 minute due to inactivity. Do you want to stay logged in?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleLogout} color="error">
+            Log Out
+          </Button>
+          <Button onClick={handleStayLoggedIn} variant="contained" autoFocus>
+            Stay Logged In
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

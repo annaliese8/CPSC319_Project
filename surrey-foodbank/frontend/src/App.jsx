@@ -16,11 +16,15 @@ import ResetPassword from "./pages/ResetPassword";
 const staffBase = import.meta.env.VITE_STAFF_BASE;
 
 function StaffRoute({ children }) {
-  if (!localStorage.getItem("staffAuth")) {
-    return <Navigate to={`/${staffBase}/login`} replace />;
+  const raw = sessionStorage.getItem("staffAuth");
+  if (raw) {
+    try {
+      const { expiry } = JSON.parse(raw);
+      if (Date.now() < expiry) return children;
+    } catch { /* fall through */ }
   }
-
-  return children;
+  sessionStorage.removeItem("staffAuth");
+  return <Navigate to={`/${staffBase}/login`} replace />;
 }
 
 function App() {
@@ -34,7 +38,7 @@ function App() {
           {/* Secret staff admin */}
           <Route path={`/${staffBase}/login`} element={<StaffLogin />} />
 
-          {/* Staff routes — protected by localStorage session */}
+          {/* Staff routes — protected by sessionStorage session */}
           <Route path="/staff/home" element={<StaffRoute><StaffHome /></StaffRoute>} />
           <Route path="/staff/applicant-info" element={<StaffRoute><StaffApplicantInfo /></StaffRoute>} />
           <Route path="/staff/applicant-database" element={<StaffRoute><StaffApplicantDatabase /></StaffRoute>} />
