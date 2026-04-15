@@ -249,46 +249,6 @@ export default function Register() {
       return;
     }
 
-    // setIsSubmitting(true);
-
-    // const supabase = getSupabaseClient();
-    // const { data } = await supabase.auth.getSession();
-    // const accessToken = data?.session?.access_token;
-
-    // if (!accessToken) {
-    //   setIsSubmitting(false);
-    //   setSubmitError("Your session has expired. Please log in again.");
-    //   navigate("/applicant/login", { replace: true });
-    //   return;
-    // }
-
-    // const apiBase = getApiBaseUrl();
-
-    // try {
-    //   const response = await fetch(`${apiBase}/api/applicant/register`, {
-    //     method: "POST",
-    //     headers: {
-    //       "Content-Type": "application/json",
-    //       Authorization: `Bearer ${accessToken}`,
-    //     },
-    //     body: JSON.stringify(toRegistrationDbPayload(form, householdMembers)),
-    //   });
-
-    //   const result = await response.json().catch(() => null);
-    //   if (!response.ok) {
-    //     const message =
-    //       result?.error ||
-    //       "Unable to save your registration right now. Please try again.";
-    //     setSubmitError(message);
-    //     setIsSubmitting(false);
-    //     return;
-    //   }
-    // } catch (_error) {
-    //   setSubmitError("Unable to save your registration right now. Please try again.");
-    //   setIsSubmitting(false);
-    //   return;
-    // }
-
     // Save to applicant record on successful validation
     if (applicantKey) {
       const existing = JSON.parse(localStorage.getItem(applicantKey) || "{}");
