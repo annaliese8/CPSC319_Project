@@ -5,10 +5,6 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import Divider from "@mui/material/Divider";
 import EmailField from "../../components/EmailField";
 import { Link } from "react-router-dom";
-import List from "@mui/material/List";
-import ListItem from "@mui/material/ListItem";
-import ListItemIcon from "@mui/material/ListItemIcon";
-import ListItemText from "@mui/material/ListItemText";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import MuiLink from "@mui/material/Link";
@@ -226,6 +222,17 @@ const T = {
   },
 };
 
+// ─── Numeral helpers ─────────────────────────────────────────────────────────
+
+const AR_DIGITS = "٠١٢٣٤٥٦٧٨٩";   // Eastern Arabic-Indic  (Arabic)
+const FA_DIGITS = "۰۱۲۳۴۵۶۷۸۹";   // Extended Arabic-Indic (Farsi / Pashto)
+
+function toLocalNumeral(n, langCode) {
+  const digits = langCode === "ar" ? AR_DIGITS : ["fa", "ps"].includes(langCode) ? FA_DIGITS : null;
+  if (!digits) return String(n);
+  return String(n).replace(/[0-9]/g, (d) => digits[d]);
+}
+
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
 function EmailFormatGuide({ t }) {
@@ -361,8 +368,19 @@ function CreateAccount() {
   const t = T[langCode];
   const dir = LANGUAGES.find((l) => l.code === langCode)?.dir || "ltr";
 
-  const listItemIconStyle = { fontSize: "2rem", fontWeight: "bold", color: "warning.main" };
-  const listItemTextStyle = { primary: { fontSize: "1.2rem" }, secondary: { fontSize: "1.05rem" } };
+  const steps = [
+    {
+      primary: t.step1,
+      secondary: <>{t.step1sub}{" "}<MuiLink component={Link} to="/applicant/login" color="primary">{t.step1subHere}</MuiLink></>,
+    },
+    { primary: t.step2 },
+    { primary: t.step3, secondary: t.step3sub },
+    {
+      primary: <>{t.step4}{" "}<MuiLink component={Link} to="https://maps.app.goo.gl/1H39wzvMBqmki2se6" color="primary" aria-label="Google Maps of Surrey Food Bank's registration office">{t.step4link}</MuiLink></>,
+      secondary: t.step4sub,
+    },
+    { primary: t.step5 },
+  ];
 
   const PASSWORD_RULES = [
     { id: "length", label: t.pwLength, test: (v) => v.length >= 10 },
@@ -556,42 +574,23 @@ function CreateAccount() {
             <Divider sx={{ borderColor: "warning.main", borderBottomWidth: 3, mb: 3, width: 280 }} />
             <Typography variant="h6" sx={{ mb: 0.5 }}>{t.prospective}</Typography>
             <Typography variant="h6" color="text.secondary" sx={{ mb: 3 }}>{t.followSteps}</Typography>
-            <List disablePadding sx={{ width: "100%", maxWidth: 520 }}>
-              <ListItem alignItems="flex-start" disableGutters>
-                <ListItemIcon sx={{ minWidth: 40 }}><Typography sx={listItemIconStyle}>1.</Typography></ListItemIcon>
-                <ListItemText
-                  primary={t.step1}
-                  secondary={<>{t.step1sub} <MuiLink component={Link} to="/applicant/login" color="primary" aria-label="Log in">
-                    {t.step1subHere}
-                  </MuiLink></>}
-                  slotProps={listItemTextStyle}
-                />
-              </ListItem>
-              <ListItem alignItems="flex-start" disableGutters>
-                <ListItemIcon sx={{ minWidth: 40 }}><Typography sx={listItemIconStyle}>2.</Typography></ListItemIcon>
-                <ListItemText primary={t.step2} slotProps={listItemTextStyle} />
-              </ListItem>
-              <ListItem alignItems="flex-start" disableGutters>
-                <ListItemIcon sx={{ minWidth: 40 }}><Typography sx={listItemIconStyle}>3.</Typography></ListItemIcon>
-                <ListItemText primary={t.step3} secondary={t.step3sub} slotProps={listItemTextStyle} />
-              </ListItem>
-              <ListItem alignItems="flex-start" disableGutters>
-                <ListItemIcon sx={{ minWidth: 40 }}><Typography sx={listItemIconStyle}>4.</Typography></ListItemIcon>
-                <ListItemText
-                  primary={<>{t.step4}{" "}
-                    <MuiLink component={Link} to="https://maps.app.goo.gl/1H39wzvMBqmki2se6" color="primary" aria-label="Google Maps of Surrey Food Bank's registration office">
-                      {t.step4link}
-                    </MuiLink>
-                  </>}
-                  secondary={t.step4sub}
-                  slotProps={listItemTextStyle}
-                />
-              </ListItem>
-              <ListItem alignItems="flex-start" disableGutters>
-                <ListItemIcon sx={{ minWidth: 40 }}><Typography sx={listItemIconStyle}>5.</Typography></ListItemIcon>
-                <ListItemText primary={t.step5} slotProps={listItemTextStyle} />
-              </ListItem>
-            </List>
+            <Stack spacing={1.5} sx={{ width: "100%", maxWidth: 520 }}>
+              {steps.map((step, i) => (
+                <Box key={i} sx={{ display: "flex", alignItems: "flex-start", gap: 1.5 }}>
+                  <Typography sx={{ fontSize: "1.4rem", fontWeight: "bold", color: "warning.main", flexShrink: 0, lineHeight: 1.5, minWidth: 32, textAlign: "start" }}>
+                    {toLocalNumeral(i + 1, langCode)}.
+                  </Typography>
+                  <Box sx={{ pt: "2px" }}>
+                    <Typography component="div" sx={{ fontSize: "1.2rem", lineHeight: 1.5 }}>{step.primary}</Typography>
+                    {step.secondary && (
+                      <Typography component="div" variant="body2" color="text.secondary" sx={{ fontSize: "1.05rem", mt: 0.25 }}>
+                        {step.secondary}
+                      </Typography>
+                    )}
+                  </Box>
+                </Box>
+              ))}
+            </Stack>
           </Box>
 
           {/* ── RIGHT: Account Creation Form ── */}

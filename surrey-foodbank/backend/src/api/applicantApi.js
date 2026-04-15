@@ -378,7 +378,7 @@ async function saveAppointment(email, payload) {
         savedRow = insertedRows?.[0] || null
     }
 
-    // send email — fire-and-forget so email failures don't block the booking response
+    // send email 
     getApplicantName(supabase, email)
         .then((names) => sendConfirmationEmail(names.first_name, names.last_name, email, date, startTime, duration))
         .catch((err) => console.error("Confirmation email failed:", err));
@@ -409,7 +409,7 @@ async function removeAppointment(email) {
         throw makeHttpError(500, "Unable to cancel appointment.")
     }
 
-    // send email — fire-and-forget so email failures don't block the cancel response
+    // send email 
     getApplicantName(supabase, email)
         .then((names) => sendCancellationEmail(names.first_name, names.last_name, email, existingAppointment.appointment_date, existingAppointment.appointment_time))
         .catch((err) => console.error("Cancellation email failed:", err));
