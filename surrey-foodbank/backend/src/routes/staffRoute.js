@@ -1,5 +1,5 @@
 import express from "express"
-import { getSupabaseServiceClient } from "../lib/supabase.js"
+import { getSupabaseServiceClient, getSupabaseAnonClient } from "../lib/supabase.js"
 import {
   APPLICANT_TABLE,
   APPOINTMENT_TABLE,
@@ -12,9 +12,40 @@ import {
   APPOINTMENT_RESPONSE_ID_COLUMN,
   APPOINTMENT_STATUS_COLUMN,
   APPOINTMENT_DATE_COLUMN,
+  LOGIN_TABLE,
+  LOGIN_EMAIL_COLUMN,
+  LOGIN_ROLE_COLUMN,
 } from "../lib/supabase.js"
 
 const router = express.Router()
+
+router.post("/login", async (req, res) => {
+  const { email, password } = req.body || {}
+  if (!email || !password) {
+    return res.status(400).json({ error: "Email and password required." })
+  }
+  try {
+    // Verify credentials
+    const anonClient = getSupabaseAnonClient()
+    const { data: authData, error: authError } = await anonClient.auth.signInWithPassword({ email, password })
+    if (authError || !authData?.session) {
+      return res.status(401).json({ error: "Invalid credentials." })
+    }
+    // Verify staff role
+    const svc = getSupabaseServiceClient()
+    const { data: roleData, error: roleError } = await svc
+      .from(LOGIN_TABLE)
+      .select(LOGIN_ROLE_COLUMN)
+      .eq(LOGIN_EMAIL_COLUMN, email)
+      .single()
+    if (roleError || !roleData) {
+      return res.status(403).json({ error: "Access denied." })
+    }
+    return res.status(200).json({ ok: true, role: roleData[LOGIN_ROLE_COLUMN] })
+  } catch (err) {
+    return res.status(500).json({ error: err.message || "Login failed." })
+  }
+})
 
 router.get("/applicants", async (req, res) => {
   try {

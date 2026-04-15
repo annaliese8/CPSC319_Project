@@ -8,27 +8,39 @@ import Window from "../../components/Window";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-const ADMIN_PASSWORD = import.meta.env.VITE_STAFF_PASS;
-const ADMIN_USERNAME = import.meta.env.VITE_STAFF_USER;
-const STAFF_BASE = import.meta.env.VITE_STAFF_BASE || "staff";
+const BASE_URL = (import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_BASE_URL || "http://localhost:3000").replace(/\/$/, "");
+const SESSION_DURATION_MS = 8 * 60 * 60 * 1000; // 8 * 60 minutes = 8 hours
 
 function Login() {
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
   const [error, setError] = useState(false);
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleLogin = () => {
-    if (
-      password.trim() === ADMIN_PASSWORD?.trim() &&
-      username.trim() === ADMIN_USERNAME?.trim()
-    ) {
-      setError(false);
-      // Store a session flag so protected routes can verify login
-      localStorage.setItem("staffAuth", "true");
-      navigate("/staff/home");
-    } else {
+  const handleLogin = async () => {
+    if (!username.trim() || !password.trim()) {
       setError(true);
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await fetch(`${BASE_URL}/api/staff/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: username.trim(), password: password.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        setError(true);
+        return;
+      }
+      sessionStorage.setItem("staffAuth", JSON.stringify({ expiry: Date.now() + SESSION_DURATION_MS }));
+      navigate("/staff/home");
+    } catch {
+      setError(true);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -79,8 +91,9 @@ function Login() {
             onClick={handleLogin}
             size="large"
             sx={{ fontWeight: "bold" }}
+            disabled={loading}
           >
-            Log In
+            {loading ? "Logging in…" : "Log In"}
           </Button>
         </Stack>
       </Window>

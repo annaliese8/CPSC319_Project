@@ -100,12 +100,8 @@ Note: To view table contents from the database, they will be printed in your bro
 8. Set up environment variables
 ```bash
 echo "VITE_STAFF_BASE=<your staff URL base>
-   VITE_STAFF_USERNAME=<your staff username>
-   VITE_STAFF_PASSWORD=<your staff password>
    VITE_SUPABASE_ANON_KEY=<your Supabase anon key>
    VITE_SUPABASE_URL=<your Supabase URL>
-   VITE_API_BASE_URL=<your backend URL>
-   VITE_BACKEND_URL=<your backend host URL>
 " > .env
 ```
 
