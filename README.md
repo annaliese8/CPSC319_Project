@@ -6,13 +6,30 @@ README.md
 This web application allows prospective clients of The Surrey Food bank to book a registration appointment, and staff to manage the appointments.
 
 ## Features
-- Applicants can create an account, complete a registration form, and book an appointment on behalf of their household
-- Applicants can reschedule or cancel their appointments and edit their registration form
-- Staff can access the application through a secure login portal
-- Staff can easily view and manage appointments on a weekly-view calendar
-- Staff can book, change, and cancel appointments on behalf of applicants
-- Staff can browse and search through a database of registered applicants
-- Staff can block appointment time slots to mark unavailability
+Click below to watch a video that demonstrates the main features of our application!
+[![Watch the video](https://img.youtube.com/vi/QumKEPrSS0Y/0.jpg)](https://www.youtube.com/watch?v=QumKEPrSS0Y)
+
+### Applicants can...
+- view registration instructions on the account creation page in five supported languages
+- create an account to save registration progress and continue at any time
+- reset their password if they forget their login credentials
+- fill out a questionnaire form with basic information
+- be redirected to alternate resources if they are ineligible due to their age, address, or status in Canada
+- add information about additional members in their household
+- book an appointment up to two weeks in advance, with the length depending on their household size
+- reschedule or cancel their appointments
+- edit their registration form responses
+- receive a confirmation email whenever their appointment is booked, rescheduled, or cancelled
+- visit the application on their computer or cellphone browsers
+### Staff can...
+- access the application through a secure login portal
+- easily view and manage appointments on a weekly-view calendar
+- book, modify, and cancel appointments on behalf of applicants
+- view and edit the status of appointments (eg. checked-in, no show, etc.)
+- browse and search through a database of registered applicants
+- export appointment data as a .xslx file to view in Excel
+- block appointment time slots to mark unavailability
+- configure the opening days and hours
 
 ## Tech Stack
 | Layer       | Technology                       |
@@ -25,13 +42,14 @@ This web application allows prospective clients of The Surrey Food bank to book 
 | Testing     | Vitest + React Testing Library   |
 | CI/CD       | GitHub Actions                   |
 | Hosting     | GitHub Pages                     |
+| Email       | MailGun & Supabase               |
 
 ## Quick Start
 
 ### Assumptions:
-- Works on macOS, Windows, and Linux. No OS‑specific version requirements. 
-- The .env variables for running locally are in the final evaluation document. They allow you to connect to the database and log into the staff side.
-- The admin login account credentials are in the final evaluation document.
+- The staff login credentials are in the handover document.
+- When running locally, you will need keys for the .env that allow you to connect to the Supabase database and MailGun client.
+- Running locally works on macOS, Windows, and Linux. No OS‑specific version requirements. 
 
 ### Option 1: Visit the Deployed App
 The app is hosted on GitHub Pages.
@@ -39,14 +57,18 @@ The app is hosted on GitHub Pages.
 The applicant side of the application can be accessed here:
 [https://annaliese8.github.io/CPSC319_Project/](https://annaliese8.github.io/CPSC319_Project/)
 
-To access the staff side of the application, copy the following link and replace <VITE_STAFF_BASE> with the value specified in the final project evaluation document: [http://localhost:5173/CPSC319_Project/#/<VITE_STAFF_BASE>/login](http://localhost:5173/CPSC319_Project/#/<VITE_STAFF_BASE>/login)
+To access the staff side of the application, copy the following link and replace <VITE_STAFF_BASE> with the value specified in the handover document: [http://localhost:5173/CPSC319_Project/#/<VITE_STAFF_BASE>/login](http://localhost:5173/CPSC319_Project/#/<VITE_STAFF_BASE>/login)
 
 Note: To view table contents from the database, they will be printed in your browser at https://surreyfoodbank.onrender.com/api/[TABLE_NAME] (i.e., to view the contents of the `applicants` table, navigate to https://surreyfoodbank.onrender.com/api/applicants).
 
 ### Option 2: Running Locally
+
+Click below to watch a detailed tutorial on how to set up the project locally:
+[![Watch the video](https://img.youtube.com/vi/SoSzSr46Vf4/0.jpg)](https://www.youtube.com/watch?v=SoSzSr46Vf4)
+
 #### Prerequisites
 
-IMPORTANT: All .env variables can be found in the final evaluation document. They are required when running locally to be able to contact the database, and log into the staff side of the application.
+IMPORTANT: You will need keys for the .env files that allow you to connect to the Supabase database and MailGun client. They are required when running locally to be able to contact the database, send emails, and log into the staff side of the application.
 
 0. Requires Node.js v20+ and npm 9+. [Download here.](https://nodejs.org/en/download)
 ```bash
@@ -72,11 +94,9 @@ IMPORTANT: All .env variables can be found in the final evaluation document. The
    npm install
 ```
 
-4. Set up environment variables
+4. Set up the environment variables by running the command below, opening the newly created .env file, and replacing the placeholder values with your actual credentials.
 ```bash
-echo "SUPABASE_URL=<your Supabase URL>
-SUPABASE_ANON_KEY=<your Supabase anon key>
-SUPABASE_SERVICE_ROLE_KEY=<your Supabase service role key>" > .env
+   cp .env.example .env
 ```
 
 5. Start the backend server
@@ -97,12 +117,9 @@ Note: To view table contents from the database, they will be printed in your bro
    npm install
 ```
 
-8. Set up environment variables
+8. Set up the environment variables by running the command below, opening the newly created .env file, and replacing the placeholder values with your actual credentials.
 ```bash
-echo "VITE_STAFF_BASE=<your staff URL base>
-   VITE_SUPABASE_ANON_KEY=<your Supabase anon key>
-   VITE_SUPABASE_URL=<your Supabase URL>
-" > .env
+   cp .env.example .env
 ```
 
 9. Start the frontend server
@@ -112,15 +129,15 @@ echo "VITE_STAFF_BASE=<your staff URL base>
 
 10. Visit the app:
    - **Applicant side:** [http://localhost:5173/CPSC319_Project/](http://localhost:5173/CPSC319_Project/)
-   - **Staff side:** `http://localhost:5173/CPSC319_Project/#/<VITE_STAFF_BASE>/login` (replace <VITE_STAFF_BASE> with value from final evaluation document)
+   - **Staff side:** `http://localhost:5173/CPSC319_Project/#/<VITE_STAFF_BASE>/login` (replace <VITE_STAFF_BASE> with value from the handover document)
 
 ## Testing
-Testing the backend: navigate to the backend folder and run:
+To test the backend locally, navigate to the backend folder and run:
 ```bash
 npm run test
 ```
 
-Testing the frontend: navigate to the frontend folder and run:
+To test the frontend locally, navigate to the frontend folder and run:
 ```bash
 npm run test
 ```
